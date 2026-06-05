@@ -1,0 +1,93 @@
+name: Deploy — Production
+
+on:
+  push:
+    tags:
+      - 'v*'   # v1.0.0 형식 태그 시 트리거
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  APP_NAME: api        # TODO: 앱 이름
+  SUFFIX: prod
+  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  CONTAINER_APP_ENV: ${{ secrets.AZURE_CONTAINER_APP_ENV }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production   # GitHub Environment 보호 규칙 적용
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 버전 추출
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Azure 로그인 (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR 로그인
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+          username: ${{ fromJSON(steps.azure-login.outputs.login-info).username }}
+          password: ${{ fromJSON(steps.azure-login.outputs.login-info).password }}
+
+      - name: Docker 빌드 및 ACR 푸시
+        env:
+          IMAGE: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ env.APP_NAME }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          docker build -t $IMAGE:$VERSION -t $IMAGE:latest .
+          docker push $IMAGE:$VERSION
+          docker push $IMAGE:latest
+          echo "IMAGE_TAG=$IMAGE:$VERSION" >> $GITHUB_ENV
+
+      - name: DB 마이그레이션
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="${{ secrets.DB_CONNECTION_STRING }}" \
+            ${{ env.IMAGE_TAG }} \
+            sh -c "npm run migrate"
+
+      - name: Container App 배포
+        id: deploy
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
+          containerAppName: ${{ env.APP_NAME }}-${{ env.SUFFIX }}
+          imageToDeploy: ${{ env.IMAGE_TAG }}
+          targetPort: 3000
+
+      - name: 헬스체크
+        id: health
+        run: |
+          sleep 20
+          URL=$(az containerapp show \
+            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          curl -f "https://$URL/health" || exit 1
+          echo "PROD_URL=https://$URL" >> $GITHUB_OUTPUT
+
+      - name: 배포 실패 시 자동 롤백
+        if: failure() && steps.deploy.outcome == 'success'
+        run: |
+          PREV=$(az containerapp revision list \
+            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[-2].name" -o tsv)
+          az containerapp ingress traffic set \
+            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision-weight $PREV=100
+          echo "::error::헬스체크 실패 — 이전 revision으로 롤백 완료"

@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image (validation only)
+        run: docker build -t hybrid-ra-saas:ci .
+        # TODO: Dockerfile 위치 조정 (예: -f apps/api/Dockerfile)
+
+      - name: Run tests
+        run: docker run --rm hybrid-ra-saas:ci sh -c "npm test"
+        # TODO: 스택에 맞게 테스트 명령 변경
+        # Node.js: npm test | pytest | go test ./... | cargo test
+
+      - name: Lint check
+        run: docker run --rm hybrid-ra-saas:ci sh -c "npm run lint"
+        # TODO: 스택에 맞게 lint 명령 변경

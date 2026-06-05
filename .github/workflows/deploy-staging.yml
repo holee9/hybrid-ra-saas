@@ -1,0 +1,79 @@
+name: Deploy — Staging
+
+on:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+permissions:
+  id-token: write   # OIDC 토큰 발급 필수
+  contents: read
+
+env:
+  APP_NAME: api        # TODO: 앱 이름 (api, frontend 등)
+  SUFFIX: staging
+  RESOURCE_GROUP: rg-hybrid-ra-saas-staging
+  CONTAINER_APP_ENV: ${{ secrets.AZURE_CONTAINER_APP_ENV }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure 로그인 (OIDC — 패스워드 없음)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR 로그인
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+          username: ${{ fromJSON(steps.azure-login.outputs.login-info).username }}
+          password: ${{ fromJSON(steps.azure-login.outputs.login-info).password }}
+
+      - name: Docker 빌드 및 ACR 푸시
+        env:
+          IMAGE: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ env.APP_NAME }}
+          TAG: ${{ github.sha }}
+        run: |
+          docker build -t $IMAGE:$TAG -t $IMAGE:$SUFFIX-latest .
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:$SUFFIX-latest
+          echo "IMAGE_TAG=$IMAGE:$TAG" >> $GITHUB_ENV
+        # TODO: 멀티 컨테이너 시 빌드 반복
+
+      - name: DB 마이그레이션
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="${{ secrets.DB_CONNECTION_STRING }}" \
+            ${{ env.IMAGE_TAG }} \
+            sh -c "npm run migrate"
+        # TODO: 마이그레이션 명령 조정 (prisma migrate deploy / alembic upgrade head 등)
+
+      - name: Container App 배포
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
+          containerAppName: ${{ env.APP_NAME }}-${{ env.SUFFIX }}
+          imageToDeploy: ${{ env.IMAGE_TAG }}
+          targetPort: 3000
+          # TODO: 포트 및 환경변수 조정
+
+      - name: 헬스체크
+        run: |
+          sleep 15
+          URL=$(az containerapp show \
+            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          curl -f "https://$URL/health" || exit 1
