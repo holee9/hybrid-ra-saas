@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Global Hybrid AI RA Specialist Review Proposal</title><style>
+    :root { --navy:#0b2a5b; --blue:#0b63ce; --teal:#008a95; --mint:#e9f8f8; --pale:#f3f8ff; --ink:#1f2937; --muted:#64748b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color:var(--ink); background:linear-gradient(120deg,#eef6ff,#ffffff 40%,#eefbfc); }
+    nav { position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:center; justify-content:space-between; padding:12px 22px; background:rgba(255,255,255,.88); backdrop-filter: blur(10px); border-bottom:1px solid #dbeafe; }
+    nav .brand { font-weight:900; color:var(--navy); letter-spacing:-.02em; }
+    nav a { text-decoration:none; color:var(--blue); font-weight:700; font-size:14px; padding:7px 10px; border-radius:999px; }
+    nav a:hover { background:#eaf3ff; }
+    .deck { width:min(1180px, 96vw); margin:22px auto 60px; }
+    .slide { min-height:680px; margin:0 0 28px; border:1px solid #c7dcff; border-radius:28px; background:rgba(255,255,255,.94); box-shadow:0 18px 50px rgba(15,42,91,.12); padding:36px 42px; position:relative; overflow:hidden; }
+    .slide:before { content:""; position:absolute; right:-70px; top:-60px; width:420px; height:260px; opacity:.12; background:radial-gradient(circle at 20% 30%, var(--blue) 2px, transparent 3px); background-size:18px 18px; transform:rotate(-8deg); }
+    .title { font-size:42px; line-height:1.05; color:var(--navy); font-weight:950; letter-spacing:-.06em; margin:0; }
+    .subtitle { font-size:20px; color:var(--teal); font-weight:850; margin:10px 0 4px; }
+    .small { color:#334155; font-weight:650; }
+    .grid3 { display:grid; grid-template-columns:1fr .74fr 1fr; gap:26px; align-items:stretch; margin-top:30px; }
+    .panel { border:1px solid #bfdbfe; border-radius:18px; background:linear-gradient(#fff,#f8fbff); padding:18px; box-shadow:0 8px 20px rgba(11,99,206,.06); position:relative; }
+    .panel h3 { margin:0 0 14px; color:var(--navy); font-size:18px; font-weight:900; }
+    .panel.teal { border-color:#99f6e4; background:linear-gradient(#fff,#f0fdfa); }
+    .icon-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+    .icon-card { min-height:92px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; border:1px solid #dbeafe; border-radius:14px; background:white; padding:10px; font-weight:750; }
+    .icon { font-size:30px; margin-bottom:6px; }
+    .sync-list { display:grid; gap:12px; }
+    .sync-item { display:flex; align-items:center; gap:12px; padding:13px; border-radius:14px; background:#e9f8f8; border:1px solid #b6eeee; font-weight:760; }
+    .arrow { position:relative; display:flex; align-items:center; justify-content:center; color:var(--blue); font-size:36px; font-weight:900; }
+    .values { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:24px; }
+    .value { border:1px solid #bfdbfe; border-radius:18px; padding:18px; background:white; min-height:138px; box-shadow:0 10px 22px rgba(2,6,23,.06); }
+    .value b { display:block; color:var(--blue); font-size:21px; margin:8px 0 4px; }
+    .factbox { border:1px solid #bfdbfe; border-radius:18px; padding:18px; background:#f8fbff; }
+    .factbox h3, .section-title { color:var(--navy); margin:0 0 12px; font-size:22px; font-weight:900; }
+    .check { margin:8px 0; padding-left:24px; position:relative; }
+    .check:before { content:"✓"; position:absolute; left:0; top:0; color:var(--blue); font-weight:950; }
+    .twocol { display:grid; grid-template-columns:1fr 1fr; gap:34px; margin-top:28px; }
+    .stack { display:grid; gap:12px; }
+    .problem, .solution { display:grid; grid-template-columns:70px 1fr; gap:14px; align-items:center; border:1px solid #dbeafe; border-radius:16px; background:#fff; padding:15px; min-height:96px; }
+    .solution { border-color:#b6eeee; }
+    .num { width:44px; height:44px; border-radius:50%; background:var(--blue); color:white; display:flex; align-items:center; justify-content:center; font-weight:900; }
+    .solution .num { background:var(--teal); }
+    .problem h4, .solution h4 { margin:0 0 4px; color:var(--navy); font-size:19px; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:22px; }
+    .metric { border:1px solid #bfdbfe; border-radius:18px; background:#fff; padding:16px; text-align:center; }
+    .metric strong { display:block; color:var(--blue); font-size:28px; letter-spacing:-.04em; margin-top:6px; }
+    .arch { display:grid; grid-template-columns:1.3fr .88fr 1.3fr; gap:22px; margin-top:26px; align-items:stretch; }
+    .cards6 { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .mini { border:1px solid #dbeafe; background:#fff; border-radius:14px; padding:12px; font-weight:700; min-height:72px; }
+    .bottom3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:20px; }
+    .browser { margin-top:20px; border:1px solid #bfdbfe; border-radius:20px; overflow:hidden; background:white; box-shadow:0 16px 35px rgba(11,42,91,.12); }
+    .browserbar { height:46px; background:#eff6ff; display:flex; align-items:center; gap:10px; padding:0 14px; border-bottom:1px solid #bfdbfe; }
+    .dot { width:10px; height:10px; border-radius:50%; background:#94a3b8; }
+    .url { margin-left:10px; flex:1; background:white; border:1px solid #dbeafe; padding:8px 12px; border-radius:999px; color:#334155; font-size:13px; }
+    .dash { display:grid; grid-template-columns:180px 1fr; min-height:480px; }
+    .sidebar { background:var(--navy); color:white; padding:20px; }
+    .sidebar div { padding:9px 0; opacity:.95; font-weight:700; }
+    .mainui { padding:20px; background:#f8fbff; }
+    .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .kpi { background:white; border:1px solid #dbeafe; border-radius:14px; padding:13px; }
+    .kpi strong { font-size:28px; color:var(--blue); display:block; }
+    table { width:100%; border-collapse:collapse; background:white; border-radius:14px; overflow:hidden; }
+    th { background:var(--blue); color:white; padding:10px; text-align:left; font-size:13px; }
+    td { padding:10px; border-bottom:1px solid #e2e8f0; font-size:13px; }
+    .status { display:inline-block; padding:4px 8px; border-radius:999px; background:#eaf3ff; color:var(--blue); font-weight:800; }
+    .flow { display:grid; gap:12px; margin-top:20px; }
+    .flowstep { border:1px solid #bfdbfe; border-radius:16px; background:white; padding:14px; display:grid; grid-template-columns:45px 1fr; gap:12px; align-items:center; }
+    .roadmap { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:28px; }
+    .phase { border:1px solid #bfdbfe; border-radius:18px; background:#fff; padding:18px; min-height:210px; }
+    .phase .tag { display:inline-block; padding:6px 12px; border-radius:10px; background:var(--blue); color:#fff; font-weight:900; margin-bottom:12px; }
+    .phase h3 { margin:0 0 8px; color:var(--navy); font-size:26px; }
+    .footer { position:absolute; bottom:14px; left:42px; right:42px; text-align:center; color:#64748b; font-size:13px; border-top:1px solid #dbeafe; padding-top:10px; }
+    .callout { margin-top:18px; padding:14px 18px; border:1px solid #99f6e4; border-radius:18px; background:#f0fdfa; font-weight:850; color:#0f4c5c; }
+    .pricing { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:18px; }
+    .price { background:white; border:1px solid #dbeafe; border-radius:16px; padding:16px; }
+    .price strong { color:var(--blue); font-size:24px; display:block; }
+    .refs { font-size:12px; line-height:1.6; color:#475569; }
+    @media print { nav { display:none; } .slide { break-after:page; margin:0; box-shadow:none; border-radius:0; min-height:96vh; } body { background:white; } }
+    </style></head>
+<body>
+<nav><div class="brand">Global Hybrid AI RA Specialist · Review Proposal</div><div><a href="#s1">개요</a><a href="#s2">문제/가치</a><a href="#s3">아키텍처</a><a href="#s4">운영모습</a><a href="#s5">사업화</a></div></nav>
+<div class="deck">
+<section id="s1" class="slide">
+<h1 class="title">글로벌 하이브리드 AI RA Specialist</h1>
+<div class="subtitle">의료기기 규제 대응을 위한 Hybrid AI Platform Proposal</div>
+<div class="small">대상: X-ray · 디텍터 · 촬영실 SW · 피부미용 초음파</div>
+<div class="grid3">
+  <div class="panel"><h3>☁️ Global Regulatory Knowledge Cloud</h3><div class="icon-grid"><div class="icon-card"><div class="icon">🏛️</div>FDA<br><small>(미국)</small></div><div class="icon-card"><div class="icon">🇰🇷</div>MFDS<br><small>(한국)</small></div><div class="icon-card"><div class="icon">🇪🇺</div>EU MDR<br><small>2017/745</small></div><div class="icon-card"><div class="icon">📚</div>공식 가이던스</div><div class="icon-card"><div class="icon">🔔</div>업데이트 감시</div><div class="icon-card"><div class="icon">🗄️</div>지식 아카이브</div></div></div>
+  <div class="panel teal"><h3>🛡️ Secure Sync Layer</h3><div class="sync-list"><div class="sync-item">📦 작은 페이로드 전송</div><div class="sync-item">🧬 메타데이터 동기화</div><div class="sync-item">🔒 아웃바운드 HTTPS</div><div class="sync-item">👥 고객 격리 구조</div></div></div>
+  <div class="panel"><h3>🖥️ Customer Local AI Runtime</h3><div class="icon-grid"><div class="icon-card"><div class="icon">📁</div>로컬 문서 저장소</div><div class="icon-card"><div class="icon">📄</div>문서 파서</div><div class="icon-card"><div class="icon">🔗</div>추적성 관리</div><div class="icon-card"><div class="icon">💬</div>RAG 엔진</div><div class="icon-card"><div class="icon">📊</div>검토 대시보드</div><div class="icon-card"><div class="icon">🧾</div>감사로그</div></div></div>
+</div>
+<div class="values"><div class="value"><span class="num">01</span><b>데이터 주권</b>민감 문서는 내부망 유지</div><div class="value"><span class="num">02</span><b>규제 지식 자동화</b>글로벌 규제 변경 감시</div><div class="value"><span class="num">03</span><b>문서 정합성</b>위험관리·SRS·IFU 추적성 점검</div><div class="value"><span class="num">04</span><b>실행 가능성</b>Docker 기반 로컬 배포</div></div>
+<div class="factbox" style="margin-top:18px"><h3>팩트 기반 설계 포인트</h3><div class="check">FDA는 의료기기와 X-ray·초음파 등 방사선 발생 제품을 규제</div><div class="check">EU MDR 2017/745 기반 대응 필요</div><div class="check">의료기기 사이버보안 문서화 요구 강화 추세</div><div class="check">내부망 중심 운영은 의료제조업 관점에서 수용성이 높음</div></div>
+<div class="footer">Review Proposal / Slide 1 · Executive Overview</div>
+</section>
+
+<section id="s2" class="slide">
+<h1 class="title">왜 지금 필요한가</h1><div class="subtitle">의료기기 스타트업과 중견기업이 겪는 규제 운영 병목</div>
+<div class="twocol"><div><h2 class="section-title">⚠️ 현장 문제</h2><div class="stack">
+  <div class="problem"><span class="num">01</span><div><h4>개발 후반 문서 소급 작성</h4>개발 완료 후 위험관리/요구사항 문서를 정리하며 일정 지연</div></div>
+  <div class="problem"><span class="num">02</span><div><h4>문서 간 불일치</h4>IFU, SRS, 시험서, 위험관리보고서 간 숫자·용어 불일치</div></div>
+  <div class="problem"><span class="num">03</span><div><h4>보안 우려</h4>퍼블릭 SaaS에 설계문서 업로드가 어려움</div></div>
+  <div class="problem"><span class="num">04</span><div><h4>규제 추적 수동화</h4>FDA, MFDS, EU MDR 변경 추적이 인력 의존적</div></div>
+</div></div><div><h2 class="section-title">🛡️ 제안 솔루션</h2><div class="stack">
+  <div class="solution"><span class="num">01</span><div><h4>개발 중 증적 생성</h4>문서 구조를 초기부터 표준 스키마로 정리</div></div>
+  <div class="solution"><span class="num">02</span><div><h4>정합성 가드레일</h4>추적성 검사로 제출 전 오류 차단</div></div>
+  <div class="solution"><span class="num">03</span><div><h4>로컬 AI 런타임</h4>민감 문서는 고객사 내부망에서만 처리</div></div>
+  <div class="solution"><span class="num">04</span><div><h4>규제 영향 분석</h4>변경 시 관련 제품군과 문서에 대한 영향도 제시</div></div>
+</div></div></div>
+<div class="metrics"><div class="metric">준비 시간 단축<strong>30~50%</strong>목표</div><div class="metric">파싱 정확도<strong>85%+</strong>핵심 필드 목표</div><div class="metric">검토 속도<strong>10분 이내</strong>핵심 문서세트</div><div class="metric">도입성<strong>1일 설치</strong>표준 패키지 목표</div></div>
+<div class="callout">핵심 포지셔닝: 컨설팅 대행이 아니라, 표준화된 셀프서비스 규제 운영 플랫폼</div>
+<div class="footer">Review Proposal / Slide 2 · Problem & Value</div>
+</section>
+
+<section id="s3" class="slide">
+<h1 class="title">실구축 아키텍처</h1><div class="subtitle">Cloud Control Plane + Customer Local Runtime + Secure Sync</div><div class="small">규제지식 중앙 관리, 보안 동기화, 로컬 AI 처리로 데이터 주권과 운영 효율을 동시에 실현</div>
+<div class="arch"><div class="panel"><h3>☁️ Cloud Control Plane</h3><div class="cards6"><div class="mini">🕷️ 규제 크롤러/수집</div><div class="mini">⚙️ 정규화 파이프라인</div><div class="mini">🧠 PostgreSQL + pgvector</div><div class="mini">🗄️ S3/Archive</div><div class="mini">🔔 Webhook Notifier</div><div class="mini">📈 Monitoring & Budget Guard</div></div></div>
+<div class="panel teal"><h3>🛡️ Secure Sync</h3><div class="sync-list"><div class="sync-item">아웃바운드 HTTPS only</div><div class="sync-item">증분 ID/메타데이터</div><div class="sync-item">지식팩 버전관리</div><div class="sync-item">고객사별 분리</div></div></div>
+<div class="panel"><h3>🖥️ Customer Local Runtime</h3><div class="cards6"><div class="mini">n8n Orchestrator</div><div class="mini">Dynamic Parser</div><div class="mini">Unified Schema Store</div><div class="mini">Traceability Graph</div><div class="mini">Ollama/vLLM RAG</div><div class="mini">Review UI & Audit Log</div></div></div></div>
+<div class="bottom3"><div class="panel"><h3>A. 클라우드에 구축할 것</h3><div class="check">공개 규제지식 수집, 저장, 버전관리</div><div class="check">변경 알림 및 이벤트 발행</div><div class="check">운영 모니터링 및 비용/예산 관리</div></div><div class="panel teal"><h3>B. 로컬에 구축할 것</h3><div class="check">문서 업로드, 정규화, 추적성 검사</div><div class="check">AI 검색/생성 및 답변/초안 생성</div><div class="check">승인 워크플로 및 감사로그 보관</div></div><div class="panel"><h3>C. 운영 원칙</h3><div class="check">민감 데이터 로컬 유지</div><div class="check">표준 스키마 강제</div><div class="check">점진적 제품군 확장</div></div></div>
+<div class="callout">현실성 포인트: 초기 품목군 제한 + Docker 표준 패키지 + 로컬 GPU/CPU 혼합 운용</div>
+<div class="footer">Review Proposal / Slide 3 · Architecture</div>
+</section>
+
+<section id="s4" class="slide">
+<h1 class="title">구축 후 운영 모습</h1><div class="subtitle">실제 운영 화면 예시와 일상 업무 흐름</div>
+<div style="display:grid;grid-template-columns:2fr .85fr;gap:24px;align-items:start"><div class="browser"><div class="browserbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><div class="url">🔒 https://ra-platform.internal/dashboard</div><b>RA Specialist</b> 🔔</div><div class="dash"><div class="sidebar"><h3>RA Specialist</h3><div>🏠 대시보드</div><div>☁️ 규제 지식 클라우드</div><div>📄 문서 관리</div><div>📋 검토 큐</div><div>💬 RAG 엔진</div><div>🔗 추적성 관리</div><div>⚙️ 설정</div><br><div style="border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:12px">🟢 시스템 상태<br>정상 운영 중</div></div><div class="mainui"><div class="kpis"><div class="kpi">규제 업데이트<strong>12</strong>신규 7 · 중요 5</div><div class="kpi">검토 대기 문서<strong>18</strong>IFU 8 · SRS 5</div><div class="kpi">정합성 이슈<strong style="color:#f97316">5</strong>높음 2</div><div class="kpi">최근 완료 작업<strong style="color:#16a34a">23</strong>이번 주</div></div><h3>오늘의 검토 큐</h3><table><tr><th>우선순위</th><th>문서/작업</th><th>제품</th><th>마감</th><th>상태</th></tr><tr><td>높음</td><td>IFU 검토</td><td>X-ray Pro</td><td>D-1</td><td><span class="status">검토 대기</span></td></tr><tr><td>높음</td><td>위험관리 추적성 검토</td><td>UltraSkin</td><td>D-2</td><td><span class="status">검토 대기</span></td></tr><tr><td>중간</td><td>X-ray 제품군 업데이트 반영</td><td>X-ray Series</td><td>D-3</td><td><span class="status">대기 중</span></td></tr><tr><td>중간</td><td>피부미용 초음파 문서 확인</td><td>UltraSkin</td><td>D-5</td><td><span class="status">검토 대기</span></td></tr></table><div class="kpis" style="margin-top:14px"><div class="kpi">IFU<strong style="color:#16a34a">98%</strong></div><div class="kpi">SRS<strong style="color:#16a34a">94%</strong></div><div class="kpi">위험관리<strong style="color:#f59e0b">82%</strong></div><div class="kpi">시험성적서<strong style="color:#dc2626">68%</strong></div></div></div></div></div>
+<div><h2 class="section-title">운영 플로우</h2><div class="flow"><div class="flowstep"><span class="num">1</span><b>규제 변경 수집</b></div><div class="flowstep"><span class="num">2</span><b>로컬 지식팩 동기화</b></div><div class="flowstep"><span class="num">3</span><b>문서 업로드/정규화</b></div><div class="flowstep"><span class="num">4</span><b>정합성 검사 및 RAG 검토</b></div><div class="flowstep"><span class="num">5</span><b>검토 승인 및 산출물 내보내기</b></div></div><div class="factbox" style="margin-top:18px"><h3>운영 장점</h3><div class="check">RA/QA가 같은 화면에서 검토 가능</div><div class="check">내부망 중심으로 문서 보안 유지</div><div class="check">이력과 근거 링크를 감사 대응에 활용</div><div class="check">스타트업도 체계적 운영 가능</div></div></div></div>
+<div class="footer">Review Proposal / Slide 4 · Operating View</div>
+</section>
+
+<section id="s5" class="slide">
+<h1 class="title">사업화 로드맵과 수익 구조</h1><div class="subtitle">현실적 단계 확장과 초기 상용화 전략</div>
+<div class="roadmap"><div class="phase"><span class="tag">Phase 1</span><h3>Infra</h3><b>규제 수집기, 저장소, 동기화 PoC</b><div class="check">규제 소스 자동 수집</div><div class="check">안전한 저장소 설계</div><div class="check">변경 감지 PoC</div></div><div class="phase"><span class="tag" style="background:var(--teal)">Phase 2</span><h3>Logic</h3><b>제품군별 스키마, Parser, Guardrail</b><div class="check">스키마/지식 모델 확장</div><div class="check">파서 정확도 강화</div><div class="check">가드레일 고도화</div></div><div class="phase"><span class="tag">Phase 3</span><h3>Product</h3><b>셀프서비스 UX와 관리자 기능</b><div class="check">RAG 기반 검색</div><div class="check">검토 대시보드</div><div class="check">권한/감사로그</div></div><div class="phase"><span class="tag" style="background:var(--teal)">Phase 4</span><h3>Scale</h3><b>타 품목 확장과 파트너십</b><div class="check">다국가 지식팩</div><div class="check">파트너 채널</div><div class="check">생태계 확장</div></div></div>
+<div class="pricing"><div class="price"><b>Core SaaS</b><strong>월 $299</strong>규제 알림 + 기본 지식팩</div><div class="price"><b>Advanced Hybrid</b><strong>연 $12,000</strong>내부망 패키지 + 정합성 검사</div><div class="price"><b>Setup & Enablement</b><strong>별도 견적</strong>초기 배포·온보딩·데이터 정리</div></div>
+<div class="bottom3"><div class="metric">업데이트 반영<strong>24h 이내</strong></div><div class="metric">문서 초안 준비<strong>30~50%</strong>단축 목표</div><div class="metric">표준 패키지<strong>1일 설치</strong></div></div>
+<div class="factbox" style="margin-top:18px"><h3>제안 결론</h3><div class="check">의료기기 제조업의 데이터 보안 요구와 SaaS 확장성을 동시에 만족</div><div class="check">실제 구축 가능한 하이브리드 아키텍처로 시작 가능</div><div class="check">X-ray/디텍터/촬영실 SW/피부미용 초음파 중심으로 빠른 실증 가능</div></div>
+<div class="footer">Review Proposal / Slide 5 · Roadmap & Commercialization</div>
+</section>
+<section class="slide"><h1 class="title">참고 근거</h1><div class="subtitle">공식/1차 자료 중심</div><ol class="refs"><li><a href="https://www.fda.gov/medical-devices/device-advice-comprehensive-regulatory-assistance/overview-device-regulation">FDA, Overview of Device Regulation</a></li><li><a href="https://www.fda.gov/regulatory-information/search-fda-guidance-documents/cybersecurity-medical-devices-quality-management-system-considerations-and-content-premarket">FDA, Cybersecurity in Medical Devices: Quality Management System Considerations and Content of Premarket Submissions</a></li><li><a href="https://eur-lex.europa.eu/eli/reg/2017/745/oj/eng">EUR-Lex, Regulation (EU) 2017/745 on medical devices</a></li><li><a href="https://health.ec.europa.eu/medical-devices-sector_en">European Commission, Medical Devices Sector / EUDAMED</a></li><li><a href="https://www.mfds.go.kr/eng/brd/m_40/list.do">MFDS, Medical Device Regulations / Enforcement Rule resources</a></li><li><a href="https://aws.amazon.com/s3/storage-classes/glacier/">AWS, Amazon S3 Glacier storage classes</a></li><li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html">AWS, S3 Lifecycle transition documentation</a></li><li><a href="https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html">AWS, AWS Budgets cost notifications</a></li><li><a href="https://github.com/pgvector/pgvector">pgvector, open-source vector similarity search for PostgreSQL</a></li></ol><div class="callout">주의: 본 제안서는 제품·사업 설계 문서이며, 실제 인허가 제출 전에는 각 국가 규제기관의 최신 원문과 RA 전문가 검토가 필요합니다.</div></section>
+</div></body></html>
