@@ -1,6 +1,6 @@
 # 제품 요구사항 명세서 (PRD) — Global Hybrid AI RA Specialist
 
-> **버전:** v3.0 | **기준일:** 2026-06-02 | **완성도:** 85~88%  
+> **버전:** v4.0 | **기준일:** 2026-06-05 | **완성도:** 85%+ (SPEC-DOC-001 Run 완료)  
 > **분류:** Confidential / Development Version  
 > **목적:** 사업화 검토와 MVP/상용화 개발을 동시에 지원하기 위한 실구축 중심 명세
 
@@ -94,6 +94,22 @@
 | **FR-207** | Review Workspace | 검토 큐, 상태, 담당자, 우선순위, 승인/반려 흐름을 제공 | RA/QA/관리자 역할별 권한과 상태 전이 | 비전문 개발자도 기본 업로드/검토 가능 |
 | **FR-208** | Audit & Export | 검토 결과, 추적성 매트릭스, 보완 대응 초안, 감사로그를 내보냄 | DOCX/XLSX/PDF/JSON export 옵션 | 작업자/시간/근거/변경내역 포함 |
 | **FR-209** | Admin & License | 고객사 로컬 에이전트 상태, 지식팩 버전, 라이선스 상태를 관리 | 상태 heartbeat는 민감 데이터 제외 | 관리 콘솔에서 동기화 상태 확인 |
+| **FR-210** | Air-Gapped Privacy Enforcement | 로컬 에이전트 실행 중 네트워크 패킷에 고객 문서 원문이 포함되지 않음을 검증하는 내부 감사 기능 | 아웃바운드 패킷 헤더/페이로드에서 문서 원문 패턴 미검출 | 로컬 네트워크 패킷 캡처 시 원문 미전송 확인 (로컬 프록시/tcpdump 테스트) |
+
+### 4.5 MRD→PRD 추적성 매트릭스
+
+| MRD 요구사항 | PRD 매핑 | 처리 상태 |
+|------------|--------|---------|
+| REQ-MRD-101 (Air-Gapped Privacy) | FR-208 (Audit & Export) + NFR §5 보안 | FR-210 신설 |
+| REQ-MRD-102 (Zero-Customization Ingestion) | FR-201 (Dynamic Parser) + FR-202 (Manual Correction UI) | 완전 매핑 |
+| REQ-MRD-103 (Regulatory Impact Analysis) | FR-205 (Impact Analyzer) | 완전 매핑 |
+| REQ-MRD-104 (Cross-Document Traceability) | FR-203 (Consistency Guardrail) | 완전 매핑 |
+| REQ-MRD-105 (Self-Service UX) | FR-207 (Review Workspace) | 완전 매핑 |
+| REQ-MRD-106 (Multi-Region Knowledge Packs) | FR-204 (Regulatory Knowledge Pack) | 완전 매핑 |
+| REQ-MRD-107 (Audit & Evidence) | FR-208 (Audit & Export) | 완전 매핑 |
+| REQ-MRD-108 (Role & Permission) | FR-207 (Review Workspace) — 역할 분리 포함 | 흡수 매핑 |
+| REQ-MRD-109 (Deployment Fit) | NFR §5 운영성 + §7 로컬 런타임 | 완전 매핑 |
+| REQ-MRD-110 (Explainable AI Output) | FR-206 (Local RAG Assistant) — 근거 링크 필수 | 완전 매핑 |
 
 ---
 
@@ -101,8 +117,9 @@
 
 | 분류 | 요구사항 | 목표/기준 | 검증 방법 |
 |------|---------|---------|---------|
-| **보안** | 로컬 Inbound deny-all; 외부 통신은 outbound HTTPS/TLS 1.3 기준 고객 원문 문서 외부 전송 금지 | — | 네트워크 로그/프록시 로그 검증 |
-| **개인/기밀정보** | 문서 원문, 설계치, 임상 원자료, 소스코드 클라우드 저장 금지 | — | 민감정보 local-only DLP 테스트, 업로드 차단 테스트 |
+| **보안** | 로컬 Inbound deny-all; 외부 통신은 outbound HTTPS/TLS 1.3 기준 고객 원문 문서 외부 전송 금지 | TLS 1.3+, rate limit 100req/min/tenant, RPO < 24h, RTO < 4h | 네트워크 로그/프록시 로그 검증 |
+| **개인/기밀정보** | 문서 원문, 설계치, 임상 원자료, 소스코드 클라우드 저장 금지 | 민감 데이터 Local-only DLP, 업로드 차단, 클라우드 원문 저장 금지 | 민감정보 local-only DLP 테스트, 업로드 차단 테스트 |
+| **고객 가치** | 문서 준비 기간 단축 | 30~50% 단축 (파일럿 목표, 보증 아님) | 파일럿 전후 소요 시간 비교 |
 | **성능 (파싱)** | 100페이지 DOCX 파싱 3분 이내 목표 | 표준 로컬 CPU/GPU 환경 기준 | 샘플 벤치마크 |
 | **성능 (검색)** | RAG 답변 30초 이내 1차 응답 목표 | 문서 규모 5천 청크 이하 MVP 기준 | 부하 테스트 |
 | **성능 (정합성)** | 핵심 문서 세트 10분 이내 검사 목표 | IFU/SRS/RMS/시험요약 기준 | 파일럿 데이터 측정 |
@@ -140,7 +157,136 @@
 | **Web UI** | React/Vue/Svelte | 검토 큐, 보정 UI, 대시보드 | 권한/감사 이벤트 필수 |
 | **Packaging** | Docker Compose | 설치/업데이트/백업 표준화 | 고객사 프록시/인증서 설정 지원 |
 
-> **[GAP-T11]** Docker Compose 파일 미작성 — `SPEC-DOC-001 T11` 완료 후 실제 `docker-compose.yml` 추가 예정
+### docker-compose.yml (Customer Local Runtime 배포 패키지)
+
+> **의사결정:** Issue #9 — Docker Compose 방식(Option A) 확정. ACR Public 또는 Docker Hub 퍼블릭 레포지토리 사용.  
+> **설치:** `docker compose up -d` 1회 기동 목표.
+
+```yaml
+# Customer Local Runtime — docker-compose.yml
+# 설치: cp .env.example .env && docker compose up -d
+# 요구사항: Docker Compose v2.x+, RAM 8GB+, 포트 8080(UI)/8000(API)/5432(DB)/11434(Ollama)
+
+version: "3.9"
+
+services:
+  api:
+    image: ghcr.io/your-org/ra-local-api:latest  # ACR 또는 Docker Hub로 교체 예정
+    container_name: ra_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://rauser:${DB_PASSWORD}@db:5432/radb
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - SYNC_ENDPOINT=${CLOUD_SYNC_ENDPOINT}
+      - TENANT_ID=${TENANT_ID}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ra_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ui:
+    image: ghcr.io/your-org/ra-local-ui:latest
+    container_name: ra_ui
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: ra_db
+    environment:
+      - POSTGRES_USER=rauser
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=radb
+    volumes:
+      - ra_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rauser -d radb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: ra_minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+    volumes:
+      - ra_minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ra_ollama
+    volumes:
+      - ra_ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # GPU 지원: deploy 블록 주석 해제
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+
+volumes:
+  ra_uploads:
+  ra_db_data:
+  ra_minio_data:
+  ra_ollama_models:
+```
+
+**.env.example:**
+```
+# Customer Local Runtime 환경 변수
+DB_PASSWORD=changeme_secure_password
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=changeme_minio_secret
+CLOUD_SYNC_ENDPOINT=https://sync.your-domain.com  # Cloud Control Plane sync endpoint
+TENANT_ID=your-tenant-id
+JWT_SECRET=changeme_jwt_secret_min_32chars
+```
+
+**설치 가이드:**
+1. `cp .env.example .env` 후 보안 값 변경
+2. `docker compose up -d`
+3. `docker compose ps` 로 전체 서비스 healthy 확인
+4. `http://localhost:8080` 에서 Web UI 접속
+5. Cloud Control Plane sync endpoint 등록 (관리자 설정 화면)
+
+**네트워크 요구사항:** 아웃바운드 HTTPS (443) to `${CLOUD_SYNC_ENDPOINT}`. 인바운드는 deny-all.
 
 ---
 
@@ -182,7 +328,246 @@
 | `/rag/query` | POST | `question`, `scope`, `evidence_required=true` | answer, evidence_links, confidence |
 | `/audit/export` | POST | `scope`, `date_range`, `format` | audit package |
 
-> **[GAP-T12]** OpenAPI 완전 명세 미작성 — 요청/응답 JSON Schema, 인증 헤더, 오류 코드 추가 예정
+### OpenAPI 3.1 완전 명세
+
+```yaml
+openapi: "3.1.0"
+info:
+  title: RA Local Runtime API
+  version: "0.1.0"
+  description: Customer Local Runtime REST API — all data processed locally, no PHI/sensitive data leaves the local environment.
+
+servers:
+  - url: http://localhost:8000
+    description: Local Runtime
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+    ParseJobStatus:
+      type: object
+      properties:
+        job_id: { type: string }
+        status: { type: string, enum: [pending, processing, completed, failed] }
+        field_candidates:
+          type: array
+          items:
+            type: object
+            properties:
+              field_name: { type: string }
+              value: { type: string }
+              confidence: { type: number, minimum: 0, maximum: 1 }
+        required_missing: { type: array, items: { type: string } }
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+
+  /sync/manifest:
+    get:
+      summary: Pull knowledge pack manifest from Cloud Control Plane
+      parameters:
+        - in: header
+          name: X-Tenant-ID
+          required: true
+          schema: { type: string }
+        - in: query
+          name: current_pack_version
+          schema: { type: string }
+        - in: query
+          name: product_family
+          schema: { type: string }
+      responses:
+        "200":
+          description: Delta manifest with signed URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  delta_items: { type: array, items: { type: object } }
+                  manifest_hash: { type: string }
+        "401":
+          description: Unauthorized
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+        "403":
+          description: Forbidden — tenant_id mismatch
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+
+  /documents/upload:
+    post:
+      summary: Upload document for parsing
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, doc_type_hint, product_id]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                doc_type_hint:
+                  type: string
+                  enum: [IFU, SRS, RMS, TEST_REPORT, OTHER]
+                product_id:
+                  type: string
+      responses:
+        "202":
+          description: Accepted — parse job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  doc_id: { type: string }
+                  parse_job_id: { type: string }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: Unsupported format or missing required fields, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { description: Internal server error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /parse/jobs/{job_id}:
+    get:
+      summary: Get parse job status and field candidates
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Parse job result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ParseJobStatus" }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "404": { description: Job not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /guardrail/run:
+    post:
+      summary: Run consistency guardrail check on document set
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id, doc_set_ids]
+              properties:
+                product_id: { type: string }
+                doc_set_ids: { type: array, items: { type: string } }
+                rule_set_version: { type: string }
+      responses:
+        "200":
+          description: Finding list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  findings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        finding_id: { type: string }
+                        severity: { type: string, enum: [HIGH, MEDIUM, LOW] }
+                        message: { type: string }
+                        evidence_links: { type: array, items: { type: string } }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: Invalid input, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { description: Internal server error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /rag/query:
+    post:
+      summary: Query local RAG assistant with evidence requirement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question, evidence_required]
+              properties:
+                question: { type: string }
+                scope: { type: string, enum: [local_docs, knowledge_pack, both] }
+                evidence_required: { type: boolean, default: true }
+                product_family: { type: string }
+      responses:
+        "200":
+          description: RAG answer with evidence links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer: { type: string }
+                  evidence_links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source: { type: string }
+                        clause_ref: { type: string }
+                        confidence: { type: number }
+                  confidence: { type: number }
+                  submit_safe: { type: boolean, description: "false if evidence_required=true and confidence < threshold" }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { description: Internal server error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /audit/export:
+    post:
+      summary: Export audit log and traceability matrix
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope, format]
+              properties:
+                scope: { type: string, enum: [product, document, all] }
+                product_id: { type: string }
+                date_range:
+                  type: object
+                  properties:
+                    from: { type: string, format: date }
+                    to: { type: string, format: date }
+                format: { type: string, enum: [JSON, XLSX, PDF] }
+      responses:
+        "200":
+          description: Audit package download
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: Invalid parameters, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { description: Internal server error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+```
 
 ---
 
@@ -204,13 +589,87 @@
 
 ## 11. 파서 NLP 명세
 
-> **[GAP-T10]** 파서 NLP 상세 명세 미작성 — `SPEC-DOC-001 T10` 완료 후 추가 예정
+### 11.1 X-ray IFU 핵심 추출 필드 (15개)
 
-**추가 예정 내용:**
-- X-ray IFU 핵심 필드 10~15개 정의 (Device Name, Indications, Contraindications, Warnings 등)
-- Confidence 계산 공식 (필수 필드 완성도 + 규칙 매칭 + 시멘틱 스코어)
-- 모델 선택 근거: spaCy NER vs LLM 폴백 전략
-- 학습 데이터 전략 및 정답 세트 구성 방법
+| 번호 | 필드명 | 설명 | 예시 | 필수 여부 |
+|------|--------|------|------|---------|
+| 1 | `device_name` | 기기 명칭 (제품명/모델명) | "XR-5000 Digital X-ray System" | 필수 |
+| 2 | `intended_use` | 사용 목적 | "의료 진단용 X선 촬영" | 필수 |
+| 3 | `indications` | 적응증 | "흉부, 사지, 복부 방사선 촬영" | 필수 |
+| 4 | `contraindications` | 금기증 | "임산부 직접 방사선 노출 금지" | 필수 |
+| 5 | `warnings` | 경고 (배열) | ["방사선 위험", "고전압 주의"] | 필수 |
+| 6 | `precautions` | 주의사항 | "조작자는 방사선 방호 훈련 필수" | 중요 |
+| 7 | `device_classification` | 규제 분류 | "Class II (FDA 510(k))", "2등급 (MFDS)" | 필수 |
+| 8 | `region_targets` | 허가 대상 국가/기관 | ["US-FDA", "KR-MFDS", "EU-MDR"] | 필수 |
+| 9 | `product_code` | 규제 제품 코드 | "IZL (FDA)", "의료기기 허가번호" | 중요 |
+| 10 | `maintenance_interval` | 유지보수 주기 | "매 6개월 예방점검" | 중요 |
+| 11 | `cleaning_disinfection` | 세척/소독 방법 | "70% 이소프로필알코올로 표면 소독" | 중요 |
+| 12 | `accessories` | 호환 부속품 목록 | ["감지기 유형 A", "그리드 크기 43cm×43cm"] | 선택 |
+| 13 | `disposal_instructions` | 폐기 방법 | "전자 폐기물 규정 준수 필수" | 선택 |
+| 14 | `cybersecurity_requirements` | 사이버보안 요건 | "소프트웨어 업데이트 절차 준수" | 필수 (디지털 기기) |
+| 15 | `software_version` | 소프트웨어 버전 정보 | "v2.3.1 (2026-01)" | 중요 (소프트웨어 포함 기기) |
+
+### 11.2 Confidence 계산 공식
+
+```python
+confidence = (
+    w_completeness * field_completeness_score  # 필수 필드 완성도
+    + w_rule * rule_match_score               # 규칙 기반 매핑 점수
+    + w_semantic * semantic_similarity_score   # 임베딩 유사도
+)
+
+# 가중치 (조정 가능)
+w_completeness = 0.50
+w_rule = 0.30
+w_semantic = 0.20
+
+# 임계값
+CORRECTION_UI_THRESHOLD = 0.85  # 미달 시 수동 보정 UI 표시
+REJECT_THRESHOLD = 0.50         # 미달 시 재업로드 권고
+```
+
+**구성 요소:**
+- `field_completeness_score`: 필수 필드(1~9번) 중 추출 성공 비율
+- `rule_match_score`: 규칙 기반 패턴(정규식, 키워드 사전) 일치율
+- `semantic_similarity_score`: sentence-transformers로 필드 후보 문장과 IFU 표준 레이블 간 코사인 유사도
+
+### 11.3 모델 선택 및 폴백 전략
+
+```
+입력 문서
+    │
+    ▼
+1단계: 규칙 기반 추출 (regex + 키워드 사전)
+    │ confidence >= 0.85 → 완료
+    │ confidence < 0.85 ↓
+    ▼
+2단계: spaCy NER (커스텀 학습 모델)
+    │ confidence >= 0.85 → 완료
+    │ confidence < 0.85 ↓
+    ▼
+3단계: LLM 폴백 (Ollama 로컬 — llama3/mistral)
+    │ 근거 청크 + 필드 추출 프롬프트
+    │ confidence >= 0.85 → 완료
+    │ confidence < 0.85 ↓
+    ▼
+수동 보정 UI (Correction UI 표시)
+```
+
+**선택 근거:**
+- 규칙 기반: 고속·고정확(표준 문서), 모델 의존성 없음
+- spaCy NER: 반복 패턴 있는 구조적 섹션에 효율적, GPU 불필요
+- LLM 폴백: 비정형·다국어 문서 처리, 로컬 실행(데이터 주권 보장)
+
+### 11.4 학습 데이터 전략
+
+| 데이터 유형 | 수집 방법 | 목표 규모 |
+|-----------|---------|---------|
+| **골든셋 (정답 라벨)** | RA 전문가 수동 라벨링 | X-ray IFU 50세트 이상 |
+| **규칙 사전** | FDA/MFDS 가이던스 키워드 추출 | 필드당 10~30개 패턴 |
+| **부정 예시** | 필드 매핑 실패 케이스 | 골든셋의 20% 이상 |
+| **다국어 IFU** | 영어/한국어 대응쌍 | 20세트 이상 |
+
+**정확도 검증:** 골든셋으로 F1 score 측정. Phase 2 목표: 핵심 필드 85%+ F1.
 
 ---
 

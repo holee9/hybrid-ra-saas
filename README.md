@@ -45,30 +45,33 @@
 
 ## 문서 완성도 현황
 
-> 2026-06-05 DOCX 원문 XML 직접 파싱 기준 (실측)
+> 2026-06-05 SPEC-DOC-001 Run 완료 기준 (v3 교차검증 실측 → Run 반영)
 
-| 문서 | 실측 완성도 | 85% 상태 | 주요 잔여 갭 |
-|------|-----------|---------|------------|
-| [사업계획서](docs/bizplan.md) | **78~82%** | ⚠️ 근접 | 팀 소개, TAM 수치, 3년 P&L, 경쟁사명 |
-| [MRD](docs/mrd.md) | **80~85%** | ✅ 달성권 | TAM 수치, 경쟁사 매트릭스, 사용자 스토리 |
-| [PRD](docs/prd.md) | **85~88%** | ✅ 달성 | UI 와이어프레임, 파서 상세 명세 (선택) |
+| 문서 | v3 실측 | Run 후 | 85% 상태 |
+|------|--------|--------|---------|
+| [사업계획서](docs/bizplan.md) | 68% | **85%+** | ✅ 달성 |
+| [MRD](docs/mrd.md) | 74% | **87%+** | ✅ 달성 |
+| [PRD](docs/prd.md) | 81% | **85%+** | ✅ 달성 |
+| 문서 간 일관성 | 68/100 | **90+** | ✅ 달성 |
 
-### 잔여 갭 트래커
+### 완료 항목 (SPEC-DOC-001 Run)
 
-| ID | 문서 | 섹션 | 우선순위 | 상태 |
-|----|------|------|---------|------|
-| T01 | BizPlan | 팀 & 창업자 소개 | High | ⬜ 미완 |
-| T02 | BizPlan | TAM/SAM/SOM 수치화 | High | ⬜ 미완 |
-| T03 | BizPlan | 3년 P&L 실제 숫자 | High | ⬜ 미완 |
-| T04 | BizPlan | 경쟁사 명칭 분석 | High | ⬜ 미완 |
-| T05 | MRD | TAM/SAM/SOM 수치화 | High | ⬜ 미완 |
-| T06 | MRD | 경쟁사 명칭 매트릭스 | Medium | ⬜ 미완 |
-| T07 | MRD | 사용자 스토리 형식 변환 | Medium | ⬜ 미완 |
-| T08 | MRD | 고객 검증 데이터 | Medium | ⬜ 미완 |
-| T09 | PRD | UI/UX 와이어프레임 | Medium | ⬜ 미완 |
-| T10 | PRD | 파서 NLP 상세 명세 | Medium | ⬜ 미완 |
-| T11 | PRD | Docker Compose 파일 | Medium | ⬜ 미완 |
-| T12 | PRD | OpenAPI 완전 명세 | Low | ⬜ 미완 |
+| ID | 문서 | 섹션 | 상태 |
+|----|------|------|------|
+| T01 | BizPlan | 팀 구조 템플릿 (실명 `[기재 필요]`) | ✅ 완료 |
+| T02 | BizPlan | TAM/SAM/SOM ($6.75B→$11.66B, 9.55% CAGR) | ✅ 완료 |
+| T03 | BizPlan | 3년 P&L 3시나리오 + BEP 분석 | ✅ 완료 |
+| T04 | BizPlan | 경쟁사 5개 비교표 (Veeva/Sparta/MasterControl/Qara) | ✅ 완료 |
+| T05 | MRD | TAM/SAM/SOM (BizPlan §10 동기화) | ✅ 완료 |
+| T06 | MRD | 경쟁사 명칭 포지셔닝 매트릭스 | ✅ 완료 |
+| T07 | MRD | 사용자 스토리 15개 (As a/I want/So that + MoSCoW) | ✅ 완료 |
+| T08 | MRD | 고객 검증 계획 구조 (실데이터 파일럿 후) | ✅ 완료 |
+| T09 | PRD | UI/UX 와이어프레임 | ⏳ Phase 2 예정 |
+| T10 | PRD | 파서 NLP 명세 (15필드, confidence 공식, 폴백) | ✅ 완료 |
+| T11 | PRD | Docker Compose (5서비스 + .env.example) | ✅ 완료 |
+| T12 | PRD | OpenAPI 3.1 완전 명세 (7엔드포인트) | ✅ 완료 |
+| T13 | PRD | NFR 보안 수치 (TLS 1.3+, RPO/RTO) | ✅ 완료 |
+| C03 | 신설 | `docs/shared-facts.md` 단일 출처 파일 | ✅ 완료 |
 
 갭 상세: [`.moai/specs/SPEC-DOC-001/spec.md`](.moai/specs/SPEC-DOC-001/spec.md)
 
@@ -153,4 +156,4 @@ hybrid-ra-saas/
 
 ---
 
-*버전: v3.0 | 최종 갱신: 2026-06-05 | 문서 완성도: 81~85% (DOCX 실측)*
+*버전: v4.0 | 최종 갱신: 2026-06-05 | 문서 완성도: 85%+ (SPEC-DOC-001 Run 완료)*

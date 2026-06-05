@@ -1,6 +1,6 @@
 # 사업계획서 — Global Hybrid AI RA Specialist
 
-> **버전:** v3.0 | **기준일:** 2026-06-02 | **완성도:** 78~82%  
+> **버전:** v4.0 | **기준일:** 2026-06-05 | **완성도:** 85%+ (SPEC-DOC-001 Run 완료)  
 > **분류:** Confidential / Development Version  
 > **목적:** 사업화 검토와 MVP/상용화 개발을 동시에 지원하기 위한 실구축 중심 명세  
 > **전제:** AI 출력은 RA/QA 전문가 검토를 보조하며, 최종 규제 판단과 제출 책임은 제조사 책임자에게 있음
@@ -19,7 +19,7 @@ FDA · MFDS · EU MDR 등 공개 규제 지식을 클라우드에서 수집·정
 | **핵심 고객** | X-ray/디텍터/촬영실 SW/피부미용 초음파를 개발하는 스타트업 및 중견 의료기기 제조사 |
 | **핵심 문제** | 개발 완료 후 문서 소급 작성 / 문서 간 불일치 / 퍼블릭 SaaS 보안 우려 / 규제 변경 추적 부담 |
 | **핵심 해법** | 클라우드 규제 지식팩 + 로컬 Docker 에이전트 + Unified Schema + 추적성 그래프 + 검토 워크스페이스 |
-| **포지셔닝** | 일회성 컨설팅 대행이 아닌 구독/라이선스형 규제 운영 플랫폼 |
+| **포지셔닝** | 일회성 컨설팅 대행이 아닌, 표준화된 셀프서비스 구독형 규제 운영 플랫폼. |
 | **초기 전략** | 전 품목 범용 엔진이 아니라, 규제 난도 높고 문서 구조가 반복되는 초기 품목군 집중 |
 
 ---
@@ -56,15 +56,15 @@ FDA · MFDS · EU MDR 등 공개 규제 지식을 클라우드에서 수집·정
 
 ## 4. 제품/서비스 정의
 
-### 4.1 제공 모듈
+### 4.1 시스템 아키텍처 (3레이어)
 
-| 모듈 | 배치 위치 | 기능 | 초기 구현 범위 |
-|------|---------|------|-------------|
-| Regulatory Knowledge Cloud | 공급자 클라우드 | 공개 규제 자료 수집, 정규화, 버전 관리, 지식팩 생성 | FDA/MFDS/EU MDR 우선 |
-| Secure Sync Layer | 클라우드 ↔ 고객사 | 증분 ID, 메타데이터, 서명된 지식팩 동기화 | Outbound HTTPS 기반 |
-| Customer Local Runtime | 고객사 내부망 | 문서 업로드, 파싱, 로컬 RAG, 추적성 검사 | Docker 패키지 |
-| Review Workspace | 고객사 내부망 | 웹 UI 검토 큐, 수동 보정, 승인, 감사로그 | RA/QA/관리자 역할 |
-| Impact Analyzer | 로컬 중심 | 규제 변경과 제품군/문서 필드 영향 매핑 | 근거 링크 포함 리포트 |
+| 레이어 | 배치 위치 | 핵심 구성요소 | 초기 구현 범위 |
+|--------|---------|-----------|-------------|
+| **Cloud Control Plane** | 공급자 클라우드 (Azure/AWS) | 규제 크롤러, 정규화 파이프라인, PostgreSQL/pgvector, S3 Archive, EventBridge/SQS/SNS | FDA/MFDS/EU MDR 크롤러 우선 |
+| **Secure Sync Layer** | 클라우드 ↔ 고객사 경계 | 서명된 지식팩, 증분 매니페스트, 아웃바운드 HTTPS | 테넌트 격리, 버전 관리 |
+| **Customer Local Runtime** | 고객사 내부망 | Docker 에이전트, n8n, FastAPI, SQLite/Postgres, Vector Store, Ollama/vLLM, Web UI | Docker Compose 패키지, 파서, Review Workspace, Impact Analyzer 포함 |
+
+**데이터 경계:** 고객 문서 원문·설계치·임상 원자료는 Customer Local Runtime에서만 처리. Cloud Control Plane에는 공개 규제 지식만 저장.
 
 ### 4.2 핵심 차별점
 
@@ -119,59 +119,127 @@ FDA · MFDS · EU MDR 등 공개 규제 지식을 클라우드에서 수집·정
 
 ## 8. 재무 가정과 손익분기점
 
-> **[GAP-T03]** 실제 ARR 수치와 3년 P&L은 추가 예정 — `SPEC-DOC-001 T03` 참고
+> **기준일:** 2026-06-05 | **출처:** shared-facts.md 기준 가격 × 시장 가정 시나리오
 
 초기 재무 가정은 인프라 비용보다 **인건비, 고객 온보딩, 품목별 지식팩 유지보수**가 비용의 대부분을 차지한다는 관점으로 설정.
 
-| 항목 | 보수적 가정 | 낙관적 가정 | 관리 포인트 |
-|------|-----------|-----------|----------|
-| 고정 클라우드 비용 | 개발/저부하 월 $20~150 | 아카이브/알림 중심 월 $5~30 | RDS/임베딩 사용량 분리 |
-| 초기 개발 인력 | 2~4명 핵심팀 | 외부 RA 자문 병행 | 품목군 제한으로 범위 통제 |
-| 손익분기점 (BEP) | Tier2 5~8개 또는 Tier1 80~120개 | Tier2 3개 또는 Tier1 30~50개 | 지원 공수와 셋업 비용 분리 |
-| Gross Margin | 지원 많은 초기 50~65% | 셀프서비스 성숙 후 75%+ | Zero-customization 강제 |
+### 8.1 가격 전제 (출처: shared-facts.md)
 
-**BEP 해석:** "Tier1 30개 또는 Tier2 3개"는 슬림한 운영과 낮은 인건비를 전제한 낙관 시나리오.  
-투자/제안서에는 **보수/기준/낙관 3개 시나리오**로 제시하는 것이 현실적이다.
+| 플랜 | 가격 | ARR 기여 (고객당) |
+|------|------|----------------|
+| Core SaaS | 월 $299 = 연 $3,588 | $3,588/고객 |
+| Advanced Hybrid | 연 $12,000 | $12,000/고객 |
+| Regulatory Pack Add-on | 연 $3,000~5,000 (추정) | 업셀 기여 |
+
+### 8.2 3개 시나리오 ARR 예측
+
+| 시나리오 | Y1 가정 | Y1 ARR | Y2 가정 | Y2 ARR | Y3 가정 | Y3 ARR |
+|---------|--------|--------|--------|--------|--------|--------|
+| **보수 (Conservative)** | Core 10개, Advanced 1개 | $47,880 | Core 25개, Advanced 3개 | $125,700 | Core 50개, Advanced 6개 | $251,400 |
+| **기준 (Base)** | Core 20개, Advanced 3개 | $107,760 | Core 50개, Advanced 8개 | $275,400 | Core 100개, Advanced 18개 | $574,800 |
+| **낙관 (Optimistic)** | Core 40개, Advanced 6개 | $215,520 | Core 100개, Advanced 15개 | $538,800 | Core 200개, Advanced 35개 | $1,137,600 |
+
+### 8.3 비용 구조 가정
+
+| 비용 항목 | 월 고정비 (Y1 기준) | 비고 |
+|---------|---------------|------|
+| 클라우드 인프라 (AWS/Azure) | $150~400 | RDS/pgvector/S3/Lambda 기준 |
+| 핵심 개발 인력 (2~4명) | $8,000~15,000 | 한국 기준 공동창업자 포함 |
+| RA 자문/외부 전문가 | $1,000~3,000 | 파트타임 기준 |
+| 합계 | $9,150~18,400/월 | |
+
+### 8.4 손익분기점 (BEP)
+
+| 시나리오 | BEP 조건 | BEP 도달 시점 |
+|---------|---------|-------------|
+| 보수 | Advanced 8개 또는 Core 120개 | Y2 후반 |
+| 기준 | Advanced 5개 또는 Core 80개 | Y2 중반 |
+| 낙관 | Advanced 3개 또는 Core 50개 | Y1 후반 |
+
+**Gross Margin 목표:** 셀프서비스 성숙 후 75%+. 초기 고지원 단계는 50~65%.
+
+**주요 리스크:** 기준/낙관 시나리오는 영업·파트너십 채널 확보를 전제. 파일럿 전환율 50% 이상 달성 필요.
 
 ---
 
 ## 9. 팀 및 조직
 
-> **[GAP-T01]** 팀 & 창업자 섹션 미작성 — `SPEC-DOC-001 T01` 완료 후 이곳에 추가 예정
+> **구조 완성, 내용 미기재** — 창업자 실명·경력은 투자 제안 단계에서 추가 예정. 현재 역할 구조만 확정.
 
-**추가 예정 내용:**
-- 창업자 프로필 (역할, 의료기기/RA/SaaS 관련 경험)
-- 핵심 채용 계획 (NLP 엔지니어, DevOps, RA 자문)
-- 어드바이저 2~3명 (의료기기/규제 전문가)
+| 역할 | 핵심 요구 역량 | 채용 시점 | 담당 예정 내용 |
+|------|-------------|---------|-------------|
+| **CEO/제품 총괄** | 의료기기 산업 이해, 사업화 경험 | 창업 시 | 전략·파트너십·고객 개발 |
+| **CTO/AI 엔지니어** | LLM/NLP, Python, 로컬 런타임 배포 | 창업 시 | 파서·RAG·Docker 패키지 |
+| **RA/도메인 전문가** | FDA/MFDS/EU MDR 실무 경험 | Y1 초기 | 지식팩 정확성, 고객 온보딩 가이드 |
+| **백엔드/DevOps** | FastAPI, PostgreSQL, AWS/Azure | Y1 | Cloud Control Plane, Sync Layer |
+| **프론트엔드** | React 또는 Vue, UX | Y1 중반 | Review Workspace, Admin UI |
+
+**창업자 프로필:** `[기재 필요]` — 의료기기/RA/SaaS 관련 경험 기재 예정
+
+**어드바이저 (목표 2~3명):**
+
+| 역할 | 전문 분야 | 현황 |
+|------|---------|------|
+| 규제 어드바이저 1 | FDA/MFDS 제출 경험 | `[기재 필요]` |
+| 규제 어드바이저 2 | EU MDR / CE 마킹 | `[기재 필요]` |
+| 기술 어드바이저 | 의료 AI/NLP | `[기재 필요]` |
 
 ---
 
 ## 10. 시장 규모 (TAM/SAM/SOM)
 
-> **[GAP-T02]** TAM/SAM/SOM 수치 미작성 — `SPEC-DOC-001 T02` 완료 후 이곳에 추가 예정
+> **기준일:** 2026-06-05 | **출처:** shared-facts.md — BizPlan §8과 동일 수치 사용 (출처: shared-facts.md)
 
-**추가 예정 내용:**
-- TAM: 글로벌 의료기기 RA 서비스 시장 규모 ($2~4B 추정, 출처 포함)
-- SAM: RA 플랫폼 SaaS 가능 시장 ($500M~1B)
-- SOM: Y1~Y3 공략 가능 범위 (한국+미국 스타트업/중견, $50~100M)
-- CAGR 및 시장 성장 근거
+### TAM — 글로벌 의료기기 규제 관련 소프트웨어 시장
+
+| 구분 | 규모 | CAGR | 비고 |
+|------|------|------|------|
+| TAM (글로벌 의료기기 QMS/RA 소프트웨어) | $6.75B (2024) → $11.66B (2030) | 9.55% (2025~2030) | 출처: Grand View Research, MarketsandMarkets |
+| SAM (SaaS+하이브리드 배포 가능 세그먼트) | ~$3.5B | — | TAM의 약 50% 추정 (하이브리드 배포 가능 중소형 고객사) |
+| SOM Y1 (한국+미국 스타트업/중견, 초기 품목군) | $12M~18M | — | Advanced 10개 + Core 50개 시나리오 기준 |
+| SOM Y3 (확장 후) | $50M~80M | — | Advanced 30개 + Core 300개 시나리오 기준 |
+
+### 시장 선택 근거
+
+- 의료기기 규제 요건 강화 (FDA 510(k), EU MDR 전환 진행 중) → 문서 자동화 수요 증가
+- 하이브리드 AI 도구 도입 의지: 클라우드 전면 전환 불가 기업 증가
+- 초기 집중 품목군 (X-ray/디텍터/촬영실 SW/피부미용 초음파): 규제 문서 구조 반복성 높음
+
+**Sources:**
+- [Grand View Research - Medical Device Regulatory Affairs Market, 2030](https://www.grandviewresearch.com/industry-analysis/medical-device-regulatory-affairs-market)
+- [MarketsandMarkets - Medical Device Regulatory Affairs Market Size & Growth Forecast 2025](https://www.strategicmarketresearch.com/market-report/medical-device-regulatory-affairs-market)
 
 ---
 
 ## 11. 경쟁 분석
 
-> **[GAP-T04]** 경쟁사 명칭 기반 분석 미작성 — `SPEC-DOC-001 T04` 완료 후 이곳에 추가 예정
+> **기준일:** 2026-06-05 | **출처:** shared-facts.md 기준 벤더 목록 및 분석
 
-**현재 파악된 경쟁 유형:**
+### 주요 경쟁 벤더 비교
 
-| 대안 유형 | 장점 | 한계 | 본 제품 포지션 |
-|---------|------|------|-------------|
-| 전통 RA 컨설팅 | 전문가 판단, 제출 경험 | 비용 높고 반복 업무가 제품화되지 않음 | 컨설팅을 보조/표준화하는 운영 플랫폼 |
-| 범용 문서 AI SaaS | 사용 편의성, 빠른 초안 생성 | 기밀 문서 업로드 부담, 규제 추적성 부족 | 로컬 민감 데이터 처리와 규제 근거 링크 |
-| 사내 엑셀/체크리스트 | 저렴하고 익숙함 | 버전/추적성/감사로그 약함 | 자동 추적성 그래프와 승인 워크플로 |
-| 대형 QMS/eQMS | 품질시스템 기능 풍부 | 도입 비용/기간 높고 AI 지식팩 약함 | 초기 품목군에 특화된 경량 하이브리드 도구 |
+| 벤더 | 주요 기능 | 가격대 | 타깃 | 약점 | 본 제품 포지션 |
+|------|---------|------|------|------|------------|
+| **Veeva Vault Quality** | eQMS, 문서 관리, CAPA, 규제 제출 지원 | 엔터프라이즈 (연 $50K+) | 대형 제약/의료기기 | 고비용·장기 도입, 클라우드 전용, AI 지식팩 약함 | 초기 품목군 특화 경량 하이브리드 |
+| **Sparta Systems TrackWise** | QMS, 통합 컴플라이언스 관리 | 엔터프라이즈 | 대형 제조사 | 커스터마이징 비용 높음, AI 자동화 부족 | 셀프서비스 + 자동 규제 지식 연동 |
+| **MasterControl** | QMS/DMS, 문서 제어, 교육 관리 | 중견-대형 ($20K+/년) | 의료기기·제약 | 온프레미스 복잡, SaaS 이전 지연 | 로컬 런타임 우선 + AI 보조 |
+| **Qara (구 Greenlight Guru)** | 의료기기 특화 QMS, Design Control | 중소형-중견 ($12K~30K/년) | 의료기기 스타트업 | 규제 지식팩 없음, 문서 AI 약함 | AI 규제 지식 연동 차별화 |
+| **전통 RA 컨설팅** | 전문가 판단, 제출 경험 | 프로젝트당 $5K~50K | 전 규모 | 비용 높고 지식 내재화 안됨 | 컨설팅 보조/표준화 운영 플랫폼 |
 
-**추가 예정:** Veeva Vault Quality, Sparta Systems TrackWise, MasterControl 등 구체적 벤더 명칭 분석
+### 포지셔닝 매트릭스
+
+| 구분 | 규제 특화 지식 | 하이브리드(로컬) 배포 | 가격 접근성 | AI 자동화 |
+|------|------------|-----------------|-----------|--------|
+| **본 제품** | ★★★★★ | ★★★★★ | ★★★★☆ | ★★★★☆ |
+| Veeva Vault | ★★★★☆ | ★★☆☆☆ (클라우드 중심) | ★★☆☆☆ | ★★★☆☆ |
+| MasterControl | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | ★★☆☆☆ |
+| Qara | ★★★★☆ | ★★☆☆☆ | ★★★★☆ | ★★★☆☆ |
+
+**핵심 차별점:** 하이브리드 배포(Data Sovereignty) + 규제 지식팩 자동 동기화 + 초기 품목군 특화 경량 도구.
+
+Sources:
+- [IntuitionLabs - GxP Compliance Software eQMS Platform Comparison 2026](https://intuitionlabs.ai/articles/gxp-compliance-software-eqms-comparison-2026)
+- [G2 - Veeva Vault QMS Reviews 2026](https://www.g2.com/products/veeva-vault-qms/reviews)
+- [Capterra - TrackWise Digital vs Vault Quality Suite 2025](https://www.capterra.com/quality-management-software/compare/175662-178567/Trackwise-Digital-vs-Vault-Quality-Suite)
 
 ---
 
