@@ -1,0 +1,6 @@
+# MoAI 파싱 원문 (자동 생성, DOCX 원본이 소스)
+.moai/project/*.txt
+
+# OS
+.DS_Store
+Thumbs.db

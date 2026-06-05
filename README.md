@@ -1,0 +1,157 @@
+# Global Hybrid AI RA Specialist
+
+의료기기 제조사를 위한 하이브리드 AI 규제 운영(RA) 플랫폼 — 기획 패키지 v3.0
+
+---
+
+## 프로젝트 개요
+
+공개 규제 지식(FDA · MFDS · EU MDR)을 클라우드에서 수집·관리하고,  
+민감 문서(설계치·임상 원자료·소스코드)는 **고객 내부망 Docker 런타임**에서만 처리하는  
+**데이터 주권 중심 셀프서비스 규제 운영 플랫폼**입니다.
+
+> 핵심 포지셔닝: 컨설팅 대행이 아니라, **표준화된 셀프서비스 규제 운영 플랫폼**
+
+---
+
+## 아키텍처 개요
+
+```
+┌─────────────────────────────────────────────────────┐
+│            ☁️  Cloud Control Plane                   │
+│  규제 크롤러 / 정규화 파이프라인 / PostgreSQL+pgvector │
+│  S3 Archive / EventBridge / CloudWatch / Budgets    │
+└──────────────────────┬──────────────────────────────┘
+                       │  Outbound HTTPS only
+                       │  증분 메타데이터 · 지식팩 버전관리
+                       │  고객사별 테넌트 격리
+┌──────────────────────▼──────────────────────────────┐
+│            🛡️  Secure Sync Layer                     │
+└──────────────────────┬──────────────────────────────┘
+                       │  Pull 방식 (고객 → 클라우드)
+┌──────────────────────▼──────────────────────────────┐
+│         🖥️  Customer Local Runtime (Docker)          │
+│  n8n Orchestrator / FastAPI / Dynamic Parser        │
+│  Unified Schema Store / Traceability Graph          │
+│  Ollama/vLLM RAG / Review UI / Audit Log            │
+│                                                     │
+│  ⚠️  민감 문서는 이 경계 밖으로 절대 전송하지 않음     │
+└─────────────────────────────────────────────────────┘
+```
+
+**타깃 품목군:** X-ray 시스템 · 디지털 디텍터 · 촬영실 SW/PACS · 피부미용 초음파
+
+---
+
+## 문서 완성도 현황
+
+> 2026-06-05 DOCX 원문 XML 직접 파싱 기준 (실측)
+
+| 문서 | 실측 완성도 | 85% 상태 | 주요 잔여 갭 |
+|------|-----------|---------|------------|
+| [사업계획서](docs/bizplan.md) | **78~82%** | ⚠️ 근접 | 팀 소개, TAM 수치, 3년 P&L, 경쟁사명 |
+| [MRD](docs/mrd.md) | **80~85%** | ✅ 달성권 | TAM 수치, 경쟁사 매트릭스, 사용자 스토리 |
+| [PRD](docs/prd.md) | **85~88%** | ✅ 달성 | UI 와이어프레임, 파서 상세 명세 (선택) |
+
+### 잔여 갭 트래커
+
+| ID | 문서 | 섹션 | 우선순위 | 상태 |
+|----|------|------|---------|------|
+| T01 | BizPlan | 팀 & 창업자 소개 | High | ⬜ 미완 |
+| T02 | BizPlan | TAM/SAM/SOM 수치화 | High | ⬜ 미완 |
+| T03 | BizPlan | 3년 P&L 실제 숫자 | High | ⬜ 미완 |
+| T04 | BizPlan | 경쟁사 명칭 분석 | High | ⬜ 미완 |
+| T05 | MRD | TAM/SAM/SOM 수치화 | High | ⬜ 미완 |
+| T06 | MRD | 경쟁사 명칭 매트릭스 | Medium | ⬜ 미완 |
+| T07 | MRD | 사용자 스토리 형식 변환 | Medium | ⬜ 미완 |
+| T08 | MRD | 고객 검증 데이터 | Medium | ⬜ 미완 |
+| T09 | PRD | UI/UX 와이어프레임 | Medium | ⬜ 미완 |
+| T10 | PRD | 파서 NLP 상세 명세 | Medium | ⬜ 미완 |
+| T11 | PRD | Docker Compose 파일 | Medium | ⬜ 미완 |
+| T12 | PRD | OpenAPI 완전 명세 | Low | ⬜ 미완 |
+
+갭 상세: [`.moai/specs/SPEC-DOC-001/spec.md`](.moai/specs/SPEC-DOC-001/spec.md)
+
+---
+
+## 레포지토리 구조
+
+```
+hybrid-ra-saas/
+├── docs/                         # 지식 베이스 (Markdown, 버전 관리)
+│   ├── bizplan.md                # 사업계획서 (BizPlan v3.0)
+│   ├── mrd.md                    # 시장 요구사항 명세서 (MRD v3.0)
+│   └── prd.md                    # 제품 요구사항 명세서 (PRD v3.0)
+│
+├── .moai/                        # MoAI 프로젝트 메타데이터
+│   ├── project/
+│   │   ├── product.md            # 제품 컨텍스트 요약
+│   │   └── *.txt                 # DOCX 파싱 원문 (자동 생성)
+│   └── specs/
+│       └── SPEC-DOC-001/
+│           └── spec.md           # 구현 계획 (갭 분석 포함)
+│
+├── 01_사업계획서_v3.0.docx         # 원본 (Word 편집용)
+├── 02_MRD_v3.0.docx              # 원본 (Word 편집용)
+├── 03_PRD_v3.0.docx              # 원본 (Word 편집용)
+├── 04_리뷰용_제안서.html           # 이해관계자 제안서 (브라우저 열람)
+└── README.md                     # 이 파일
+```
+
+> **운영 원칙:** `docs/` 폴더의 Markdown이 **지식 베이스 기준**입니다.  
+> DOCX 원본은 외부 공유/인쇄용으로 유지하며, 내용 변경은 Markdown에 먼저 반영합니다.
+
+---
+
+## 비즈니스 모델
+
+| 플랜 | 가격 | 대상 | 구성 |
+|------|------|------|------|
+| **Core SaaS** | $299/월 | 스타트업/초기팀 | 규제 변경 알림 + 기본 지식팩 + 표준 템플릿 |
+| **Advanced Hybrid** | $12,000/년 | 중견/내부망 기업 | 로컬 Docker 에이전트 + 정합성 가드레일 + 감사로그 |
+| **Setup & Enablement** | 별도 견적 | 초기 배포 고객 | 환경 점검 + 설치 + 교육 |
+| **Regulatory Pack Add-on** | 제품군/국가별 과금 | 확장 고객 | 추가 품목군·국가 규제 지식팩 |
+
+---
+
+## 핵심 지표 목표
+
+| 지표 | 목표 | 측정 방법 |
+|------|------|---------|
+| 핵심 필드 파싱 정확도 | 85%+ | 수동 라벨링 정답 세트 비교 |
+| 핵심 문서세트 검토 시간 | 10분 이내 | IFU/SRS/RMS/시험요약 샘플 기준 |
+| 규제 변경 알림 반영 | 24시간 이내 | 소스 변경 → 큐 생성 시각 비교 |
+| 표준 패키지 설치 | 1일 이내 | 체크리스트 완료 시간 측정 |
+| 문서 준비 기간 단축 | 30~50% | 파일럿 전후 소요 시간 비교 |
+
+---
+
+## 로드맵
+
+| 단계 | 기간 | 목표 | 핵심 산출물 |
+|------|------|------|-----------|
+| **Phase 1 Infra** | 0~8주 | 규제 수집/저장/동기화 PoC | 크롤러, 지식팩 버전, 웹훅 알림 |
+| **Phase 2 Logic** | 8~16주 | 품목군 스키마 + 파서 튜닝 | Unified Schema v0.9, DOCX/XLSX 파서 |
+| **Phase 3 Product** | 16~28주 | 로컬 런타임 + 검토 워크스페이스 | Docker 패키지, Review UI, Traceability Graph |
+| **Phase 4 Scale** | 28주~ | 품목/국가/파트너 확장 | Add-on 지식팩, 파트너 운영 매뉴얼 |
+
+---
+
+## 참고 문헌
+
+| # | 출처 |
+|---|------|
+| 1 | [FDA, Overview of Device Regulation](https://www.fda.gov/medical-devices/device-advice-comprehensive-regulatory-assistance/overview-device-regulation) |
+| 2 | [FDA, Cybersecurity in Medical Devices (Premarket Submissions)](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/cybersecurity-medical-devices-quality-management-system-considerations-and-content-premarket) |
+| 3 | [EUR-Lex, Regulation (EU) 2017/745 (EU MDR)](https://eur-lex.europa.eu/eli/reg/2017/745/oj/eng) |
+| 4 | [European Commission, Medical Devices / EUDAMED](https://health.ec.europa.eu/medical-devices-sector_en) |
+| 5 | [MFDS, Medical Device Regulations](https://www.mfds.go.kr/eng/brd/m_40/list.do) |
+| 6 | [pgvector, PostgreSQL vector similarity search](https://github.com/pgvector/pgvector) |
+
+---
+
+> ⚠️ 이 문서는 제품·사업 설계 문서입니다. 실제 인허가 제출 전에는 각 국가 규제기관의 최신 원문과 RA 전문가 검토가 필요합니다.
+
+---
+
+*버전: v3.0 | 최종 갱신: 2026-06-05 | 문서 완성도: 81~85% (DOCX 실측)*
