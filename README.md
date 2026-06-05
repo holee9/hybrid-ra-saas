@@ -78,28 +78,27 @@
 
 ```
 hybrid-ra-saas/
-├── docs/                         # 지식 베이스 (Markdown, 버전 관리)
+├── docs/                         # 지식 베이스 (Markdown, 버전 관리) ← 기준
 │   ├── bizplan.md                # 사업계획서 (BizPlan v3.0)
 │   ├── mrd.md                    # 시장 요구사항 명세서 (MRD v3.0)
 │   └── prd.md                    # 제품 요구사항 명세서 (PRD v3.0)
 │
-├── .moai/                        # MoAI 프로젝트 메타데이터
-│   ├── project/
-│   │   ├── product.md            # 제품 컨텍스트 요약
-│   │   └── *.txt                 # DOCX 파싱 원문 (자동 생성)
-│   └── specs/
-│       └── SPEC-DOC-001/
-│           └── spec.md           # 구현 계획 (갭 분석 포함)
+├── archive/                      # 아카이브 (변환 완료, 읽기 전용)
+│   ├── 01_사업계획서_v3.0.docx
+│   ├── 02_MRD_v3.0.docx
+│   ├── 03_PRD_v3.0.docx
+│   └── README.txt
 │
-├── 01_사업계획서_v3.0.docx         # 원본 (Word 편집용)
-├── 02_MRD_v3.0.docx              # 원본 (Word 편집용)
-├── 03_PRD_v3.0.docx              # 원본 (Word 편집용)
+├── .moai/                        # MoAI 프로젝트 메타데이터
+│   ├── project/product.md        # 제품 컨텍스트 요약
+│   └── specs/SPEC-DOC-001/spec.md # 구현 계획 (갭 분석 포함)
+│
 ├── 04_리뷰용_제안서.html           # 이해관계자 제안서 (브라우저 열람)
 └── README.md                     # 이 파일
 ```
 
 > **운영 원칙:** `docs/` 폴더의 Markdown이 **지식 베이스 기준**입니다.  
-> DOCX 원본은 외부 공유/인쇄용으로 유지하며, 내용 변경은 Markdown에 먼저 반영합니다.
+> `archive/`의 DOCX는 변환 완료된 원본으로, 내용 수정은 Markdown에서만 진행합니다.
 
 ---
 
