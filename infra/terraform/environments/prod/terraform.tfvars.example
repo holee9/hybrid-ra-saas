@@ -1,0 +1,4 @@
+subscription_id   = "a49390df-1886-495c-9fb0-cf8faf1aa5ef"
+tenant_id         = "42580dce-4bd2-4556-b531-4843eba6431d"
+db_admin_login    = "CHANGE_ME"
+db_admin_password = "CHANGE_ME"

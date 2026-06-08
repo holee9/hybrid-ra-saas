@@ -1,0 +1,83 @@
+name: Terraform
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['infra/terraform/**']
+  push:
+    branches: [main]
+    paths: ['infra/terraform/**']
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  ARM_SUBSCRIPTION_ID: a49390df-1886-495c-9fb0-cf8faf1aa5ef
+  ARM_TENANT_ID: 42580dce-4bd2-4556-b531-4843eba6431d
+  ARM_CLIENT_ID: 6620dc2b-93af-453c-b1b8-20f9582d7354
+  ARM_USE_OIDC: "true"
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [prod, staging]
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ">= 1.9.0"
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: github.event_name == 'pull_request'
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        continue-on-error: true
+
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const env = '${{ matrix.environment }}';
+            const outcome = '${{ steps.plan.outcome }}';
+            const stdout = `${{ steps.plan.outputs.stdout }}`;
+            const output = `#### Terraform Plan (${env}) \`${outcome}\`
+            <details><summary>Plan 결과 보기 (${env})</summary>
+
+            \`\`\`
+            ${stdout}
+            \`\`\`
+            </details>`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve

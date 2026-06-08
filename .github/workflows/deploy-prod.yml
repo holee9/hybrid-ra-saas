@@ -46,17 +46,10 @@ jobs:
           IMAGE: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ env.APP_NAME }}
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          docker build -t $IMAGE:$VERSION -t $IMAGE:latest .
+          docker build -f customer-runtime/docker/Dockerfile -t $IMAGE:$VERSION -t $IMAGE:latest customer-runtime/
           docker push $IMAGE:$VERSION
           docker push $IMAGE:latest
           echo "IMAGE_TAG=$IMAGE:$VERSION" >> $GITHUB_ENV
-
-      - name: DB 마이그레이션
-        run: |
-          docker run --rm \
-            -e DATABASE_URL="${{ secrets.DB_CONNECTION_STRING }}" \
-            ${{ env.IMAGE_TAG }} \
-            sh -c "npm run migrate"
 
       - name: Container App 배포
         id: deploy
@@ -66,7 +59,7 @@ jobs:
           containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
           containerAppName: ${{ env.APP_NAME }}-${{ env.SUFFIX }}
           imageToDeploy: ${{ env.IMAGE_TAG }}
-          targetPort: 3000
+          targetPort: 8000
 
       - name: 헬스체크
         id: health

@@ -9,20 +9,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  lint-and-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: customer-runtime
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image (validation only)
-        run: docker build -t hybrid-ra-saas:ci .
-        # TODO: Dockerfile 위치 조정 (예: -f apps/api/Dockerfile)
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
-      - name: Run tests
-        run: docker run --rm hybrid-ra-saas:ci sh -c "npm test"
-        # TODO: 스택에 맞게 테스트 명령 변경
-        # Node.js: npm test | pytest | go test ./... | cargo test
+      - name: uv 설치
+        run: pip install uv
 
-      - name: Lint check
-        run: docker run --rm hybrid-ra-saas:ci sh -c "npm run lint"
-        # TODO: 스택에 맞게 lint 명령 변경
+      - name: 의존성 설치
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv pip install --system -e ".[dev]" 2>/dev/null || \
+            uv pip install --system -r requirements-dev.txt 2>/dev/null || \
+            uv pip install --system -r requirements.txt
+          elif [ -f requirements-dev.txt ]; then
+            uv pip install --system -r requirements-dev.txt
+          else
+            uv pip install --system -r requirements.txt
+          fi
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Pytest (단위 테스트)
+        run: pytest --cov=app --cov-report=term-missing -m "not integration"
