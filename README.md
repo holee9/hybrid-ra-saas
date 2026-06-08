@@ -96,6 +96,24 @@ SPEC 상세: [`.moai/specs/SPEC-API-001/spec.md`](.moai/specs/SPEC-API-001/spec.
 
 ---
 
+## 구현 현황 (SPEC-INFRA-001)
+
+> 2026-06-08 기준 — Cloud Control Plane Azure Terraform/IaC 완료
+
+| 항목 | 내용 |
+|------|------|
+| **IaC 범위** | Azure 리소스 9종 import + 신규 3종 (tfstate, Container App 2개) |
+| **Terraform** | >= 1.9.0, azurerm ~> 4.0, OIDC 전용 인증 |
+| **모듈** | 5개 (container_registry, container_app_env, postgresql, key_vault, monitoring) |
+| **State Backend** | Azure Blob Storage (`sthybridrasaasprod`/`tfstate`) 2단계 부트스트랩 |
+| **CI/CD** | terraform.yml 신규 (PR→plan comment, main merge→apply) |
+| **보안** | Key Vault 시크릿 data source 전용, OIDC 전용, *.tfvars gitignored |
+| **환경** | prod / staging 분리, 공유 Container App Environment |
+
+SPEC 상세: [`.moai/specs/SPEC-INFRA-001/spec.md`](.moai/specs/SPEC-INFRA-001/spec.md)
+
+---
+
 ## 레포지토리 구조
 
 ```
@@ -110,6 +128,11 @@ hybrid-ra-saas/
 │   ├── alembic/                  # DB 마이그레이션 (pgvector)
 │   ├── docker/                   # Dockerfile (multi-stage)
 │   └── docker-compose.yml        # 5서비스 (api, postgres, minio, ollama, redis)
+│
+├── infra/                        # Cloud Control Plane 인프라 (SPEC-INFRA-001 ✅ 완료)
+│   └── terraform/                # Azure Terraform IaC
+│       ├── modules/              # 5개 재사용 모듈 (ACR, CAE, PostgreSQL, KeyVault, Monitoring)
+│       └── environments/         # prod / staging 환경 분리
 │
 ├── docs/                         # 지식 베이스 (Markdown, 버전 관리) ← 기준
 │   ├── bizplan.md                # 사업계획서 (BizPlan v3.0)
@@ -187,4 +210,4 @@ hybrid-ra-saas/
 
 ---
 
-*버전: v4.0 | 최종 갱신: 2026-06-05 | 문서 완성도: 85%+ (SPEC-DOC-001 Run 완료)*
+*버전: v5.0 | 최종 갱신: 2026-06-08 | 문서 완성도: 85%+ | Customer Runtime ✅ | Terraform IaC ✅*

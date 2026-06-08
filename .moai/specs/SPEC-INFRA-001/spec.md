@@ -1,7 +1,7 @@
 ---
 id: SPEC-INFRA-001
 version: 1.0.0
-status: planned
+status: completed
 created: 2026-06-08
 updated: 2026-06-08
 author: drake.lee
@@ -524,3 +524,24 @@ IF CI 파이프라인이 Azure에 인증해야 하면, THEN the system SHALL OID
 5. `terraform.yml` 작성 → 테스트 PR로 plan 코멘트 검증 (REQ-INFRA-002, 003, 010)
 6. `ci.yml`/deploy 워크플로우 Python/포트 8000 갱신 (REQ-INFRA-009)
 7. `.gitignore` 정비 + 시크릿 data source 검증 (REQ-INFRA-006, 007)
+
+---
+
+## 13. 구현 노트 (Implementation Notes)
+
+- **구현 완료**: 2026-06-08 (커밋: 7ec6aa4)
+- **SPEC lifecycle**: spec-first (v1.0.0 기준 설계, 구현 후 완료 처리)
+
+### 실제 구현 vs 계획 차이점
+
+| 항목 | 계획 | 실제 | 사유 |
+|------|------|------|------|
+| import.tf 위치 | `infra/terraform/import.tf` (루트) | `environments/prod/import.tf`, `environments/staging/import.tf` (환경별) | module `to` 주소 정합성 — prod 리소스는 prod 환경에서, staging 리소스는 staging 환경에서 import |
+| Dockerfile 경로 | `customer-runtime/Dockerfile` | `customer-runtime/docker/Dockerfile` | 실제 파일 위치 기준. SPEC 오기 수정. |
+| 마이그레이션 step | deploy 워크플로우 별도 `alembic upgrade head` | 제거 (entrypoint.sh가 이미 실행) | 이중 실행 방지 |
+
+### 미해결 항목 (운영 수동 필요)
+
+- `terraform plan` drift 0 검증: Azure 인증 환경에서 실행 필요 (REQ-INFRA-001)
+- State backend 활성화: tfstate 컨테이너 생성 후 `terraform init -migrate-state` 수동 실행 (REQ-INFRA-004)
+- OIDC federated credential subject 검증: 실제 PR/merge 트리거 시 확인

@@ -21,6 +21,7 @@
 - S3/Archive
 - EventBridge/SQS/SNS
 - CloudWatch/Budgets
+- Terraform IaC (SPEC-INFRA-001 완료): 9종 리소스 import, 5개 모듈, Azure Blob state
 
 ### Secure Sync Layer
 - 아웃바운드 HTTPS only
