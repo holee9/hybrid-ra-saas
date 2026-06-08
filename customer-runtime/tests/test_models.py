@@ -1,5 +1,4 @@
 """T-004: 9 SQLAlchemy models."""
-import pytest
 
 
 def test_document_tablename():
@@ -20,14 +19,14 @@ def test_requirement_has_vector():
 
 def test_all_models_importable():
     from app.models.product import Product
-    from app.models.document import Document, DocumentStatus
+    from app.models.document import Document
     from app.models.requirement import Requirement
     from app.models.risk import Risk
     from app.models.control import Control
     from app.models.evidence import Evidence
     from app.models.finding import Finding
     from app.models.audit import AuditEvent
-    from app.models.parse_job import ParseJob, ParseJobStatus
+    from app.models.parse_job import ParseJob
 
     assert Product.__tablename__ == "products"
     assert Document.__tablename__ == "documents"

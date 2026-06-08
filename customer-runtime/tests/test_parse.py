@@ -1,5 +1,4 @@
 """T-011: Parser service + parse job state machine + GET /parse/jobs/{job_id}."""
-import asyncio
 import os
 import pytest
 from tests.conftest import skip_no_docker
@@ -55,9 +54,8 @@ async def test_parse_job_low_confidence_needs_correction(client):
     from app.jobs.parse_job import run_parse_job
     from app.database import async_session
     from app.models.document import Document, DocumentStatus
-    from app.models.parse_job import ParseJob, ParseJobStatus
-    from app.models.base import new_id
-    import io, zipfile
+    import io
+    import zipfile
 
     token = create_token("user-1", "tenant-1")
 
@@ -106,7 +104,8 @@ async def test_parse_job_high_confidence_ready_for_check(client):
     from app.jobs.parse_job import run_parse_job
     from app.database import async_session
     from app.models.document import Document, DocumentStatus
-    import io, zipfile
+    import io
+    import zipfile
 
     token = create_token("user-2", "tenant-2")
 
@@ -140,7 +139,8 @@ async def test_parse_job_status_transitions_via_api(client):
     from app.core.security import create_token
     from app.services.parser import StubParserService, ParseResult
     from app.jobs.parse_job import run_parse_job
-    import io, zipfile
+    import io
+    import zipfile
 
     token = create_token("user-3", "tenant-3")
 

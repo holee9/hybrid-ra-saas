@@ -5,8 +5,9 @@ import os
 import pytest
 from tests.conftest import skip_no_docker
 
+from unittest.mock import MagicMock
+
 pytestmark = skip_no_docker
-from unittest.mock import MagicMock, patch
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
 os.environ.setdefault("JWT_SECRET", "test-secret-32-bytes-minimum-here!")
@@ -50,7 +51,6 @@ async def _make_app_with_mock_storage_and_db():
     """Return app + mock storage/db for unit testing upload."""
     from app.main import create_app
     from app.services.storage import StorageService
-    from app.routers import documents as doc_router_mod
 
     # In-memory storage
     store: dict = {}
@@ -109,10 +109,8 @@ async def test_upload_no_auth_returns_401():
     attempt auth before failing. FastAPI resolves all dependencies in parallel.
     """
     from httpx import ASGITransport, AsyncClient
-    from fastapi import FastAPI
     from app.main import create_app
     from app.deps import get_db
-    from unittest.mock import AsyncMock, MagicMock
 
     app = create_app()
 

@@ -1,6 +1,5 @@
 """T-008: GET /health returns 200 {"status": "ok"} without auth."""
 import os
-import pytest
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
 os.environ.setdefault("JWT_SECRET", "test-secret-32-bytes-minimum-here!")

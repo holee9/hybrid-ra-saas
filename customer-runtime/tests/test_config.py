@@ -1,5 +1,4 @@
 """T-001: Settings loads from env, missing JWT_SECRET raises ValidationError."""
-import os
 import pytest
 from pydantic import ValidationError
 

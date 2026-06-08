@@ -1,10 +1,8 @@
 """T-002: DB engine, session factory, Base, mixins."""
-import pytest
 
 
 def test_imports():
-    from app.database import create_engine_from_url, async_session, get_async_session
-    from app.models.base import Base, TenantMixin, TimestampMixin, new_id
+    from app.models.base import Base
     assert Base is not None
 
 

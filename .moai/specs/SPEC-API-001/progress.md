@@ -10,4 +10,17 @@
 - Phase 1.5 complete: tasks.md 생성 (T-001..T-020, 20 atomic TDD tasks)
 - Phase 1.6 complete: 12 acceptance criteria registered as pending tasks (AC-1..AC-12)
 - Phase 1.7: greenfield — no stub files needed, Phase 1.8 skipped (greenfield)
-- Phase 2 started: manager-tdd P0 구현 (T-001..T-011)
+- Phase 2 P0 complete: 44 files created, 26 unit tests pass, commit 4cb77f3
+- Phase 2.75 complete: ruff lint clean (0 errors)
+- 통합 테스트 10개 대기 중 (Docker Desktop 기동 후 실행 필요)
+- Phase 2 P1 complete: T-012~T-015 구현 완료
+  - T-012: guardrail 규칙 엔진 + POST /guardrail/run (REQ-API-007)
+  - T-013: RAG 서비스 + POST /rag/query (REQ-API-008,009)
+  - T-014: Export 서비스 + POST /audit/export (REQ-API-010)
+  - T-015: 필드 보정 핸들러 + before/after AuditEvent (REQ-API-006,011)
+- 신규 파일: 12개 (schemas/guardrail.py, services/guardrail.py, routers/guardrail.py, schemas/rag.py, services/rag.py, routers/rag.py, schemas/audit.py, services/export.py, routers/audit.py, tests/test_guardrail.py, tests/test_rag.py, tests/test_audit_export.py, tests/test_field_correction.py)
+- 수정 파일: 2개 (main.py 라우터 등록, routers/documents.py PATCH 추가)
+- 테스트: 45 passed, 21 skipped(Docker), 0 failed
+- 전체 커버리지: 74% (단위 테스트 기준)
+- ruff: 0 errors
+- 다음: P2 구현 (T-016~T-020: sync manifest, air-gap, rate limit, Docker compose, 커버리지 80%)

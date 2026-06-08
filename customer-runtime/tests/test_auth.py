@@ -1,6 +1,5 @@
 """T-006 + T-007: JWT security and auth dependencies."""
 import os
-import time
 import pytest
 
 # Set env before importing app modules

@@ -1,6 +1,5 @@
 """T-003: conftest smoke test — verifies app starts and returns 404 on unknown route."""
 import os
-import pytest
 from tests.conftest import skip_no_docker
 
 pytestmark = skip_no_docker
