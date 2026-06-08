@@ -33,3 +33,4 @@
 - 전체 커버리지: 82%
 - ruff: 0 errors
 - SPEC-API-001 전체 P0+P1+P2 완료 (T-001~T-020)
+- Sync 완료 (2026-06-08): SPEC 상태 planned→completed, tasks.md 전체 completed, README.md 업데이트, origin/main push, Issue #12 클로즈

@@ -77,10 +77,40 @@
 
 ---
 
+## 구현 현황 (SPEC-API-001)
+
+> 2026-06-08 기준 — Customer Local Runtime FastAPI + Docker Compose 전체 완료
+
+| 항목 | 내용 |
+|------|------|
+| **엔드포인트** | 7개 (GET /health, POST /documents/upload, POST /parse/jobs, POST /guardrail/run, POST /rag/query, POST /audit/export, GET /sync/manifest) |
+| **데이터 모델** | SQLAlchemy 9개 (Product, Document, Requirement, Risk, Control, Evidence, Finding, AuditEvent, ParseJob) + pgvector |
+| **인증** | JWT HS256 + X-Tenant-ID 멀티테넌시 |
+| **Docker** | 5서비스 (api, postgres, minio, ollama, redis) multi-stage 빌드 |
+| **테스트** | 92 passed / 0 failed (Docker 통합 테스트 23개는 CI 전용 자동 스킵) |
+| **커버리지** | 82% (목표 80% 초과) |
+| **lint** | ruff 0 errors |
+| **FR-210** | Air-Gap 아웃바운드 검증 구현 완료 |
+
+SPEC 상세: [`.moai/specs/SPEC-API-001/spec.md`](.moai/specs/SPEC-API-001/spec.md)
+
+---
+
 ## 레포지토리 구조
 
 ```
 hybrid-ra-saas/
+├── customer-runtime/             # Customer Local Runtime (SPEC-API-001 ✅ 완료)
+│   ├── src/app/                  # FastAPI 애플리케이션
+│   │   ├── routers/              # 7개 엔드포인트 (health, upload, parse, guardrail, rag, audit, sync)
+│   │   ├── models/               # SQLAlchemy 9개 모델 (8 엔티티 + ParseJob)
+│   │   ├── services/             # 비즈니스 로직 (storage, parser, guardrail, rag, export, airgap)
+│   │   └── core/                 # JWT, rate limit, state machine
+│   ├── tests/                    # pytest (92 passed, 82% coverage)
+│   ├── alembic/                  # DB 마이그레이션 (pgvector)
+│   ├── docker/                   # Dockerfile (multi-stage)
+│   └── docker-compose.yml        # 5서비스 (api, postgres, minio, ollama, redis)
+│
 ├── docs/                         # 지식 베이스 (Markdown, 버전 관리) ← 기준
 │   ├── bizplan.md                # 사업계획서 (BizPlan v3.0)
 │   ├── mrd.md                    # 시장 요구사항 명세서 (MRD v3.0)
@@ -94,7 +124,8 @@ hybrid-ra-saas/
 │
 ├── .moai/                        # MoAI 프로젝트 메타데이터
 │   ├── project/product.md        # 제품 컨텍스트 요약
-│   └── specs/SPEC-DOC-001/spec.md # 구현 계획 (갭 분석 포함)
+│   ├── specs/SPEC-DOC-001/spec.md # 문서 완성도 계획
+│   └── specs/SPEC-API-001/spec.md # Customer Local Runtime 구현 SPEC (완료)
 │
 ├── 04_리뷰용_제안서.html           # 이해관계자 제안서 (브라우저 열람)
 └── README.md                     # 이 파일

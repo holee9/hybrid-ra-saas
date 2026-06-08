@@ -1,9 +1,9 @@
 ---
 id: SPEC-API-001
 version: 1.0.0
-status: planned
+status: completed
 created: 2026-06-06
-updated: 2026-06-06
+updated: 2026-06-08
 author: drake.lee
 priority: high
 issue_number: 12
@@ -826,5 +826,36 @@ async def client(pg_container):
 - rate limit 100 req/min/tenant로 남용 방지.
 
 ---
+
+## 12. Implementation Notes (2026-06-08)
+
+SPEC 라이프사이클: `spec-anchored` — 실제 구현 내용을 반영하여 업데이트됨.
+
+### 12.1 구현 완료 요약
+
+| 단계 | 커밋 | 주요 내용 |
+|------|------|-----------|
+| P0 MVP | `4cb77f3` + `88d1170` | FastAPI 앱 팩토리, SQLAlchemy 9모델, Alembic, JWT, health/upload/parse 엔드포인트, 통합 테스트 Docker 스킵 처리 |
+| P1 | `62ecb8f` | Guardrail 규칙 엔진, RAG/pgvector, 감사 Export, 필드 보정 AuditEvent |
+| P2 | `b6a9fe8` | Sync manifest, Air-Gap 검증(FR-210), slowapi rate limit, Docker multi-stage + docker-compose |
+
+### 12.2 SPEC 대비 실제 구현 차이
+
+| 항목 | SPEC 계획 | 실제 구현 | 분류 |
+|------|-----------|-----------|------|
+| SQLAlchemy 모델 수 | 8개 엔티티 | 9개 (ParseJob 추가) | scope_expansion |
+| 통합 테스트 | 로컬 실행 | CI(GitHub Actions) 전용, 로컬은 자동 스킵 | structural_change |
+| Ollama 연동 | 런타임 위임 (Exclusion) | docker-compose 서비스로 포함 (인터페이스만) | unplanned_addition |
+
+### 12.3 최종 지표
+
+| 지표 | 값 |
+|------|-----|
+| 테스트 | 92 passed, 23 skipped(Docker CI), 0 failed |
+| 커버리지 | 82% (목표 80% 초과) |
+| ruff errors | 0 |
+| 엔드포인트 | 7개 |
+| Docker 서비스 | 5개 |
+| 배포 대상 | Azure Container Apps |
 
 Version: v1.0.0 | Created: 2026-06-06 | Status: planned | Lifecycle: spec-anchored
