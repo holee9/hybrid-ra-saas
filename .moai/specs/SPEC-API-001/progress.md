@@ -23,4 +23,13 @@
 - 테스트: 45 passed, 21 skipped(Docker), 0 failed
 - 전체 커버리지: 74% (단위 테스트 기준)
 - ruff: 0 errors
-- 다음: P2 구현 (T-016~T-020: sync manifest, air-gap, rate limit, Docker compose, 커버리지 80%)
+- Phase 2 P2 complete: T-016~T-020 구현 완료
+  - T-016: GET /sync/manifest (delta + hash, FR-210 민감 데이터 배제)
+  - T-017: AirGapService.validate_outbound (FR-210 아웃바운드 검증)
+  - T-018: slowapi 기반 rate limiting (100/min/tenant → 429)
+  - T-019: Docker multi-stage + docker-compose 5서비스 + entrypoint.sh
+  - T-020: 커버리지 82% 달성 (목표 80% 초과)
+- 테스트: 92 passed, 23 skipped(Docker CI), 0 failed
+- 전체 커버리지: 82%
+- ruff: 0 errors
+- SPEC-API-001 전체 P0+P1+P2 완료 (T-001~T-020)

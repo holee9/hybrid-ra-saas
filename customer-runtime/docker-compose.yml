@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://ra_user:ra_pass@postgres:5432/ra_db
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-must-be-32chars}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: ra-documents
+      MINIO_USER: minioadmin
+      MINIO_PASSWORD: minioadmin
+      OLLAMA_ENDPOINT: http://ollama:11434
+      OLLAMA_MODEL: llama3.1:8b
+      CLOUD_SYNC_ENDPOINT: ${CLOUD_SYNC_ENDPOINT:-https://sync.example.com}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+    depends_on:
+      - postgres
+      - minio
+      - ollama
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ra_user
+      POSTGRES_PASSWORD: ra_pass
+      POSTGRES_DB: ra_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ra_user -d ra_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  minio_data:
+  ollama_data:

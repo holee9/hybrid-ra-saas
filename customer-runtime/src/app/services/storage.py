@@ -1,6 +1,8 @@
 """Storage service — wraps boto3 S3-compatible client."""
 from typing import Any
 
+import boto3 as boto3
+
 
 class StorageService:
     """Uploads and retrieves files from MinIO/S3-compatible storage."""
@@ -33,7 +35,6 @@ class StorageService:
 
 def create_storage_service() -> StorageService:
     """Create a StorageService from app settings."""
-    import boto3
     from app.config import Settings
 
     settings = Settings()
