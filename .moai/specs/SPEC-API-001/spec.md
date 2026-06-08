@@ -6,7 +6,7 @@ created: 2026-06-06
 updated: 2026-06-06
 author: drake.lee
 priority: high
-issue_number: null
+issue_number: 12
 ---
 
 # SPEC-API-001: Customer Local Runtime — FastAPI + Docker Compose 구현

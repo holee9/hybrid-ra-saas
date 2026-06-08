@@ -3,6 +3,9 @@ import hashlib
 import io
 import os
 import pytest
+from tests.conftest import skip_no_docker
+
+pytestmark = skip_no_docker
 from unittest.mock import MagicMock, patch
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")

@@ -1,5 +1,9 @@
-"""Integration test fixtures: testcontainers PostgreSQL + async httpx client."""
-import asyncio
+"""Integration test fixtures: testcontainers PostgreSQL + async httpx client.
+
+Integration tests require a Docker daemon. They are designed to run in CI (GitHub Actions)
+where Docker is available. On local machines without Docker, these tests are skipped
+automatically — only unit tests run locally.
+"""
 import os
 import subprocess
 import sys
@@ -12,9 +16,29 @@ from httpx import ASGITransport, AsyncClient
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
+def _docker_available() -> bool:
+    """Return True if a Docker daemon is reachable."""
+    try:
+        import docker
+        docker.from_env(timeout=3)
+        return True
+    except Exception:
+        return False
+
+
+# Skip entire session if Docker is unavailable (local dev without Docker)
+_DOCKER_UP = _docker_available()
+skip_no_docker = pytest.mark.skipif(
+    not _DOCKER_UP,
+    reason="Docker daemon not available — integration tests run in CI only",
+)
+
+
 @pytest.fixture(scope="session")
 def pg_container():
     """Start pgvector/pgvector:pg16 container for the test session."""
+    if not _DOCKER_UP:
+        pytest.skip("Docker not available")
     from testcontainers.postgres import PostgresContainer
 
     with PostgresContainer(

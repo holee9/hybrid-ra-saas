@@ -3,6 +3,9 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
+from tests.conftest import skip_no_docker
+
+pytestmark = skip_no_docker
 
 
 @pytest.mark.integration
