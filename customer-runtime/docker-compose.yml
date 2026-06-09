@@ -74,6 +74,16 @@ services:
       timeout: 5s
       retries: 3
 
+  ui:
+    build:
+      context: ./ui
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   minio_data:
