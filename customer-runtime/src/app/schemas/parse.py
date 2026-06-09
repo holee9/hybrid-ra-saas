@@ -1,4 +1,5 @@
 """Parse job schemas — IFU 15-field extraction models."""
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -80,6 +81,31 @@ class ParseJobResponse(BaseModel):
     confidence: float | None = None
     required_missing: list[str] | None = None
     parsed_fields: ParsedFields | None = None
+
+
+# ---------------------------------------------------------------------------
+# List endpoint schemas (SPEC-UI-002)
+# ---------------------------------------------------------------------------
+
+class JobSummary(BaseModel):
+    """Summary view of a ParseJob for the review queue list endpoint."""
+
+    job_id: str
+    doc_id: str
+    status: str
+    overall_confidence: float | None
+    requires_correction: bool
+    created_at: datetime
+    error: str | None = None
+
+
+class ListJobsResponse(BaseModel):
+    """Paginated list of JobSummary items."""
+
+    items: list[JobSummary]
+    total: int
+    skip: int
+    limit: int
 
 
 class CorrectionsRequest(BaseModel):
