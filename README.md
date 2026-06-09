@@ -115,6 +115,26 @@ SPEC 상세: [`.moai/specs/SPEC-UI-001/spec.md`](.moai/specs/SPEC-UI-001/spec.md
 
 ---
 
+## 구현 현황 (SPEC-UI-002)
+
+> 2026-06-09 기준 — Customer Local Runtime 검토 큐 화면 완료
+
+| 항목 | 내용 |
+|------|------|
+| **큐 엔드포인트** | `GET /parse/jobs`: 테넌트 격리, 상태/교정필요 필터, skip/limit 페이지네이션 |
+| **스키마** | `JobSummary`, `ListJobsResponse` Pydantic v2 |
+| **큐 화면** | React Router 7, `QueuePage`, `JobQueueTable`, StatusTabs(5개), SortControl, Pagination |
+| **훅** | `useListJobs`: 클라이언트 정렬 + 5초 자동갱신(running 작업 존재 시) |
+| **프론트엔드 테스트** | Vitest + RTL, 113/113 passed |
+| **백엔드 테스트** | pytest, 168 passed / 32 skipped(CI 전용) |
+| **TypeScript** | 0 errors |
+| **커버리지** | 85% (목표 달성) |
+| **라우팅** | `/jobs` → QueuePage, `/jobs/:jobId` → CorrectionPanel (SPEC-UI-001 회귀 없음) |
+
+SPEC 상세: [`.moai/specs/SPEC-UI-002/spec.md`](.moai/specs/SPEC-UI-002/spec.md)
+
+---
+
 ## 구현 현황 (SPEC-INFRA-001)
 
 > 2026-06-08 기준 — Cloud Control Plane Azure Terraform/IaC 완료
