@@ -1,7 +1,7 @@
 ---
 id: SPEC-UI-002
-version: 0.1.0
-status: draft
+version: 1.0.0
+status: completed
 created_at: 2026-06-09
 updated: 2026-06-09
 author: drake.lee
