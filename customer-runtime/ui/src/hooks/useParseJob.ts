@@ -37,6 +37,8 @@ export function useParseJob(jobId: string): UseParseJobResult {
               setError("작업을 찾을 수 없음");
             } else if (err.status === 401) {
               setError("인증 실패");
+            } else if (err.status === 0) {
+              setError(err.message);
             } else {
               setError(`오류: HTTP ${err.status}`);
             }

@@ -4,7 +4,7 @@ import {
   IfuFieldName,
   IFU_FIELD_NAMES,
 } from "../types/parse";
-import { apiFetch, ApiError } from "../lib/api";
+import { apiFetch } from "../lib/api";
 
 export interface UseCorrectionsResult {
   fields: ParsedFields;

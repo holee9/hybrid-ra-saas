@@ -105,7 +105,7 @@ describe("FieldRow", () => {
         onUpdate={vi.fn()}
       />
     );
-    expect(screen.getByText("Warning A\nWarning B")).toBeTruthy();
+    expect(screen.getByText("Warning A\nWarning B", { normalizer: (s) => s })).toBeTruthy();
   });
 
   it("shows placeholder for null value", () => {

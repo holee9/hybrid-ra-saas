@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useCorrections } from "./useCorrections";
 import { ExtractionStage, IFU_FIELD_NAMES, ParsedFields } from "../types/parse";
 
@@ -21,12 +21,12 @@ function makeFields(): ParsedFields {
   IFU_FIELD_NAMES.forEach((f) => {
     fields[f] = makeField();
   });
-  return fields as ParsedFields;
+  return fields as unknown as ParsedFields;
 }
 
 describe("useCorrections", () => {
   beforeEach(() => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({}), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -80,7 +80,7 @@ describe("useCorrections", () => {
       await result.current.save();
     });
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
       string,
       RequestInit,
     ];
@@ -102,7 +102,7 @@ describe("useCorrections", () => {
       await result.current.save();
     });
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
       string,
       RequestInit,
     ];
@@ -127,7 +127,7 @@ describe("useCorrections", () => {
   });
 
   it("rolls back on 422 (AC-006)", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Unprocessable", { status: 422 })
     );
 
@@ -170,7 +170,7 @@ describe("useCorrections", () => {
 
   it("saving=true during PATCH, false after", async () => {
     let resolveFetch!: (v: Response) => void;
-    vi.spyOn(global, "fetch").mockReturnValue(
+    vi.spyOn(globalThis, "fetch").mockReturnValue(
       new Promise((res) => { resolveFetch = res; })
     );
 
@@ -210,7 +210,7 @@ describe("useCorrections", () => {
       await result.current.save();
     });
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
       string,
       RequestInit,
     ];

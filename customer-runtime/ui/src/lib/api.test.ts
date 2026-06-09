@@ -19,7 +19,7 @@ describe("Token management", () => {
 describe("apiFetch", () => {
   beforeEach(() => {
     clearToken();
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), { status: 200 })
     );
   });
@@ -33,7 +33,7 @@ describe("apiFetch", () => {
     setToken("my-token");
     await apiFetch("/parse/jobs/123");
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
       string,
       RequestInit,
     ];
@@ -45,7 +45,7 @@ describe("apiFetch", () => {
   it("does NOT send Authorization header when no token", async () => {
     await apiFetch("/parse/jobs/123");
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
       string,
       RequestInit,
     ];
@@ -53,7 +53,7 @@ describe("apiFetch", () => {
   });
 
   it("throws ApiError on 401", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Unauthorized", { status: 401 })
     );
 
@@ -62,7 +62,7 @@ describe("apiFetch", () => {
   });
 
   it("throws ApiError on 404", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Not Found", { status: 404 })
     );
 
@@ -70,7 +70,7 @@ describe("apiFetch", () => {
   });
 
   it("throws ApiError on 422", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Unprocessable", { status: 422 })
     );
 
@@ -78,7 +78,7 @@ describe("apiFetch", () => {
   });
 
   it("throws network error with Korean message on fetch failure", async () => {
-    vi.spyOn(global, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
 
     await expect(apiFetch("/parse/jobs/123")).rejects.toThrow(
       "네트워크 오류. 재시도해주세요."
@@ -98,7 +98,7 @@ describe("apiFetch", () => {
   it("sends Content-Type application/json", async () => {
     await apiFetch("/test");
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
       string,
       RequestInit,
     ];

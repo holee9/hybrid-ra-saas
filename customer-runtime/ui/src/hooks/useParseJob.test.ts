@@ -39,7 +39,7 @@ const mockResponse = {
 
 describe("useParseJob", () => {
   beforeEach(() => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(mockResponse), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -69,15 +69,15 @@ describe("useParseJob", () => {
     renderHook(() => useParseJob("job-abc"));
 
     await waitFor(() =>
-      expect(global.fetch as ReturnType<typeof vi.fn>).toHaveBeenCalled()
+      expect(globalThis.fetch as ReturnType<typeof vi.fn>).toHaveBeenCalled()
     );
 
-    const [url] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string];
+    const [url] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string];
     expect(url).toContain("/parse/jobs/job-abc");
   });
 
   it("sets error on 404", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Not Found", { status: 404 })
     );
 
@@ -90,7 +90,7 @@ describe("useParseJob", () => {
   });
 
   it("sets error on network failure", async () => {
-    vi.spyOn(global, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
 
     const { result } = renderHook(() => useParseJob("job-123"));
 
@@ -113,6 +113,6 @@ describe("useParseJob", () => {
     result.current.refetch();
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
   });
 });

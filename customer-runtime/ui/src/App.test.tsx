@@ -37,7 +37,7 @@ describe("App", () => {
 
   // AC-001: GET called once → 15 fields
   it("calls GET and renders 15 fields on mount (AC-001)", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
           job_id: "test-job",
@@ -54,13 +54,13 @@ describe("App", () => {
       expect(screen.getByText("기기명")).toBeTruthy();
     });
 
-    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
     expect(screen.getByText("폐기 지침")).toBeTruthy();
   });
 
   // AC-E02: GET timeout → error message
   it("shows network error message on GET failure (AC-E02)", async () => {
-    vi.spyOn(global, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
 
     render(<App />);
 
@@ -71,7 +71,7 @@ describe("App", () => {
 
   // AC-E03: GET 404 → 작업을 찾을 수 없음
   it("shows not found message on 404 (AC-E03)", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Not Found", { status: 404 })
     );
 

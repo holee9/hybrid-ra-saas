@@ -23,7 +23,7 @@ function makeFields(overrides: Partial<ParsedFields> = {}): ParsedFields {
   IFU_FIELD_NAMES.forEach((f) => {
     if (!(f in fields)) fields[f] = makeField();
   });
-  return fields as ParsedFields;
+  return fields as unknown as ParsedFields;
 }
 
 function renderPanel(jobId: string, fields: ParsedFields) {
@@ -36,7 +36,7 @@ function renderPanel(jobId: string, fields: ParsedFields) {
 
 describe("CorrectionPanel", () => {
   beforeEach(() => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({}), { status: 200 })
     );
   });
@@ -111,7 +111,7 @@ describe("CorrectionPanel", () => {
 
   // AC-006: PATCH 422 → rollback + error toast
   it("shows error toast and rolls back on 422 (AC-006)", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Unprocessable", { status: 422 })
     );
 
@@ -152,7 +152,7 @@ describe("CorrectionPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: /저장/i }));
     });
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
       string,
       RequestInit,
     ];
@@ -170,7 +170,7 @@ describe("CorrectionPanel", () => {
     IFU_FIELD_NAMES.forEach((f) => {
       fields[f] = { value: null, confidence: 0.0, stage: ExtractionStage.NONE, needs_correction: true };
     });
-    renderPanel("job-1", fields as ParsedFields);
+    renderPanel("job-1", fields as unknown as ParsedFields);
     // Should not crash; 15 badges rendered
     const badges = screen.getAllByText("0.00");
     expect(badges.length).toBe(15);
@@ -179,7 +179,7 @@ describe("CorrectionPanel", () => {
   // AC-E04: during PATCH → form disabled
   it("disables form during save (AC-E04)", async () => {
     let resolveFetch!: (v: Response) => void;
-    vi.spyOn(global, "fetch").mockReturnValue(
+    vi.spyOn(globalThis, "fetch").mockReturnValue(
       new Promise((res) => { resolveFetch = res; })
     );
 
