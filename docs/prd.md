@@ -573,12 +573,23 @@ paths:
 
 ## 10. UI/UX 요구사항
 
-> **[GAP-T09]** UI/UX 와이어프레임 미작성 — `SPEC-DOC-001 T09` 완료 후 추가 예정
+### 10.1 구현 완료
+
+**✅ 보정 UI (Correction UI) — SPEC-UI-001**
+- React 18 + TypeScript SPA (Vite)
+- 15개 IFU 필드 인라인 수정
+- confidence 시각화 (green/yellow/red 배지)
+- `PATCH /parse/{job_id}/corrections` API 통합
+- Docker ui 서비스 (port 8080)
+
+### 10.2 구현 예정
+
+> **[GAP-T09]** 대시보드, 문서 업로드, 검토 큐, Traceability Graph 와이어프레임 미작성
 
 **구현 예정 화면 목록:**
 1. 대시보드 — KPI 카드, 검토 큐 미리보기, 규제 업데이트 알림
 2. 문서 업로드 — 드래그앤드롭, 형식 지원 표시, 파싱 진행 상태
-3. 보정 UI — 원문 하이라이트, 필드별 수정, confidence 표시
+3. ~~보정 UI~~ ✅ 완료 — 원문 하이라이트, 필드별 수정, confidence 표시
 4. 검토 큐 — 우선순위 정렬, 제품군 필터, 상태 관리
 5. Traceability Graph — 연결 시각화, 누락/불일치 하이라이트
 6. RAG 검색 — 질의 입력, 근거 링크, confidence 표시

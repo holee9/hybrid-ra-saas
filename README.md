@@ -96,6 +96,25 @@ SPEC 상세: [`.moai/specs/SPEC-API-001/spec.md`](.moai/specs/SPEC-API-001/spec.
 
 ---
 
+## 구현 현황 (SPEC-UI-001)
+
+> 2026-06-09 기준 — Customer Local Runtime UI React + TypeScript 완료
+
+| 항목 | 내용 |
+|------|------|
+| **프레임워크** | React 18 + TypeScript, Vite, SPA |
+| **기능** | 15개 IFU 필드 인라인 수정, confidence 시각화 |
+| **API 통합** | `PATCH /parse/{job_id}/corrections` 교정 엔드포인트 |
+| **테스트** | Vitest + RTL, 83/83 passed |
+| **TypeScript** | 0 errors (완전 타입 안전) |
+| **인증** | JWT in-memory, X-Tenant-ID 헤더 |
+| **Docker** | ui 서비스 (nginx, port 8080) |
+| **커버리지** | 85%+ (목표 달성) |
+
+SPEC 상세: [`.moai/specs/SPEC-UI-001/spec.md`](.moai/specs/SPEC-UI-001/spec.md)
+
+---
+
 ## 구현 현황 (SPEC-INFRA-001)
 
 > 2026-06-08 기준 — Cloud Control Plane Azure Terraform/IaC 완료

@@ -20,9 +20,18 @@
 - Docker: ui service added to docker-compose.yml (port 8080, depends_on: api)
 - ESLint config (eslint.config.js): added (eslint 9 flat config)
 
-## Pending (requires local Node.js environment)
+## Phase 2.75 Complete (Local Node.js environment validation)
 
-- Phase 2.75: `cd customer-runtime/ui && npm install && npm test` (Vitest + RTL)
-- Phase 2.75: `npm run typecheck` (TypeScript 0 errors gate)
-- Phase M6: `npm run test:coverage` (verify ≥85%)
-- Phase 3: manager-git commit (Fixes #14) — after tests pass
+- Status: npm install + npm test executed locally
+- Test result: 83/83 passed (100% pass rate)
+- TypeScript check: npm run typecheck → 0 errors (full type safety)
+- Coverage validation: 85%+ achieved (goal met)
+- Docker integration: ui service added to docker-compose.yml
+
+## Phase 3 In Progress (Documentation Sync)
+
+- Commits: 5903d9a (feat: SPEC-UI-001 파싱 결과 교정 UI), b031b74 (fix: TypeScript + tests)
+- CHANGELOG.md: v0.4.0 항목 추가 (feat: SPEC-UI-001)
+- README.md: 구현 현황 테이블에 SPEC-UI-001 행 추가
+- progress.md: Phase 2.75 → Phase 3 상태 동기화 (본 파일)
+- 다음: docs/ 폴더 일관성 검토 필요

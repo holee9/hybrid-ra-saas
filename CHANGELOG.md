@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-09
+
+### Added (SPEC-UI-001)
+
+- `customer-runtime/ui` React 18 + TypeScript 단일 SPA: Vite 번들러, 15개 IFU 필드 인라인 수정
+  - confidence 시각화 (green/yellow/red 배지), `PATCH /parse/{job_id}/corrections` API 소비
+  - Vitest + RTL 테스트: 83/83 passed, 0 TypeScript errors
+  - Docker ui 서비스: nginx, port 8080, docker-compose.yml 통합
+  - JWT in-memory 인증, X-Tenant-ID 환경 변수 로드
+  - ESLint (flat config), prettier 포맷팅 설정
+
 ## [0.3.0] - 2026-06-09
 
 ### Added (SPEC-PARSER-001)
