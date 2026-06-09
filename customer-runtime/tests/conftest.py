@@ -7,6 +7,7 @@ automatically — only unit tests run locally.
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -14,6 +15,58 @@ from httpx import ASGITransport, AsyncClient
 
 # Ensure src is on path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+
+def _ollama_available() -> bool:
+    """Return True if Ollama endpoint is reachable."""
+    try:
+        import httpx
+        httpx.get(os.getenv("OLLAMA_ENDPOINT", "http://localhost:11434"), timeout=1)
+        return True
+    except Exception:
+        return False
+
+
+def _spacy_available() -> bool:
+    """Return True if spaCy is installed."""
+    try:
+        import spacy  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+skip_no_ollama = pytest.mark.skipif(
+    not _ollama_available(),
+    reason="Ollama not available — integration tests only",
+)
+
+skip_no_spacy = pytest.mark.skipif(
+    not _spacy_available(),
+    reason="spaCy not installed — integration tests only",
+)
+
+_GOLDEN_DIR = Path(__file__).parent / "fixtures" / "parser" / "golden"
+_HAS_GOLDEN = _GOLDEN_DIR.exists() and bool(list(_GOLDEN_DIR.glob("*.docx")))
+
+skip_no_golden = pytest.mark.skipif(
+    not _HAS_GOLDEN,
+    reason="Golden dataset not available",
+)
+
+
+@pytest.fixture
+def skip_no_spacy(request):
+    """Fixture: skip test if spaCy is not installed."""
+    if not _spacy_available():
+        pytest.skip("spaCy not installed")
+
+
+@pytest.fixture
+def skip_no_ollama(request):
+    """Fixture: skip test if Ollama is not reachable."""
+    if not _ollama_available():
+        pytest.skip("Ollama not available")
 
 
 def _docker_available() -> bool:

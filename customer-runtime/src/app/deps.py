@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
 from app.database import get_async_session
+from app.services.parser import EngineParserService, ParserService
 
 
 async def get_current_tenant(
@@ -42,3 +43,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency: yield an AsyncSession."""
     async for session in get_async_session():
         yield session
+
+
+def get_parser() -> ParserService:
+    """FastAPI dependency: return the real parser service backed by ParserEngine."""
+    return EngineParserService()
