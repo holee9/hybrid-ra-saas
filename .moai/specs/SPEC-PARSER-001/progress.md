@@ -10,3 +10,6 @@
 - Phase 1.5 complete: 12 tasks decomposed (tasks.md)
 - Phase 1.6 complete: 12 acceptance criteria registered as pending tasks (#2~#13)
 - Phase 1.7 complete: 8 stub files created (parser_engine package), test fixtures dir
+- Phase 2 complete: 70 tests pass, coverage 89-100% per module (parser_engine), ruff clean
+- Phase 2.8a complete: evaluator-active PASS — XLSX size limit fixed (MEDIUM), 2 LOW noted
+- Phase 3 complete: commits b7fdc0e (main impl), ed9229d (XLSX fix + artifacts)
