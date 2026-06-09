@@ -51,3 +51,12 @@ def test_read_xlsx_empty_returns_string():
     xlsx_bytes = _make_xlsx_bytes([])
     result = read_xlsx(xlsx_bytes)
     assert isinstance(result, str)
+
+
+def test_read_xlsx_oversized_raises_input_too_large_error():
+    from app.services.parser_engine.xlsx_reader import read_xlsx, _MAX_BYTES
+    from app.services.parser_engine.errors import InputTooLargeError
+
+    oversized = b"x" * (_MAX_BYTES + 1)
+    with pytest.raises(InputTooLargeError):
+        read_xlsx(oversized)
