@@ -1,9 +1,9 @@
 ---
 id: SPEC-PARSER-001
 version: 0.1.0
-status: planned
+status: completed
 created: 2026-06-08
-updated: 2026-06-08
+updated: 2026-06-09
 author: drake.lee
 priority: medium
 issue_number: 13
@@ -324,3 +324,27 @@ RED → GREEN → REFACTOR. 각 태스크는 실패 테스트 작성 후 구현.
 - **T-010**: `PATCH /parse/{job_id}/corrections` 엔드포인트 + API 테스트 (REQ-008)
 - **T-011**: 골든 데이터셋 F1 통합 테스트 (`@pytest.mark.integration`) (REQ-005)
 - **T-012**: 커버리지 점검(>=85%) + REFACTOR + @MX 태그 정리
+
+---
+
+## 구현 노트 (Implementation Notes)
+
+**완료일:** 2026-06-09  
+**커밋:** b7fdc0e (메인 구현), ed9229d (XLSX 크기 제한 + 아티팩트), 1f554e3 (진행)  
+**GitHub Issue:** #13 (자동 종료: Refs #13)
+
+### 실제 구현 vs 계획 차이
+
+| 항목 | 계획 | 실제 |
+|------|------|------|
+| `errors.py` | 계획에 없음 | 신규 추가 (DocxReadError, XlsxReadError, InputTooLargeError 분리) |
+| XLSX 크기 제한 | DOCX만 명시 | XLSX에도 동일하게 50MB 제한 적용 (evaluator-active 발견) |
+| CorrectionsRequest | 직접 dict 전달 | `{"corrections": {...}}` Pydantic wrapper 사용 (422 검증 명확화) |
+| spaCy 설치 상태 | 설치됨으로 기술 | 미설치 — lazy import + graceful degrade로 처리 (B1) |
+
+### 검증 결과
+
+- 단위 테스트: 70 passed, 25 skipped (통합 테스트 CI 전용)
+- parser_engine 커버리지: 92.4% (목표 85% 초과)
+- evaluator-active: PASS (Functionality 92, Security 88, Craft 90, Consistency 95)
+- ruff lint: clean

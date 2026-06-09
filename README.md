@@ -114,6 +114,27 @@ SPEC 상세: [`.moai/specs/SPEC-INFRA-001/spec.md`](.moai/specs/SPEC-INFRA-001/s
 
 ---
 
+## 구현 현황 (SPEC-PARSER-001)
+
+> 2026-06-09 기준 — Customer Local Runtime 동적 파서 NLP 엔진 완료
+
+| 항목 | 내용 |
+|------|------|
+| **새 패키지** | parser_engine/ (7개 모듈: docx_reader, xlsx_reader, confidence, rule_based, spacy_ner, llm_fallback, errors) |
+| **추출 필드** | 15개 IFU 필드 (device_name, intended_use, indications, contraindications, warnings, ...) |
+| **파이프라인** | 3단계: 규칙 기반 → spaCy NER → Ollama 로컬 LLM 폴백 (신뢰도 기반 조기 종료) |
+| **신뢰도 공식** | 0.50×완전성 + 0.30×규칙매칭 + 0.20×의미유사도 (임계값: 교정 UI 0.85, 거부 0.50) |
+| **교정 API** | PATCH /parse/{job_id}/corrections — 필드 수동 교정 + 신뢰도 재계산 |
+| **데이터 주권** | Stage 3 LLM은 localhost Ollama 전용 (_assert_local 코드 수준 강제) |
+| **언어 지원** | 영어 + 한국어 IFU 문서 (EN/KO 사전 분리) |
+| **테스트** | 70개 단위 테스트 통과, parser_engine 커버리지 92.4% (목표 85% 초과) |
+| **lint** | ruff 0 errors |
+| **하위 호환** | ParserService, StubParserService, ParseResult 인터페이스 유지 |
+
+SPEC 상세: [`.moai/specs/SPEC-PARSER-001/spec.md`](.moai/specs/SPEC-PARSER-001/spec.md)
+
+---
+
 ## 레포지토리 구조
 
 ```
@@ -122,9 +143,9 @@ hybrid-ra-saas/
 │   ├── src/app/                  # FastAPI 애플리케이션
 │   │   ├── routers/              # 7개 엔드포인트 (health, upload, parse, guardrail, rag, audit, sync)
 │   │   ├── models/               # SQLAlchemy 9개 모델 (8 엔티티 + ParseJob)
-│   │   ├── services/             # 비즈니스 로직 (storage, parser, guardrail, rag, export, airgap)
+│   │   ├── services/             # 비즈니스 로직 (parser_engine NLP 엔진, storage, guardrail, rag, export, airgap)
 │   │   └── core/                 # JWT, rate limit, state machine
-│   ├── tests/                    # pytest (92 passed, 82% coverage)
+│   ├── tests/                    # pytest (162 passed, 86% coverage)
 │   ├── alembic/                  # DB 마이그레이션 (pgvector)
 │   ├── docker/                   # Dockerfile (multi-stage)
 │   └── docker-compose.yml        # 5서비스 (api, postgres, minio, ollama, redis)
