@@ -2,7 +2,7 @@
 import json
 import os
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 # Set required env vars before any app import
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@localhost/test")
@@ -50,7 +50,6 @@ async def test_patch_corrections_updates_field_value():
     """scenario 9: PATCH device_name → updated, confidence=1.0, stage=NONE, needs_correction=False."""
     from httpx import ASGITransport, AsyncClient
     from app.models.parse_job import ParseJob, ParseJobStatus
-    from app.schemas.parse import IFU_FIELD_NAMES
 
     parsed_fields_data = _make_parsed_fields_dict(0.65)
     mock_job = MagicMock(spec=ParseJob)

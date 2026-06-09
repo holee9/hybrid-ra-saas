@@ -1,6 +1,5 @@
 """T-005: rule_based.py — regex + keyword extraction 테스트 (EN/KO)."""
 import socket
-import pytest
 
 
 EN_IFU_TEXT = """
@@ -76,8 +75,6 @@ def test_ko_text_extracts_device_name():
 
 def test_network_isolation_extract_still_returns(monkeypatch):
     """REQ-006: extract() must not make network calls."""
-    original_socket = socket.socket
-
     def no_network(*args, **kwargs):
         raise OSError("Network access blocked")
 

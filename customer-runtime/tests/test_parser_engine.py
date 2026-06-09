@@ -1,7 +1,6 @@
 """T-008: ParserEngine — orchestration pipeline 테스트."""
 import io
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 
 def _make_docx_bytes(text: str = "Device Name: Test\nIntended Use: Testing") -> bytes:
@@ -114,7 +113,6 @@ async def test_all_stages_below_threshold_sets_needs_correction():
 @pytest.mark.asyncio
 async def test_low_overall_confidence_sets_rejected():
     """scenario 5: overall_confidence < 0.50 → rejected=True."""
-    from app.schemas.parse import IFU_FIELD_NAMES
     from app.services.parser_engine import ParserEngine
 
     very_low = 0.1
@@ -171,7 +169,6 @@ async def test_every_output_field_has_confidence_and_stage():
 
 @pytest.mark.asyncio
 async def test_empty_bytes_returns_all_none_rejected():
-    from app.schemas.parse import IFU_FIELD_NAMES
     from app.services.parser_engine import ParserEngine
 
     def mock_stage1(text, fields):
@@ -218,7 +215,7 @@ async def test_docx_doc_type_uses_docx_reader():
     )
 
     docx_bytes = _make_docx_bytes("CardioScan Pro 3000")
-    result = await engine.parse(docx_bytes, "docx")
+    await engine.parse(docx_bytes, "docx")
     assert len(reader_calls) > 0  # stage1 was called with text
 
 
@@ -246,7 +243,7 @@ async def test_xlsx_doc_type_uses_xlsx_reader():
     )
 
     xlsx_bytes = _make_xlsx_bytes()
-    result = await engine.parse(xlsx_bytes, "xlsx")
+    await engine.parse(xlsx_bytes, "xlsx")
     assert len(reader_calls) > 0
 
 
@@ -334,7 +331,7 @@ async def test_stage3_exception_gracefully_handled():
 async def test_stage2_improves_confidence():
     """Stage 2 result with higher confidence replaces stage 1 result."""
     from app.services.parser_engine import ParserEngine
-    from app.schemas.parse import ExtractionStage, IFU_FIELD_NAMES
+    from app.schemas.parse import ExtractionStage
 
     def mock_stage1(text, fields):
         return {name: _make_fe(0.5) for name in fields}
@@ -365,7 +362,7 @@ async def test_stage2_improves_confidence():
 async def test_stage3_improves_confidence():
     """Stage 3 result with higher confidence replaces lower stage results."""
     from app.services.parser_engine import ParserEngine
-    from app.schemas.parse import ExtractionStage, FieldExtraction, IFU_FIELD_NAMES
+    from app.schemas.parse import ExtractionStage, FieldExtraction
 
     def mock_stage1(text, fields):
         return {name: _make_fe(0.4) for name in fields}
@@ -393,7 +390,7 @@ async def test_stage3_improves_confidence():
 async def test_corrupted_docx_bytes_handled_gracefully():
     """Corrupted DOCX → read returns empty string → fields all NONE."""
     from app.services.parser_engine import ParserEngine
-    from app.schemas.parse import ExtractionStage, FieldExtraction, IFU_FIELD_NAMES
+    from app.schemas.parse import ExtractionStage
 
     def mock_stage1(text, fields):
         # Will be called with empty text

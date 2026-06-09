@@ -1,5 +1,4 @@
 """T-002: confidence.py — calculate(), THRESHOLDS, overall() 테스트."""
-import os
 import pytest
 
 
