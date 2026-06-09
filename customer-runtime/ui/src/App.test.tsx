@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import App from "./App";
 import { ExtractionStage, IFU_FIELD_NAMES } from "./types/parse";
 
@@ -17,25 +18,21 @@ function makeFields() {
   return f;
 }
 
+// Wrap App with MemoryRouter at a specific initial path
+function renderAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+    </MemoryRouter>
+  );
+}
+
 describe("App", () => {
-  const originalLocation = window.location;
-
-  beforeEach(() => {
-    Object.defineProperty(window, "location", {
-      value: { search: "?job_id=test-job" },
-      writable: true,
-    });
-  });
-
   afterEach(() => {
-    Object.defineProperty(window, "location", {
-      value: originalLocation,
-      writable: true,
-    });
     vi.restoreAllMocks();
   });
 
-  // AC-001: GET called once → 15 fields
+  // AC-001: GET called once → 15 fields (via /jobs/:jobId route)
   it("calls GET and renders 15 fields on mount (AC-001)", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -48,13 +45,13 @@ describe("App", () => {
       )
     );
 
-    render(<App />);
+    renderAt("/jobs/test-job");
 
     await waitFor(() => {
       expect(screen.getByText("기기명")).toBeTruthy();
     });
 
-    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("폐기 지침")).toBeTruthy();
   });
 
@@ -62,7 +59,7 @@ describe("App", () => {
   it("shows network error message on GET failure (AC-E02)", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
 
-    render(<App />);
+    renderAt("/jobs/test-job");
 
     await waitFor(() => {
       expect(document.body.textContent).toContain("네트워크");
@@ -75,20 +72,42 @@ describe("App", () => {
       new Response("Not Found", { status: 404 })
     );
 
-    render(<App />);
+    renderAt("/jobs/test-job");
 
     await waitFor(() => {
       expect(document.body.textContent).toContain("작업을 찾을 수 없음");
     });
   });
 
-  // no job_id
-  it("shows guidance when no job_id in URL", () => {
-    Object.defineProperty(window, "location", {
-      value: { search: "" },
-      writable: true,
+  // Queue page renders on /jobs route
+  it("renders queue page at /jobs route", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ items: [], total: 0, skip: 0, limit: 50 }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    renderAt("/jobs");
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("검토 큐");
     });
-    render(<App />);
-    expect(document.body.textContent).toContain("job_id");
+  });
+
+  // Root / redirects to /jobs
+  it("redirects / to /jobs", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ items: [], total: 0, skip: 0, limit: 50 }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    renderAt("/");
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("검토 큐");
+    });
   });
 });

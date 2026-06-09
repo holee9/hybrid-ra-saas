@@ -1,15 +1,12 @@
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { useParseJob } from "./hooks/useParseJob";
 import { CorrectionPanel } from "./components/CorrectionPanel";
 import { ToastProvider } from "./lib/toast";
+import { QueuePage } from "./pages/QueuePage";
 
-// Job ID from URL query param: ?job_id=xxx
-function getJobId(): string {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("job_id") ?? "";
-}
-
-function AppContent() {
-  const jobId = getJobId();
+// Job detail route — extracts jobId from URL params instead of query string
+function JobDetailRoute() {
+  const { jobId = "" } = useParams<{ jobId: string }>();
   const { data, loading, error } = useParseJob(jobId);
 
   if (!jobId) {
@@ -59,7 +56,11 @@ function AppContent() {
 export default function App() {
   return (
     <ToastProvider>
-      <AppContent />
+      <Routes>
+        <Route path="/" element={<Navigate to="/jobs" replace />} />
+        <Route path="/jobs" element={<QueuePage />} />
+        <Route path="/jobs/:jobId" element={<JobDetailRoute />} />
+      </Routes>
     </ToastProvider>
   );
 }
