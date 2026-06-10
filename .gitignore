@@ -18,3 +18,14 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+.ruff_cache/
+requirements.txt.lock
+*.egg-info/

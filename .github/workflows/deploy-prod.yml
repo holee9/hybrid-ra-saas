@@ -11,6 +11,8 @@ permissions:
 
 env:
   APP_NAME: api        # TODO: 앱 이름
+  CRAWLER_APP_NAME: cloud-control-plane-api
+  CRAWLER_JOB_NAME: crawler-job
   SUFFIX: prod
   RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
   CONTAINER_APP_ENV: ${{ secrets.AZURE_CONTAINER_APP_ENV }}
@@ -28,6 +30,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Azure 로그인 (OIDC)
+        id: azure-login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -41,7 +44,7 @@ jobs:
           username: ${{ fromJSON(steps.azure-login.outputs.login-info).username }}
           password: ${{ fromJSON(steps.azure-login.outputs.login-info).password }}
 
-      - name: Docker 빌드 및 ACR 푸시
+      - name: Docker 빌드 및 ACR 푸시 (customer-runtime)
         env:
           IMAGE: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ env.APP_NAME }}
           VERSION: ${{ steps.version.outputs.VERSION }}
@@ -50,6 +53,16 @@ jobs:
           docker push $IMAGE:$VERSION
           docker push $IMAGE:latest
           echo "IMAGE_TAG=$IMAGE:$VERSION" >> $GITHUB_ENV
+
+      - name: Docker 빌드 및 ACR 푸시 (crawler)
+        env:
+          IMAGE_CRAWLER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ env.CRAWLER_APP_NAME }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          docker build -f cloud-control-plane/docker/Dockerfile -t $IMAGE_CRAWLER:$VERSION -t $IMAGE_CRAWLER:latest cloud-control-plane/
+          docker push $IMAGE_CRAWLER:$VERSION
+          docker push $IMAGE_CRAWLER:latest
+          echo "IMAGE_CRAWLER_TAG=$IMAGE_CRAWLER:$VERSION" >> $GITHUB_ENV
 
       - name: Container App 배포
         id: deploy
@@ -60,6 +73,20 @@ jobs:
           containerAppName: ${{ env.APP_NAME }}-${{ env.SUFFIX }}
           imageToDeploy: ${{ env.IMAGE_TAG }}
           targetPort: 8000
+
+      - name: Crawler Container App 배포
+        run: |
+          az containerapp update \
+            --name ${{ env.CRAWLER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.IMAGE_CRAWLER_TAG }}
+
+      - name: Crawler Job 배포
+        run: |
+          az containerapp job update \
+            --name ${{ env.CRAWLER_JOB_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.IMAGE_CRAWLER_TAG }}
 
       - name: 헬스체크
         id: health

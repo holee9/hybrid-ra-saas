@@ -153,6 +153,26 @@ SPEC 상세: [`.moai/specs/SPEC-INFRA-001/spec.md`](.moai/specs/SPEC-INFRA-001/s
 
 ---
 
+## 구현 현황 (SPEC-CRAWLER-001)
+
+> 2026-06-11 기준 — Cloud Control Plane 규제 문서 크롤러 완료
+
+| 항목 | 내용 |
+|------|------|
+| **새 서비스** | `cloud-control-plane/` Python 3.13 FastAPI 마이크로서비스 (customer-runtime 구조 미러링) |
+| **크롤링 소스** | FDA(US guidance) · MFDS(한국) · EU MDR(EUR-Lex 2017/745) |
+| **수집 정책** | robots.txt 준수, source당 1 req/sec rate limit, 지수 백오프 3회 재시도, SSRF netloc 검증 |
+| **중복 제거** | SHA-256 콘텐츠 해시 — 변경 없는 문서 자동 skip |
+| **저장** | Azure Blob `regulatory-docs/{source}/{YYYY-MM-DD}/{filename}` + PostgreSQL `regulatory_documents` 메타데이터 |
+| **API** | `POST /crawl/trigger` (비동기), `GET /crawl/status/{job_id}`, `GET /health` |
+| **인프라** | Terraform `crawler-job` Container App Job (cron 02:00 UTC), placeholder 이미지 교체 |
+| **CI/CD** | deploy-prod.yml 크롤러 build + push + 배포 스텝 |
+| **테스트** | 단위 75 passed (통합 2개는 CI 전용), 커버리지 94%, ruff 0 errors |
+
+SPEC 상세: [`.moai/specs/SPEC-CRAWLER-001/spec.md`](.moai/specs/SPEC-CRAWLER-001/spec.md)
+
+---
+
 ## 구현 현황 (SPEC-PARSER-001)
 
 > 2026-06-09 기준 — Customer Local Runtime 동적 파서 NLP 엔진 완료
@@ -188,6 +208,16 @@ hybrid-ra-saas/
 │   ├── alembic/                  # DB 마이그레이션 (pgvector)
 │   ├── docker/                   # Dockerfile (multi-stage)
 │   └── docker-compose.yml        # 5서비스 (api, postgres, minio, ollama, redis)
+│
+├── cloud-control-plane/          # Cloud Control Plane 크롤러 (SPEC-CRAWLER-001 ✅ 완료)
+│   ├── src/app/                  # FastAPI 애플리케이션
+│   │   ├── routers/              # crawl(trigger/status), health
+│   │   ├── models/               # regulatory_documents 테이블
+│   │   ├── services/             # crawler(fda/mfds/eu_mdr), orchestrator, dedup, storage
+│   │   └── core/                 # rate limiter, 구조화 JSON 로깅
+│   ├── tests/                    # pytest (75 passed, 94% coverage)
+│   ├── alembic/                  # DB 마이그레이션
+│   └── docker/                   # Dockerfile
 │
 ├── infra/                        # Cloud Control Plane 인프라 (SPEC-INFRA-001 ✅ 완료)
 │   └── terraform/                # Azure Terraform IaC
@@ -270,4 +300,4 @@ hybrid-ra-saas/
 
 ---
 
-*버전: v5.0 | 최종 갱신: 2026-06-08 | 문서 완성도: 85%+ | Customer Runtime ✅ | Terraform IaC ✅*
+*버전: v5.1 | 최종 갱신: 2026-06-11 | 문서 완성도: 85%+ | Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅*
