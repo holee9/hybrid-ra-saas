@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-09
+
+### Added (SPEC-UI-002)
+
+- `GET /parse/jobs` 백엔드 엔드포인트: 테넌트 격리, 상태/교정필요 필터, skip/limit 페이지네이션
+  - `JobSummary`, `ListJobsResponse` Pydantic v2 스키마 추가
+  - `_extract_summary_fields()` 헬퍼: `result_json["parsed_fields"]`에서 안전 추출
+  - pytest: 6개 단위 테스트(Docker 불필요) + 7개 통합 테스트(`@skip_no_docker`, CI 전용)
+- 검토 큐 화면 React 18 SPA:
+  - React Router 7 도입: `BrowserRouter`, `/jobs` → QueuePage, `/jobs/:jobId` → CorrectionPanel
+  - `QueuePage`: StatusTabs(5개), SortControl(작성일/신뢰도), JobQueueTable, Pagination 조합
+  - `useListJobs` 훅: 5초 자동갱신(running 작업 존재 시), 클라이언트 정렬, cancelled 가드
+  - Pagination: total≤50 시 자동 숨김, 경계 비활성화
+  - Vitest 테스트: 113/113 통과
+
+## [0.4.0] - 2026-06-09
+
+### Added (SPEC-UI-001)
+
+- `customer-runtime/ui` React 18 + TypeScript 단일 SPA: Vite 번들러, 15개 IFU 필드 인라인 수정
+  - confidence 시각화 (green/yellow/red 배지), `PATCH /parse/{job_id}/corrections` API 소비
+  - Vitest + RTL 테스트: 83/83 passed, 0 TypeScript errors
+  - Docker ui 서비스: nginx, port 8080, docker-compose.yml 통합
+  - JWT in-memory 인증, X-Tenant-ID 환경 변수 로드
+  - ESLint (flat config), prettier 포맷팅 설정
+
 ## [0.3.0] - 2026-06-09
 
 ### Added (SPEC-PARSER-001)
@@ -51,7 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Compose 5서비스 (api, postgres, minio, ollama, redis)
 - Air-Gap 아웃바운드 검증 (FR-210)
 
-[Unreleased]: https://github.com/holee9/hybrid-ra-saas/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/holee9/hybrid-ra-saas/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/holee9/hybrid-ra-saas/releases/tag/v0.1.0

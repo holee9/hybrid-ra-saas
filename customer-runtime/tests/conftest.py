@@ -55,19 +55,6 @@ skip_no_golden = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
-def skip_no_spacy(request):
-    """Fixture: skip test if spaCy is not installed."""
-    if not _spacy_available():
-        pytest.skip("spaCy not installed")
-
-
-@pytest.fixture
-def skip_no_ollama(request):
-    """Fixture: skip test if Ollama is not reachable."""
-    if not _ollama_available():
-        pytest.skip("Ollama not available")
-
 
 def _docker_available() -> bool:
     """Return True if a Docker daemon is reachable."""

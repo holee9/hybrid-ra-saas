@@ -20,7 +20,7 @@ def _make_fake_loader(entities: list[tuple[str, str]]):
 
     class FakeDoc:
         def __init__(self, text: str):
-            self.ents = [FakeSpan(t, l) for t, l in entities]
+            self.ents = [FakeSpan(t, lbl) for t, lbl in entities]
 
     class FakeNLP:
         def __call__(self, text: str) -> FakeDoc:
