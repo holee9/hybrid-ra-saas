@@ -8,6 +8,7 @@ Tests cover:
 - Structured log events emitted
 - job_id returned and job status trackable
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -94,9 +95,7 @@ async def test_orchestrator_stores_new_document(db_session):
     source = _make_fake_source("fda", [("https://fda.gov/doc.pdf", content)])
 
     mock_storage = AsyncMock()
-    mock_storage.upload_document = AsyncMock(
-        return_value="regulatory-docs/fda/2026-06-10/doc.pdf"
-    )
+    mock_storage.upload_document = AsyncMock(return_value="regulatory-docs/fda/2026-06-10/doc.pdf")
 
     orch = CrawlOrchestrator(
         sources=[source],
@@ -177,9 +176,7 @@ async def test_orchestrator_continues_after_document_failure(db_session):
     source = _make_fake_source("fda", docs, fail_urls={"https://fda.gov/bad.pdf"})
 
     mock_storage = AsyncMock()
-    mock_storage.upload_document = AsyncMock(
-        return_value="regulatory-docs/fda/2026-06-10/good.pdf"
-    )
+    mock_storage.upload_document = AsyncMock(return_value="regulatory-docs/fda/2026-06-10/good.pdf")
 
     orch = CrawlOrchestrator(
         sources=[source],
@@ -208,17 +205,13 @@ async def test_orchestrator_continues_after_source_failure(db_session):
     bad_source = MagicMock()
     bad_source.SOURCE_NAME = "bad-source"
     bad_source.load_robots = AsyncMock()
-    bad_source.discover_document_urls = AsyncMock(
-        side_effect=RuntimeError("Source unavailable")
-    )
+    bad_source.discover_document_urls = AsyncMock(side_effect=RuntimeError("Source unavailable"))
 
     # Source B: normal
     good_source = _make_fake_source("fda", [("https://fda.gov/ok.pdf", b"ok content")])
 
     mock_storage = AsyncMock()
-    mock_storage.upload_document = AsyncMock(
-        return_value="regulatory-docs/fda/2026-06-10/ok.pdf"
-    )
+    mock_storage.upload_document = AsyncMock(return_value="regulatory-docs/fda/2026-06-10/ok.pdf")
 
     orch = CrawlOrchestrator(
         sources=[bad_source, good_source],
@@ -234,27 +227,52 @@ async def test_orchestrator_continues_after_source_failure(db_session):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_emits_job_started_log(db_session, caplog):
-    """Orchestrator emits a 'job_started' log event with job_id."""
+async def test_orchestrator_emits_job_started_log(db_session):
+    """Orchestrator emits a structured 'job_started' log event with job_id.
+
+    The app logger uses propagate=False and a custom JsonFormatter writing to
+    stdout, so caplog cannot capture records via the standard propagation path.
+    Instead, a MemoryHandler is attached directly to the orchestrator logger to
+    capture records before they reach the JsonFormatter.
+    """
     import logging
     from app.services.orchestrator import CrawlOrchestrator
 
-    source = _make_fake_source("fda", [])
-    mock_storage = AsyncMock()
+    # Attach a MemoryHandler directly to the orchestrator module logger so that
+    # propagate=False does not prevent capture.
+    orchestrator_logger = logging.getLogger("app.services.orchestrator")
+    captured: list[logging.LogRecord] = []
 
-    orch = CrawlOrchestrator(
-        sources=[source],
-        storage=mock_storage,
-        session=db_session,
-    )
+    class _ListHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            captured.append(record)
 
-    with caplog.at_level(logging.INFO):
+    handler = _ListHandler(level=logging.INFO)
+    orchestrator_logger.addHandler(handler)
+    try:
+        source = _make_fake_source("fda", [])
+        mock_storage = AsyncMock()
+
+        orch = CrawlOrchestrator(
+            sources=[source],
+            storage=mock_storage,
+            session=db_session,
+        )
+
         job_id = await orch.run()
+    finally:
+        orchestrator_logger.removeHandler(handler)
 
-    # Check that at least one log message mentions job_started and the job_id
-    messages = [r.getMessage() for r in caplog.records]
-    job_started_found = any("job_started" in m or str(job_id) in m for m in messages)
-    assert job_started_found or True  # log structure validation done via structured fields
+    # Verify: at least one record has message 'job_started' and carries the job_id field
+    job_started_records = [
+        r
+        for r in captured
+        if r.getMessage() == "job_started" and getattr(r, "job_id", None) == job_id
+    ]
+    assert len(job_started_records) >= 1, (
+        f"Expected a 'job_started' log record with job_id={job_id!r}. "
+        f"Got records: {[(r.getMessage(), getattr(r, 'job_id', None)) for r in captured]}"
+    )
 
 
 @pytest.mark.asyncio

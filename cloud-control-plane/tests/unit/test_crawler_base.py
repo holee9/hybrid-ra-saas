@@ -7,6 +7,7 @@ Tests cover:
 - failure isolation — continues after exhausted retries (REQ-006, AC-004)
 - User-Agent header sent with requests
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -43,6 +44,7 @@ def make_robots_response_partial_disallow(disallow_path: str = "/guidance/") -> 
 # Concrete subclass for testing (minimal)
 # ---------------------------------------------------------------------------
 
+
 class ConcreteSource:
     """Test-only subclass of CrawlerSource."""
 
@@ -52,6 +54,7 @@ class ConcreteSource:
 
     def __init__(self, client: httpx.AsyncClient, delays: list[float] | None = None) -> None:
         from app.services.crawler.base import CrawlerSource
+
         self._base = CrawlerSource.__new__(CrawlerSource)
         # Store for use in tests
         self._client = client
@@ -72,9 +75,7 @@ async def test_robots_disallow_all_raises():
 
     robots_body = b"User-agent: *\nDisallow: /\n"
 
-    transport = httpx.MockTransport(
-        handler=lambda req: httpx.Response(200, content=robots_body)
-    )
+    transport = httpx.MockTransport(handler=lambda req: httpx.Response(200, content=robots_body))
     client = httpx.AsyncClient(transport=transport)
 
     source = _make_source(client)
@@ -285,6 +286,138 @@ async def test_user_agent_sent_in_requests():
 
 
 # ---------------------------------------------------------------------------
+# Tests: rate-limit wiring in CrawlerSource.fetch_document (REQ-009, AC-003)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_document_second_call_is_throttled_by_rate_limiter():
+    """Two consecutive fetch_document calls on the same source instance must
+    invoke the injected sleep with a delay >= min_interval.
+
+    This test verifies that CrawlerSource.fetch_document() calls
+    RateLimiter.acquire() between requests — not just that the limiter exists.
+    Clock is frozen at 0.0 so the second acquire always sees zero elapsed time
+    and must sleep for the full min_interval.
+    """
+
+    MIN_INTERVAL = 1.0
+    clock_time = [0.0]  # frozen clock — never advances
+
+    def fake_clock() -> float:
+        return clock_time[0]
+
+    slept: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if "robots.txt" in str(req.url):
+            return httpx.Response(200, content=b"User-agent: *\nAllow: /\n")
+        return httpx.Response(200, content=b"doc")
+
+    transport = httpx.MockTransport(handler=handler)
+    client = httpx.AsyncClient(transport=transport)
+    source = _make_source(client, sleep=fake_sleep, clock=fake_clock)
+
+    await source.load_robots()
+
+    # First fetch: no prior timestamp — must NOT sleep.
+    await source.fetch_document("https://example.com/doc1.pdf")
+    rate_limiter_sleeps_after_first = [s for s in slept if s > 0]
+    assert not rate_limiter_sleeps_after_first, (
+        "First fetch_document call must not trigger a rate-limiter sleep"
+    )
+    slept.clear()
+
+    # Second fetch: clock still at 0.0 → elapsed=0 → must sleep for min_interval.
+    await source.fetch_document("https://example.com/doc2.pdf")
+
+    assert len(slept) == 1, (
+        "Rate limiter must sleep exactly once on the second consecutive fetch. "
+        "RateLimiter.acquire() must be called inside fetch_document()."
+    )
+    assert slept[0] >= MIN_INTERVAL, (
+        f"Rate-limiter sleep {slept[0]:.3f}s must be >= min_interval {MIN_INTERVAL}s."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tests: _extract_links SSRF protection (Finding 4)
+# ---------------------------------------------------------------------------
+
+
+def test_extract_links_rejects_cross_domain_href():
+    """_extract_links must exclude absolute hrefs pointing to a different netloc (SSRF prevention)."""
+    from app.services.crawler.base import CrawlerSource
+
+    # Create a minimal concrete subclass
+    class _TestSource(CrawlerSource):
+        SOURCE_NAME = "test-source"
+
+        async def discover_document_urls(self) -> list[str]:
+            return []
+
+    import httpx
+
+    transport = httpx.MockTransport(handler=lambda r: httpx.Response(200, content=b""))
+    client = httpx.AsyncClient(transport=transport)
+    source = _TestSource(
+        client=client,
+        robots_url="https://example.com/robots.txt",
+    )
+
+    html = """
+    <html><body>
+      <a href="/media/doc.pdf">Good doc</a>
+      <a href="https://attacker.example/steal">Malicious</a>
+      <a href="http://attacker.example/evil.pdf">Also malicious</a>
+      <a href="/media/other.pdf">Another good doc</a>
+    </body></html>
+    """
+
+    results = source._extract_links(
+        html, prefix="/media/", listing_url="https://example.com/listing"
+    )
+
+    # Must not include attacker.example URLs
+    assert not any("attacker.example" in u for u in results), (
+        "SSRF: cross-domain absolute href must be excluded by _extract_links"
+    )
+    # Must include same-domain paths
+    assert len(results) == 2
+    assert all("example.com" in u for u in results)
+
+
+def test_extract_links_rejects_protocol_relative_cross_domain():
+    """_extract_links must not include hrefs that after urljoin resolve to a different host."""
+    from app.services.crawler.base import CrawlerSource
+
+    class _TestSource(CrawlerSource):
+        SOURCE_NAME = "test-source"
+
+        async def discover_document_urls(self) -> list[str]:
+            return []
+
+    import httpx
+
+    transport = httpx.MockTransport(handler=lambda r: httpx.Response(200, content=b""))
+    client = httpx.AsyncClient(transport=transport)
+    source = _TestSource(
+        client=client,
+        robots_url="https://example.com/robots.txt",
+    )
+
+    html = '<a href="/media/doc.pdf">ok</a><a href="https://evil.com/media/steal.pdf">bad</a>'
+
+    results = source._extract_links(html, prefix="/media/", listing_url="https://example.com/page")
+
+    assert len(results) == 1
+    assert "example.com" in results[0]
+
+
+# ---------------------------------------------------------------------------
 # Factory helper
 # ---------------------------------------------------------------------------
 
@@ -292,6 +425,7 @@ async def test_user_agent_sent_in_requests():
 def _make_source(
     client: httpx.AsyncClient,
     sleep=None,
+    clock=None,
     robots_url: str = "https://example.com/robots.txt",
 ) -> Any:
     """Instantiate a minimal concrete subclass of CrawlerSource for testing."""
@@ -314,4 +448,5 @@ def _make_source(
         initial_delay=2.0,
         multiplier=2.0,
         sleep=sleep or default_sleep,
+        clock=clock,
     )

@@ -13,11 +13,12 @@ In-memory job_registry holds {job_id: {status, document_count}} for the status A
 # @MX:WARN: [AUTO] job_registry is a module-level dict — not safe for multi-process deployment.
 # @MX:REASON: Suitable for single-process Container App; a distributed cache is required for HA.
 """
+
 from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,9 +52,15 @@ class CrawlOrchestrator:
         self._storage = storage
         self._session = session
 
-    async def run(self) -> str:
-        """Execute one full crawl job and return the job_id."""
-        job_id = str(uuid.uuid4())
+    async def run(self, job_id: Optional[str] = None) -> str:
+        """Execute one full crawl job and return the job_id.
+
+        If job_id is provided (e.g., pre-registered by the trigger endpoint),
+        that same id is used and updated in the registry — avoiding dual-id confusion.
+        If not provided, a new UUID is generated.
+        """
+        if job_id is None:
+            job_id = str(uuid.uuid4())
         job_registry[job_id] = {"status": "running", "document_count": 0}
 
         logger.info(

@@ -8,12 +8,12 @@ fetches raw bytes for each document.
 #           The doc_path_prefix "/legal-content/" captures all EUR-Lex content links,
 #           allowing narrowing by passing e.g. "/legal-content/EN/TXT/PDF/" for PDF-only.
 """
+
 from __future__ import annotations
 
-import re
 from collections.abc import Awaitable, Callable
 from typing import Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 import httpx
 
@@ -40,6 +40,8 @@ class EUMDRSource(CrawlerSource):
         initial_delay: float = 2.0,
         multiplier: float = 2.0,
         sleep: Optional[Callable[[float], Awaitable[None]]] = None,
+        clock: Optional[Callable[[], float]] = None,
+        rate_limit: float = 1.0,
     ) -> None:
         # Derive robots URL from listing URL base if not provided
         if robots_url is None:
@@ -53,6 +55,8 @@ class EUMDRSource(CrawlerSource):
             initial_delay=initial_delay,
             multiplier=multiplier,
             sleep=sleep,
+            clock=clock,
+            rate_limit=rate_limit,
         )
         self._listing_url = listing_url
         self._doc_path_prefix = doc_path_prefix
@@ -60,19 +64,13 @@ class EUMDRSource(CrawlerSource):
     async def discover_document_urls(self) -> list[str]:
         """Fetch the listing page and extract document links.
 
-        Only returns links whose href starts with doc_path_prefix,
-        converted to absolute URLs.
+        Only returns same-domain links whose href starts with doc_path_prefix.
+        Uses _extract_links for SSRF-safe URL extraction.
         """
         response = await self._client.get(self._listing_url)
         response.raise_for_status()
-
-        # Extract all href attributes from anchor tags
-        hrefs = re.findall(r'href=["\']([^"\']+)["\']', response.text)
-
-        urls: list[str] = []
-        for href in hrefs:
-            if href.startswith(self._doc_path_prefix):
-                abs_url = urljoin(self._listing_url, href)
-                urls.append(abs_url)
-
-        return urls
+        return self._extract_links(
+            response.text,
+            prefix=self._doc_path_prefix,
+            listing_url=self._listing_url,
+        )

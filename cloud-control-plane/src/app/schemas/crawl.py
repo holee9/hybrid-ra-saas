@@ -1,4 +1,5 @@
 """Pydantic schemas for crawl trigger and status API (T-017, REQ-011/012)."""
+
 from __future__ import annotations
 
 from typing import Optional

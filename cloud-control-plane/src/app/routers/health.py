@@ -1,4 +1,5 @@
 """Health check endpoint — no authentication required (REQ-CRAWLER-014, AC-007)."""
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 

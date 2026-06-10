@@ -8,6 +8,7 @@ Container Apps ships stdout to Application Insights automatically.
 #           on the LogRecord as extra attributes. Absent fields are NEVER included
 #           in the output — callers must not rely on a key being None vs missing.
 """
+
 import json
 import logging
 import sys

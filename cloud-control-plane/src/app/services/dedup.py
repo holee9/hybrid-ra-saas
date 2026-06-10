@@ -3,6 +3,7 @@
 Computes SHA-256 hash of raw document bytes and checks against
 the regulatory_documents.content_hash column.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -30,8 +31,6 @@ class DedupService:
     async def is_duplicate(self, content_hash: str) -> bool:
         """Return True if content_hash already exists in regulatory_documents."""
         result = await self._session.execute(
-            sa.select(RegulatoryDocument.id).where(
-                RegulatoryDocument.content_hash == content_hash
-            )
+            sa.select(RegulatoryDocument.id).where(RegulatoryDocument.content_hash == content_hash)
         )
         return result.scalar_one_or_none() is not None

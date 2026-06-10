@@ -2,6 +2,7 @@
 
 All tests run without Docker/network. Uses env var injection only.
 """
+
 import pytest
 from pydantic import ValidationError
 
@@ -78,4 +79,5 @@ def test_settings_missing_database_url_raises():
     # Deliberately do NOT set DATABASE_URL
     with pytest.raises((ValidationError, Exception)):
         from app.config import Settings  # noqa: F401 (re-import)
+
         Settings()

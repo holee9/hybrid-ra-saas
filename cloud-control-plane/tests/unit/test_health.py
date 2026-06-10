@@ -2,6 +2,7 @@
 
 No Docker or DB required — uses TestClient with mocked DB init.
 """
+
 import pytest
 from unittest.mock import patch
 

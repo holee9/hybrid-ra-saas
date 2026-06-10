@@ -2,6 +2,7 @@
 
 All timing is injected/mocked — no real sleeps.
 """
+
 import pytest
 
 from app.core.ratelimit import RateLimiter
@@ -47,9 +48,9 @@ async def test_second_request_within_interval_sleeps():
     clock = FakeClock(0.0)
     limiter = RateLimiter(min_interval=1.0, clock=clock.now, sleep=fake_sleep)
 
-    await limiter.acquire()         # first — no sleep
-    clock.advance(0.3)              # 300ms later
-    await limiter.acquire()         # second — should sleep ~0.7s
+    await limiter.acquire()  # first — no sleep
+    clock.advance(0.3)  # 300ms later
+    await limiter.acquire()  # second — should sleep ~0.7s
 
     assert len(slept) == 1
     assert abs(slept[0] - 0.7) < 1e-6
@@ -66,9 +67,9 @@ async def test_request_after_full_interval_does_not_sleep():
     clock = FakeClock(0.0)
     limiter = RateLimiter(min_interval=1.0, clock=clock.now, sleep=fake_sleep)
 
-    await limiter.acquire()       # first
-    clock.advance(1.5)            # 1.5s later — more than min_interval
-    await limiter.acquire()       # second — no sleep needed
+    await limiter.acquire()  # first
+    clock.advance(1.5)  # 1.5s later — more than min_interval
+    await limiter.acquire()  # second — no sleep needed
 
     assert slept == []
 

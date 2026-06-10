@@ -5,6 +5,7 @@ orchestrator pipeline, and transitions the job registry status correctly.
 
 All external I/O is patched — no real DB, network, or blob storage.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -73,35 +74,23 @@ async def test_run_crawl_job_returns_job_id():
 
 @pytest.mark.asyncio
 async def test_run_crawl_job_sets_pending_before_run():
-    """run_crawl_job() registers 'pending' status before calling orchestrator.run()."""
+    """run_crawl_job() registers job as 'pending' immediately and returns the job_id.
+
+    The refactored run_crawl_job() only registers the job and returns; the actual
+    crawl execution is delegated to _execute_crawl_job() as a background task.
+    This test verifies that after run_crawl_job() returns, the job_id is present
+    in the registry with status 'pending'.
+    """
     from app.routers.crawl import run_crawl_job
     from app.services.orchestrator import job_registry
 
     job_registry.clear()
 
-    statuses_at_run_time: list[str] = []
-    orch_id = str(uuid.uuid4())
+    job_id = await run_crawl_job()
 
-    async def recording_run() -> str:
-        for info in job_registry.values():
-            statuses_at_run_time.append(info["status"])
-        job_registry[orch_id] = {"status": "completed", "document_count": 0}
-        return orch_id
-
-    mock_orch = MagicMock()
-    mock_orch.run = recording_run
-
-    fake_session_factory = MagicMock()
-    fake_session_factory.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
-    fake_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
-
-    with patch("app.config.Settings", return_value=_make_fake_settings()):
-        with patch("app.services.storage.make_storage_service", return_value=MagicMock()):
-            with patch("app.database._session_factory", fake_session_factory):
-                with patch("app.routers.crawl._build_orchestrator", return_value=mock_orch):
-                    await run_crawl_job()
-
-    assert "pending" in statuses_at_run_time
+    assert job_id is not None
+    assert job_id in job_registry
+    assert job_registry[job_id]["status"] == "pending"
 
 
 @pytest.mark.asyncio
@@ -209,12 +198,20 @@ async def test_build_orchestrator_all_sources_enabled():
 
 
 @pytest.mark.asyncio
-async def test_run_crawl_job_marks_failed_on_orchestrator_error():
-    """If orchestrator.run() raises, job_registry shows 'failed' status."""
-    from app.routers.crawl import run_crawl_job
+async def test_execute_crawl_job_marks_failed_on_orchestrator_error():
+    """_execute_crawl_job() marks job as 'failed' when orchestrator.run() raises.
+
+    Background task error handler catches all exceptions, logs them, and updates
+    the registry to 'failed' without re-raising (no caller to receive the exception).
+    """
+    from app.routers.crawl import run_crawl_job, _execute_crawl_job
     from app.services.orchestrator import job_registry
 
     job_registry.clear()
+
+    # Register the job first (as trigger_crawl would do)
+    job_id = await run_crawl_job()
+    assert job_registry[job_id]["status"] == "pending"
 
     mock_orch = MagicMock()
     mock_orch.run = AsyncMock(side_effect=RuntimeError("Orchestrator exploded"))
@@ -227,25 +224,39 @@ async def test_run_crawl_job_marks_failed_on_orchestrator_error():
         with patch("app.services.storage.make_storage_service", return_value=MagicMock()):
             with patch("app.database._session_factory", fake_session_factory):
                 with patch("app.routers.crawl._build_orchestrator", return_value=mock_orch):
-                    job_id = await run_crawl_job()
+                    # _execute_crawl_job must not raise — it swallows and logs
+                    await _execute_crawl_job(job_id)
 
     assert job_id is not None
     assert job_registry[job_id]["status"] == "failed"
 
 
 @pytest.mark.asyncio
-async def test_run_crawl_job_propagates_orchestrator_job_status():
-    """run_crawl_job() copies orchestrator's completed status to the pending entry."""
-    from app.routers.crawl import run_crawl_job
+async def test_execute_crawl_job_propagates_orchestrator_completed_status():
+    """_execute_crawl_job() ends with 'completed' when orchestrator.run() succeeds.
+
+    The orchestrator updates job_registry[job_id] to 'completed'; _execute_crawl_job
+    passes the pre-registered job_id into orch.run(job_id=...) so a single job_id
+    is used end-to-end (no dual-id confusion).
+    """
+    from app.routers.crawl import run_crawl_job, _execute_crawl_job
     from app.services.orchestrator import job_registry
 
     job_registry.clear()
 
-    orch_job_id = str(uuid.uuid4())
-    job_registry[orch_job_id] = {"status": "completed", "document_count": 5}
+    # Register job as pending first
+    job_id = await run_crawl_job()
+    assert job_registry[job_id]["status"] == "pending"
 
     mock_orch = MagicMock()
-    mock_orch.run = AsyncMock(return_value=orch_job_id)
+
+    async def completing_run(job_id: str | None = None) -> str:
+        # Simulate what the real orchestrator does: update registry to completed
+        assert job_id is not None, "job_id must be passed through (single-id design)"
+        job_registry[job_id] = {"status": "completed", "document_count": 5}
+        return job_id
+
+    mock_orch.run = completing_run
 
     fake_session_factory = MagicMock()
     fake_session_factory.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
@@ -255,7 +266,66 @@ async def test_run_crawl_job_propagates_orchestrator_job_status():
         with patch("app.services.storage.make_storage_service", return_value=MagicMock()):
             with patch("app.database._session_factory", fake_session_factory):
                 with patch("app.routers.crawl._build_orchestrator", return_value=mock_orch):
-                    trigger_job_id = await run_crawl_job()
+                    await _execute_crawl_job(job_id)
 
-    assert trigger_job_id in job_registry
-    assert job_registry[trigger_job_id]["status"] == "completed"
+    assert job_id in job_registry
+    assert job_registry[job_id]["status"] == "completed"
+    assert job_registry[job_id]["document_count"] == 5
+
+
+@pytest.mark.asyncio
+async def test_execute_crawl_job_logs_error_on_failure():
+    """_execute_crawl_job() emits a structured 'job_failed' error log with job_id and exc_info.
+
+    Finding 2: silent exception swallowing — errors must be logged (exc_info=True)
+    so failures are visible to operators via Application Insights.
+    """
+    import logging
+    from app.routers.crawl import run_crawl_job, _execute_crawl_job
+    from app.services.orchestrator import job_registry
+
+    job_registry.clear()
+    job_id = await run_crawl_job()
+
+    mock_orch = MagicMock()
+    mock_orch.run = AsyncMock(side_effect=RuntimeError("Simulated orchestrator failure"))
+
+    fake_session_factory = MagicMock()
+    fake_session_factory.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
+    fake_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    # Attach a handler directly to the crawl router logger (propagate=False bypasses caplog)
+    crawl_logger = logging.getLogger("app.routers.crawl")
+    captured: list[logging.LogRecord] = []
+
+    class _ListHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            captured.append(record)
+
+    handler = _ListHandler(level=logging.ERROR)
+    crawl_logger.addHandler(handler)
+    try:
+        with patch("app.config.Settings", return_value=_make_fake_settings()):
+            with patch("app.services.storage.make_storage_service", return_value=MagicMock()):
+                with patch("app.database._session_factory", fake_session_factory):
+                    with patch("app.routers.crawl._build_orchestrator", return_value=mock_orch):
+                        await _execute_crawl_job(job_id)
+    finally:
+        crawl_logger.removeHandler(handler)
+
+    # Verify structured error log with job_id and exc_info was emitted
+    error_records = [
+        r
+        for r in captured
+        if r.levelno == logging.ERROR
+        and getattr(r, "job_id", None) == job_id
+        and r.exc_info is not None
+    ]
+    assert len(error_records) >= 1, (
+        f"Expected an ERROR log with job_id={job_id!r} and exc_info. "
+        f"Got: {[(r.getMessage(), getattr(r, 'job_id', None), r.exc_info) for r in captured]}"
+    )
+    # Event field on the record message must indicate job failure
+    assert any("job_failed" in r.getMessage() for r in error_records), (
+        "Error log message must contain 'job_failed' event name"
+    )

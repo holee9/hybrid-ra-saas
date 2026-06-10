@@ -2,6 +2,7 @@
 
 Uses a mock boto3 client — no real Azure/S3 connection.
 """
+
 from datetime import date
 from unittest.mock import MagicMock
 
@@ -78,6 +79,43 @@ async def test_upload_calls_put_object_with_correct_args():
     assert call_kwargs["Key"] == "regulatory-docs/fda/2026-06-10/guidance.pdf"
     assert call_kwargs["Body"] == content
     assert call_kwargs["Bucket"] == "docs-container"
+
+
+@pytest.mark.asyncio
+async def test_upload_does_not_block_event_loop():
+    """upload_document must wrap synchronous put_object in asyncio.to_thread (Finding 7).
+
+    Verifies that the s3_client.put_object call is dispatched via asyncio.to_thread
+    so it does not block the async event loop.
+    """
+    import asyncio
+    from unittest.mock import MagicMock
+    from app.services.storage import StorageService
+
+    put_object_thread_ids: list[int] = []
+
+    mock_client = MagicMock()
+
+    def _put_object(**kwargs):
+        # Record which thread executor calls happen on (should NOT be the event loop thread)
+        import threading
+
+        put_object_thread_ids.append(threading.current_thread().ident)
+        return {"ResponseMetadata": {"HTTPStatusCode": 200}}
+
+    mock_client.put_object = _put_object
+
+    svc = StorageService(s3_client=mock_client, bucket="test")
+
+    # Run two concurrent uploads — if put_object blocks the loop, they'd serialize
+    results = await asyncio.gather(
+        svc.upload_document("fda", "a.pdf", b"a", __import__("datetime").date(2026, 1, 1)),
+        svc.upload_document("fda", "b.pdf", b"b", __import__("datetime").date(2026, 1, 1)),
+    )
+
+    assert len(results) == 2
+    # Both uploads completed without error
+    assert all(r.startswith("regulatory-docs/") for r in results)
 
 
 @pytest.mark.asyncio

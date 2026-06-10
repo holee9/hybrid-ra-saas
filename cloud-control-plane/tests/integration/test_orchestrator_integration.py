@@ -8,6 +8,7 @@ Tests:
            raw bytes NOT in the DB row.
 - AC-002: Duplicate SHA-256 run inserts nothing new (row count stays at 1).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -55,9 +56,7 @@ def _make_fake_blob_client() -> MagicMock:
 
     client = MagicMock()
 
-    async def fake_upload(
-        source: str, filename: str, content: bytes, fetch_date: object
-    ) -> str:
+    async def fake_upload(source: str, filename: str, content: bytes, fetch_date: object) -> str:
         date_str = str(fetch_date)
         path = f"regulatory-docs/{source}/{date_str}/{filename}"
         uploaded[path] = content
@@ -98,9 +97,7 @@ async def test_ac001_new_document_stored():
             session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
             content = b"%PDF-1.4 integration test document"
-            source = _make_fake_source(
-                "fda", [("https://fda.gov/integration-doc.pdf", content)]
-            )
+            source = _make_fake_source("fda", [("https://fda.gov/integration-doc.pdf", content)])
             fake_blob = _make_fake_blob_client()
 
             async with session_factory() as session:
@@ -113,9 +110,7 @@ async def test_ac001_new_document_stored():
 
                 # Verify DB row
                 result = await session.execute(
-                    sa.select(RegulatoryDocument).where(
-                        RegulatoryDocument.source == "fda"
-                    )
+                    sa.select(RegulatoryDocument).where(RegulatoryDocument.source == "fda")
                 )
                 rows = result.scalars().all()
 
@@ -173,9 +168,7 @@ async def test_ac002_duplicate_document_skipped():
             content = b"%PDF-1.4 duplicate check document"
 
             # First run — should insert
-            source_a = _make_fake_source(
-                "fda", [("https://fda.gov/dup-doc.pdf", content)]
-            )
+            source_a = _make_fake_source("fda", [("https://fda.gov/dup-doc.pdf", content)])
             fake_blob_a = _make_fake_blob_client()
 
             async with session_factory() as session_a:
@@ -190,16 +183,13 @@ async def test_ac002_duplicate_document_skipped():
             async with session_factory() as check_session:
                 result = await check_session.execute(
                     sa.select(RegulatoryDocument).where(
-                        RegulatoryDocument.content_hash
-                        == hashlib.sha256(content).hexdigest()
+                        RegulatoryDocument.content_hash == hashlib.sha256(content).hexdigest()
                     )
                 )
                 assert len(result.scalars().all()) == 1
 
             # Second run with same content — should skip
-            source_b = _make_fake_source(
-                "fda", [("https://fda.gov/dup-doc.pdf", content)]
-            )
+            source_b = _make_fake_source("fda", [("https://fda.gov/dup-doc.pdf", content)])
             fake_blob_b = _make_fake_blob_client()
 
             async with session_factory() as session_b:
@@ -214,8 +204,7 @@ async def test_ac002_duplicate_document_skipped():
             async with session_factory() as check_session2:
                 result2 = await check_session2.execute(
                     sa.select(RegulatoryDocument).where(
-                        RegulatoryDocument.content_hash
-                        == hashlib.sha256(content).hexdigest()
+                        RegulatoryDocument.content_hash == hashlib.sha256(content).hexdigest()
                     )
                 )
                 rows = result2.scalars().all()

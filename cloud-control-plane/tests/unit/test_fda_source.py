@@ -2,6 +2,7 @@
 
 All HTTP calls use httpx.MockTransport — no real network.
 """
+
 import pytest
 import httpx
 
@@ -28,7 +29,9 @@ async def test_discover_document_urls_returns_list():
     transport = httpx.MockTransport(handler=handler)
     client = httpx.AsyncClient(transport=transport)
 
-    source = FDASource(client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/")
+    source = FDASource(
+        client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/"
+    )
     await source.load_robots()
 
     urls = await source.discover_document_urls()
@@ -59,7 +62,9 @@ async def test_discover_filters_non_media_links():
     transport = httpx.MockTransport(handler=handler)
     client = httpx.AsyncClient(transport=transport)
 
-    source = FDASource(client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/")
+    source = FDASource(
+        client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/"
+    )
     await source.load_robots()
 
     urls = await source.discover_document_urls()
@@ -75,7 +80,9 @@ async def test_source_name_is_fda():
 
     transport = httpx.MockTransport(handler=lambda r: httpx.Response(200, content=b""))
     client = httpx.AsyncClient(transport=transport)
-    source = FDASource(client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/")
+    source = FDASource(
+        client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/"
+    )
 
     assert source.SOURCE_NAME == "fda"
 
@@ -95,7 +102,9 @@ async def test_fetch_document_returns_bytes():
     transport = httpx.MockTransport(handler=handler)
     client = httpx.AsyncClient(transport=transport)
 
-    source = FDASource(client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/")
+    source = FDASource(
+        client=client, listing_url="https://fda.gov/guidance/", media_path_prefix="/media/"
+    )
     await source.load_robots()
 
     result = await source.fetch_document("https://fda.gov/media/12345/download")

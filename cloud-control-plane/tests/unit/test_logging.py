@@ -2,6 +2,7 @@
 
 Tests verify the JSON formatter contract without any network or Docker dependency.
 """
+
 import json
 import logging
 

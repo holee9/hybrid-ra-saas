@@ -6,21 +6,27 @@ Responsibilities:
 - Enforce robots.txt disallow rules: raises PermissionError for disallowed URLs.
 - Exponential backoff retry on network error or non-2xx response (REQ-005, AC-004).
   After all retries exhausted: raises — caller (orchestrator) catches and continues.
+- Per-source rate limiting via RateLimiter (REQ-009, AC-003): 1 req/s default.
 
 # @MX:NOTE: [AUTO] robots.txt is re-fetched on every job run (not cached) to pick up
 #           policy changes without requiring a service restart (AC-006).
 """
+
 from __future__ import annotations
 
 import asyncio
+import re
+import time
 import urllib.robotparser
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from typing import Optional
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
 from app.core.logging import get_logger
+from app.core.ratelimit import RateLimiter
 
 logger = get_logger(__name__)
 
@@ -31,7 +37,7 @@ CRAWLER_USER_AGENT = "RA-Crawler/1.0"
 class CrawlerSource(ABC):
     """Abstract base class for all regulatory document sources.
 
-    # @MX:ANCHOR: [AUTO] Public contract for crawler sources (REQ-007/008/005/006).
+    # @MX:ANCHOR: [AUTO] Public contract for crawler sources (REQ-007/008/005/006/009).
     # @MX:REASON: Subclassed by FDASource (P1), MFDSSource, EUMDRSource (P2); fan_in >= 3.
     """
 
@@ -45,6 +51,8 @@ class CrawlerSource(ABC):
         initial_delay: float = 2.0,
         multiplier: float = 2.0,
         sleep: Optional[Callable[[float], Awaitable[None]]] = None,
+        clock: Optional[Callable[[], float]] = None,
+        rate_limit: float = 1.0,
     ) -> None:
         self._client = client
         self._robots_url = robots_url
@@ -54,6 +62,13 @@ class CrawlerSource(ABC):
         # Inject sleep for testability (avoids real waits in unit tests)
         self._sleep: Callable[[float], Awaitable[None]] = sleep or asyncio.sleep
         self._robots_parser: Optional[urllib.robotparser.RobotFileParser] = None
+        # Per-source rate limiter (REQ-009, AC-003) — injectable clock for unit testing
+        min_interval = 1.0 / rate_limit if rate_limit > 0 else 1.0
+        self._rate_limiter = RateLimiter(
+            min_interval=min_interval,
+            clock=clock or time.monotonic,
+            sleep=self._sleep,
+        )
 
     # ------------------------------------------------------------------
     # robots.txt handling
@@ -97,6 +112,7 @@ class CrawlerSource(ABC):
         """Fetch raw bytes for a document URL.
 
         Checks robots.txt disallow rules first (REQ-008).
+        Applies per-source rate limiting via RateLimiter (REQ-009, AC-003).
         Retries on network errors or non-2xx responses with exponential backoff.
         Raises after all retries are exhausted (caller must handle; REQ-006).
 
@@ -105,6 +121,10 @@ class CrawlerSource(ABC):
         """
         if not self._is_allowed(url):
             raise PermissionError(f"URL disallowed by robots.txt: {url}")
+
+        # Rate limit per source (REQ-009, AC-003) — must run after robots check,
+        # before the HTTP GET.  robots.txt fetch itself is NOT rate-limited.
+        await self._rate_limiter.acquire()
 
         delay = self._initial_delay
         last_exc: Optional[Exception] = None
@@ -115,9 +135,7 @@ class CrawlerSource(ABC):
                 if response.status_code >= 200 and response.status_code < 300:
                     return response.content
                 # Non-2xx: treat as retriable error
-                last_exc = ValueError(
-                    f"Non-2xx response {response.status_code} for {url}"
-                )
+                last_exc = ValueError(f"Non-2xx response {response.status_code} for {url}")
             except httpx.HTTPError as exc:
                 last_exc = exc
 
@@ -136,6 +154,36 @@ class CrawlerSource(ABC):
         # All retries exhausted — raise so orchestrator can log + continue
         logger.error("All %d retry attempts exhausted for %s", self._retry_count, url)
         raise last_exc  # type: ignore[misc]
+
+    # ------------------------------------------------------------------
+    # Link extraction helper (SSRF-safe, shared by all subclasses)
+    # ------------------------------------------------------------------
+
+    def _extract_links(self, html: str, prefix: str, listing_url: str) -> list[str]:
+        """Extract and return absolute URLs from html matching prefix, same-host only.
+
+        Steps:
+        1. Regex-extract all href values.
+        2. Filter hrefs that start with prefix (relative paths).
+        3. urljoin each against listing_url to get absolute URLs.
+        4. REJECT any resulting URL whose netloc differs from listing_url's netloc.
+
+        # @MX:NOTE: [AUTO] SSRF mitigation: absolute hrefs to foreign hosts are dropped.
+        #           An attacker-controlled page cannot redirect the crawler off-domain.
+        """
+        listing_netloc = urlparse(listing_url).netloc
+        hrefs = re.findall(r'href=["\']([^"\']+)["\']', html)
+
+        urls: list[str] = []
+        for href in hrefs:
+            if not href.startswith(prefix):
+                continue
+            abs_url = urljoin(listing_url, href)
+            if urlparse(abs_url).netloc != listing_netloc:
+                # Cross-domain — reject (SSRF prevention)
+                continue
+            urls.append(abs_url)
+        return urls
 
     # ------------------------------------------------------------------
     # Abstract interface

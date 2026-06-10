@@ -2,6 +2,7 @@
 
 Uses SQLite+aiosqlite in-memory DB. No Docker or PostgreSQL required.
 """
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker

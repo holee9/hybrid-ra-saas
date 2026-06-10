@@ -2,6 +2,7 @@
 
 All HTTP calls use httpx.MockTransport — no real network.
 """
+
 import pytest
 import httpx
 
@@ -145,9 +146,24 @@ async def test_mfds_fetch_document_returns_bytes():
 
 
 @pytest.mark.asyncio
-async def test_mfds_rate_limit_uses_base_sleep(monkeypatch):
-    """Rate limit: base class _sleep is called between requests (AC-003)."""
+async def test_mfds_rate_limit_enforces_min_interval_between_fetches():
+    """Two consecutive fetch_document calls must throttle the second via injected sleep (AC-003, REQ-009).
+
+    Clock is frozen so the second acquire sees zero elapsed time — forcing a sleep of
+    exactly min_interval (1.0 s).  A weak '>= 0' assertion would mask a missing
+    acquire() call, so we assert sleep >= min_interval to catch wiring regressions.
+    """
     from app.services.crawler.mfds import MFDSSource
+
+    MIN_INTERVAL = 1.0
+    # Clock sequence:
+    #   acquire #1: now=0.0 (no prior request), last=0.0
+    #   acquire #2: now=0.0 → elapsed=0.0 → wait=1.0 → sleep(1.0), last=0.0
+    # All reads return 0.0 so the second acquire always sees zero elapsed time.
+    clock_time = [0.0]
+
+    def fake_clock() -> float:
+        return clock_time[0]
 
     slept: list[float] = []
 
@@ -167,6 +183,22 @@ async def test_mfds_rate_limit_uses_base_sleep(monkeypatch):
         listing_url="https://www.mfds.go.kr/brd/m_218/list.do",
         doc_path_prefix="/brd/",
         sleep=fake_sleep,
+        clock=fake_clock,
     )
-    # No error expected; sleep injection just verifies the attribute is wired
-    assert source._sleep is fake_sleep
+    await source.load_robots()
+
+    # First fetch — no prior request, rate limiter must NOT sleep.
+    await source.fetch_document("https://www.mfds.go.kr/brd/m_218/view.do?seq=1")
+    assert slept == [], "First fetch must not trigger rate-limiter sleep"
+
+    # Second fetch immediately after (clock still at 0.0) — rate limiter MUST sleep.
+    await source.fetch_document("https://www.mfds.go.kr/brd/m_218/view.do?seq=2")
+
+    assert len(slept) == 1, (
+        "Rate limiter must call sleep exactly once between two consecutive fetches. "
+        "If this fails, RateLimiter.acquire() is not wired into fetch_document()."
+    )
+    assert slept[0] >= MIN_INTERVAL, (
+        f"Sleep duration {slept[0]:.3f}s must be >= min_interval {MIN_INTERVAL}s. "
+        "The rate limiter is not enforcing the configured minimum interval."
+    )

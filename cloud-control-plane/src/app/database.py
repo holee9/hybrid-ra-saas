@@ -3,6 +3,8 @@
 Mirrors customer-runtime/src/app/database.py pattern:
 module-level _engine/_session_factory replaced at app startup via init_engine().
 """
+
+import logging
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
@@ -10,6 +12,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+
+logger = logging.getLogger(__name__)
 
 # Module-level engine placeholder — replaced at app startup
 _engine = None
@@ -39,5 +43,6 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
             yield session
             await session.commit()
         except Exception:
+            logger.error("Session rollback triggered", exc_info=True)
             await session.rollback()
             raise

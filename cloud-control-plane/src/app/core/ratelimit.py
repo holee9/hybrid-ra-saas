@@ -6,6 +6,7 @@ Clock and sleep are injectable for deterministic unit testing.
 # @MX:WARN: [AUTO] RateLimiter instances are NOT thread-safe.
 # @MX:REASON: Designed for single-threaded async crawl; concurrent callers need per-caller instance.
 """
+
 from __future__ import annotations
 
 import asyncio

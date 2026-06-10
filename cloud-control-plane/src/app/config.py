@@ -3,6 +3,7 @@
 # @MX:ANCHOR: [AUTO] Public Settings contract — all crawler config flows through here.
 # @MX:REASON: Called by main.py lifespan, database.py init_engine, and future crawler tasks.
 """
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,7 +45,5 @@ class Settings(BaseSettings):
     fda_media_prefix: str = "/media/"
     mfds_listing_url: str = "https://www.mfds.go.kr/brd/m_218/list.do"
     mfds_doc_prefix: str = "/brd/"
-    eu_mdr_listing_url: str = (
-        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745"
-    )
+    eu_mdr_listing_url: str = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745"
     eu_mdr_doc_prefix: str = "/legal-content/"

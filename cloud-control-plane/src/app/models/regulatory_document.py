@@ -7,6 +7,7 @@ Raw document bytes are NEVER stored in PostgreSQL (FR-210 / REQ-CRAWLER-004).
 # @MX:REASON: Referenced by crawler orchestrator, dedup service, and alembic migration.
 #             content_hash UNIQUE index is the DB-level duplicate guard (AC-002).
 """
+
 from datetime import datetime
 from typing import Optional
 

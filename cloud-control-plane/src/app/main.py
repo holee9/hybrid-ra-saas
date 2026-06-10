@@ -1,4 +1,5 @@
 """FastAPI application factory for cloud-control-plane."""
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI

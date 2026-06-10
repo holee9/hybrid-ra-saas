@@ -2,6 +2,7 @@
 
 Uses SQLite in-memory — no Docker required.
 """
+
 import hashlib
 
 import pytest

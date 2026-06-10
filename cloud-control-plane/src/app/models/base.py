@@ -1,4 +1,5 @@
 """DeclarativeBase and shared mixins for all ORM models."""
+
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime

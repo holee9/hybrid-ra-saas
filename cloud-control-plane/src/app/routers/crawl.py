@@ -6,6 +6,7 @@ GET  /crawl/status/{job_id} — returns job status, 404 for unknown (REQ-012).
 run_crawl_job() wires Settings → sources → storage → DB session → CrawlOrchestrator.
 Job status lifecycle: pending → running (managed by orchestrator) → completed/failed.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -13,8 +14,11 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
+from app.core.logging import get_logger
 from app.schemas.crawl import JobStatusResponse, TriggerResponse
 from app.services.orchestrator import CrawlOrchestrator, job_registry
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/crawl", tags=["crawl"])
 
@@ -82,23 +86,16 @@ def _build_orchestrator(settings: Any, storage: Any, session: Any) -> CrawlOrche
     )
 
 
-async def run_crawl_job() -> str:
-    """Build enabled sources from Settings and run the orchestrator pipeline.
+async def _execute_crawl_job(job_id: str) -> None:
+    """Execute the crawl pipeline for a pre-registered job_id.
 
-    Lifecycle:
-      1. Register job as "pending" immediately (status API works before run() finishes).
-      2. Delegate to _build_orchestrator() to wire sources/storage/session.
-      3. Call orchestrator.run() — it transitions to "running" then "completed"/"failed".
-      4. On unexpected error, mark job "failed" and re-raise so the background task logs it.
-
-    Returns the job_id string.
+    Called as a background task by trigger_crawl().
+    Errors are logged with exc_info and job is marked "failed" — never re-raised
+    because there is no caller to receive the exception in a background task.
     """
     from app.config import Settings
     from app.database import _session_factory
     from app.services.storage import make_storage_service
-
-    job_id = str(uuid.uuid4())
-    job_registry[job_id] = {"status": "pending", "document_count": 0}
 
     settings = Settings()
     storage = make_storage_service(settings)
@@ -108,14 +105,24 @@ async def run_crawl_job() -> str:
             raise RuntimeError("Database not initialized. Call init_engine() first.")
         async with _session_factory() as session:
             orch = _build_orchestrator(settings, storage, session)
-            returned_id = await orch.run()
-            # orchestrator.run() registers its own job_id; replace our pending entry
-            # with the final status from the orchestrator's registry entry.
-            if returned_id != job_id and returned_id in job_registry:
-                job_registry[job_id] = job_registry[returned_id]
+            await orch.run(job_id=job_id)
     except Exception:
+        logger.error(
+            "job_failed",
+            extra={"job_id": job_id, "event": "job_failed"},
+            exc_info=True,
+        )
         job_registry[job_id] = {"status": "failed", "document_count": 0}
 
+
+async def run_crawl_job() -> str:
+    """Register a new job as 'pending' and return its job_id.
+
+    The actual crawl execution must be scheduled separately via background_tasks.
+    Kept as a standalone async function for testability.
+    """
+    job_id = str(uuid.uuid4())
+    job_registry[job_id] = {"status": "pending", "document_count": 0}
     return job_id
 
 
@@ -123,9 +130,12 @@ async def run_crawl_job() -> str:
 async def trigger_crawl(background_tasks: BackgroundTasks) -> TriggerResponse:
     """Start an async crawl job and return the job_id immediately (REQ-011).
 
-    The job runs in the background; use GET /crawl/status/{job_id} to poll.
+    Registers the job as 'pending', schedules it as a background task,
+    and returns 202 + job_id before the crawl completes.
+    Use GET /crawl/status/{job_id} to poll for completion.
     """
     job_id = await run_crawl_job()
+    background_tasks.add_task(_execute_crawl_job, job_id)
     return TriggerResponse(job_id=job_id)
 
 

@@ -3,6 +3,7 @@
 Integration tests require a Docker daemon and are CI-only.
 Unit tests run without Docker or network — always.
 """
+
 import os
 import sys
 
