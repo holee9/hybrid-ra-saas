@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.config import Settings
 from app.database import init_engine
+from app.routers.crawl import router as crawl_router
 from app.routers.health import router as health_router
 
 
@@ -29,6 +30,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health_router)
+    app.include_router(crawl_router)
 
     return app
 
