@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-11
+
+### Added (SPEC-CRAWLER-001)
+
+- `cloud-control-plane/` 신규 Python 3.13 FastAPI 마이크로서비스: 규제 문서 자동 수집 파이프라인 (Issue #18)
+  - 다중 소스 크롤러: FDA(US guidance) / MFDS(한국) / EU MDR(EUR-Lex 2017/745)
+  - `CrawlerSource` 공통 베이스: robots.txt 준수, source당 1 req/sec rate limiting, 지수 백오프 3회 재시도, SSRF netloc 검증
+  - SHA-256 콘텐츠 해시 중복 제거 (`dedup.py`) — 변경 없는 문서 skip
+  - Azure Blob Storage 원문 저장: `regulatory-docs/{source}/{YYYY-MM-DD}/{filename}` 경로 규약
+  - PostgreSQL `regulatory_documents` 신규 테이블 (Alembic 마이그레이션 0001) — 메타데이터만 기록
+  - 수동 트리거 API: `POST /crawl/trigger`(BackgroundTasks 비동기), `GET /crawl/status/{job_id}`, `GET /health`
+  - Application Insights 구조화 JSON 로깅 (`core/logging.py`)
+- Terraform: `crawler-job` Azure Container App Job 신규 (cron `0 2 * * *`, 설정 가능), `cloud-control-plane-api` placeholder 이미지를 실제 크롤러 이미지로 교체
+- CI/CD: `.github/workflows/deploy-prod.yml`에 크롤러 build + push + 배포 스텝 추가
+- 테스트: 단위 75 passed + 통합 2(`@skip_no_docker`, CI 전용), 커버리지 94%, ruff 0 errors
+
 ## [0.5.0] - 2026-06-09
 
 ### Added (SPEC-UI-002)

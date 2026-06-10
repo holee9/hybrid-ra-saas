@@ -1,9 +1,9 @@
 ---
 id: SPEC-CRAWLER-001
-version: 0.3.0
-status: planned
+version: 0.4.0
+status: completed
 created_at: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-11
 author: drake.lee
 priority: medium
 issue_number: 18
@@ -14,6 +14,7 @@ labels: [crawler, cloud-control-plane, regulatory-docs]
 
 ## HISTORY
 
+- **v0.4.0** (2026-06-11): 구현 완료(Sync). P0(스캐폴드 23파일+Terraform) → P1(FDA 소스+크롤러 베이스) → P2(MFDS·EU MDR+통합 테스트+CI) → fix cycle 1(RateLimiter 연결, trigger 비동기화, SSRF 검증, 예외 로깅). 최종: 단위 75 passed + 통합 2(CI 전용), 커버리지 94%, ruff 클린, drift 0. status: planned → completed.
 - **v0.3.0** (2026-06-10): plan-auditor 2차 검토 결함 수정 — REQ-CRAWLER-003 EARS 분리(003/003b), REQ-CRAWLER-013/014 구현 세부사항 제거, AC-008 추가.
 - **v0.2.0** (2026-06-10): plan-auditor 검토 결함 수정 — YAML frontmatter 필드 보정(created_at, labels), EARS 복합 요구사항 분리(REQ-006~013), 트레이서빌리티 정정.
 - **v0.1.0** (2026-06-10): 최초 작성. Cloud Control Plane 데이터 수집 레이어로서 규제 문서 크롤러 범위 확정. 신규 `cloud-control-plane/` 디렉터리(Python FastAPI, `customer-runtime/` 구조 미러링), SPEC-INFRA-001이 생성한 `cloud-control-plane-api` Container App placeholder 이미지 교체, 신규 Azure Container App Job(`crawler-job`, cron `0 2 * * *`) Terraform 추가, 다중 소스 크롤링(FDA / MFDS / EU MDR), Azure Blob Storage 원문 저장, PostgreSQL `regulatory_documents` 신규 테이블 메타데이터 기록, SHA-256 중복 제거, robots.txt 준수 + rate limiting, Application Insights 구조화 JSON 로깅, 수동 트리거 API, CI/CD 확장, EARS 인수 기준(REQ-CRAWLER-001~015) 정의.
@@ -28,7 +29,7 @@ labels: [crawler, cloud-control-plane, regulatory-docs]
 |------|------|
 | SPEC-ID | SPEC-CRAWLER-001 |
 | 제목 | Cloud Control Plane — Regulatory Document Crawler |
-| 상태 | planned |
+| 상태 | completed |
 | 대상 디렉터리 | `cloud-control-plane/` (신규, Python FastAPI 마이크로서비스) |
 | 분석 기준 | `.moai/specs/SPEC-CRAWLER-001/research.md`(코드베이스 분석), SPEC-INFRA-001 §0.2~0.4(Container App placeholder), Product 3계층 아키텍처 |
 | 라이프사이클 | spec-anchored (애플리케이션 코드와 함께 유지) |

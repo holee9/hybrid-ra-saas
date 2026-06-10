@@ -1,4 +1,5 @@
 """Alembic async migration environment for cloud-control-plane."""
+
 import asyncio
 import os
 import sys
