@@ -37,3 +37,14 @@ class Settings(BaseSettings):
 
     # Application Insights for structured log shipping (REQ-CRAWLER-010)
     appinsights_connection_string: str
+
+    # Crawler source URLs (configurable to survive HTML structure changes)
+    # @MX:NOTE: [AUTO] Default values point to live endpoints; override via env for testing.
+    fda_listing_url: str = "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts"
+    fda_media_prefix: str = "/media/"
+    mfds_listing_url: str = "https://www.mfds.go.kr/brd/m_218/list.do"
+    mfds_doc_prefix: str = "/brd/"
+    eu_mdr_listing_url: str = (
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745"
+    )
+    eu_mdr_doc_prefix: str = "/legal-content/"

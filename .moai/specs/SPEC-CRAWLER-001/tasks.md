@@ -21,8 +21,8 @@ SPEC: SPEC-CRAWLER-001 (Issue #18)
 | T-015 | FDA source 구현 | REQ-001 | T-010~014 | cloud-control-plane/src/app/services/crawler/fda.py | completed |
 | T-016 | orchestrator (소스 순회, 실패 격리, INSERT) | REQ-001/004/006 | T-015 | cloud-control-plane/src/app/services/orchestrator.py | completed |
 | T-017 | 수동 트리거 API | REQ-011/012 | T-016 | cloud-control-plane/src/app/routers/crawl.py, schemas/crawl.py | completed |
-| T-018 | MFDS source 구현 | REQ-001 | T-016 | cloud-control-plane/src/app/services/crawler/mfds.py | pending |
-| T-019 | EU MDR source 구현 | REQ-001 | T-016 | cloud-control-plane/src/app/services/crawler/eu_mdr.py | pending |
-| T-020 | 유닛 테스트 (Docker 비의존) | AC-002/003/004/006 | T-010~017 | cloud-control-plane/tests/ | pending |
-| T-021 | 통합 테스트 (skip_no_docker, CI 전용) | AC-001 | T-020 | cloud-control-plane/tests/integration/ | pending |
-| T-022 | deploy-prod.yml 크롤러 build+push | REQ-015 | T-007 | .github/workflows/deploy-prod.yml (MODIFY) | pending |
+| T-018 | MFDS source 구현 | REQ-001 | T-016 | cloud-control-plane/src/app/services/crawler/mfds.py | completed |
+| T-019 | EU MDR source 구현 | REQ-001 | T-016 | cloud-control-plane/src/app/services/crawler/eu_mdr.py | completed |
+| T-020 | 유닛 테스트 (Docker 비의존) | AC-002/003/004/006 | T-010~017 | cloud-control-plane/tests/ | completed |
+| T-021 | 통합 테스트 (skip_no_docker, CI 전용) | AC-001 | T-020 | cloud-control-plane/tests/integration/ | completed |
+| T-022 | deploy-prod.yml 크롤러 build+push | REQ-015 | T-007 | .github/workflows/deploy-prod.yml (MODIFY) | completed |
