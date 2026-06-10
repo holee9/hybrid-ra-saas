@@ -90,7 +90,8 @@ data "azurerm_container_app_environment" "shared" {
   resource_group_name = "rg-hybrid-ra-saas-staging"
 }
 
-# Cloud Control Plane API — prod (placeholder image)
+# Cloud Control Plane API — prod (REQ-CRAWLER-014)
+# image is set via var.crawler_image; CI overrides this on v* tag push (REQ-CRAWLER-015)
 resource "azurerm_container_app" "cloud_control_plane_api" {
   name                         = "cloud-control-plane-api"
   container_app_environment_id = data.azurerm_container_app_environment.shared.id
@@ -100,7 +101,7 @@ resource "azurerm_container_app" "cloud_control_plane_api" {
   template {
     container {
       name   = "cloud-control-plane-api"
-      image  = "mcr.microsoft.com/k8se/quickstart:latest"
+      image  = var.crawler_image
       cpu    = 0.25
       memory = "0.5Gi"
     }
@@ -112,6 +113,31 @@ resource "azurerm_container_app" "cloud_control_plane_api" {
     traffic_weight {
       latest_revision = true
       percentage      = 100
+    }
+  }
+}
+
+# Crawler scheduled job — daily 02:00 UTC (REQ-CRAWLER-013, AC-008)
+resource "azurerm_container_app_job" "crawler_job" {
+  name                         = "crawler-job"
+  container_app_environment_id = data.azurerm_container_app_environment.shared.id
+  resource_group_name          = azurerm_resource_group.prod.name
+  location                     = local.location
+
+  replica_timeout_in_seconds = 1800
+
+  schedule_trigger_config {
+    cron_expression          = "0 2 * * *"
+    parallelism              = 1
+    replica_completion_count = 1
+  }
+
+  template {
+    container {
+      name   = "crawler"
+      image  = var.crawler_image
+      cpu    = 0.5
+      memory = "1Gi"
     }
   }
 }
