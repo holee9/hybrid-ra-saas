@@ -249,6 +249,36 @@ hybrid-ra-saas/
 
 ---
 
+## 배포 가이드 (Azure)
+
+> 상세 체크리스트 → [`docs/deployment.md`](docs/deployment.md)
+
+### 빠른 배포 절차
+
+```bash
+# 모든 사전 조건 충족 후 (DB 마이그레이션, 환경 변수 설정 완료)
+git tag v1.0.0
+git push origin v1.0.0
+# → deploy-prod.yml 자동 트리거 → Docker 빌드 → ACR push → 배포 → 헬스체크
+```
+
+### 배포 대상 서비스
+
+| 서비스 | Container App 이름 | 포트 |
+|--------|-------------------|------|
+| Customer Runtime API | `api-prod` | 8000 |
+| 규제 문서 크롤러 API | `cloud-control-plane-api` | 8000 |
+| 크롤러 스케줄 Job | `crawler-job` | — (cron 02:00 UTC) |
+
+### 첫 배포 전 필수 수동 작업
+
+1. Container App 환경 변수 설정 (Key Vault → `DB-CONNECTION-STRING` 등)
+2. DB 마이그레이션 실행 (`alembic upgrade head` — 두 서비스 각각)
+
+> 자세한 내용: [`docs/deployment.md`](docs/deployment.md)
+
+---
+
 ## 비즈니스 모델
 
 | 플랜 | 가격 | 대상 | 구성 |
@@ -300,4 +330,4 @@ hybrid-ra-saas/
 
 ---
 
-*버전: v5.1 | 최종 갱신: 2026-06-11 | 문서 완성도: 85%+ | Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅*
+*버전: v5.2 | 최종 갱신: 2026-06-11 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | 다음: Azure 배포 검증*
