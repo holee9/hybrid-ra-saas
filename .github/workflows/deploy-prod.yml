@@ -63,6 +63,14 @@ jobs:
       - name: Container App 배포
         id: deploy
         run: |
+          ACR_NAME=$(echo "${{ secrets.AZURE_CONTAINER_REGISTRY }}" | cut -d. -f1)
+          ACR_PASS=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
+          az containerapp registry set \
+            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --username "$ACR_NAME" \
+            --password "$ACR_PASS"
           az containerapp update \
             --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \

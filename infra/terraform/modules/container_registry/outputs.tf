@@ -7,3 +7,14 @@ output "id" {
   description = "ACR resource ID"
   value       = azurerm_container_registry.this.id
 }
+
+output "admin_username" {
+  description = "ACR admin username"
+  value       = azurerm_container_registry.this.admin_username
+}
+
+output "admin_password" {
+  description = "ACR admin password"
+  value       = azurerm_container_registry.this.admin_password
+  sensitive   = true
+}

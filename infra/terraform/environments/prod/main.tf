@@ -95,21 +95,12 @@ data "azurerm_container_app_environment" "shared" {
   resource_group_name = "rg-hybrid-ra-saas-staging"
 }
 
-# Customer Runtime API — prod (api-prod)
+# Customer Runtime API — prod (api-prod, placeholder image; deploy-prod.yml updates to real image)
 resource "azurerm_container_app" "api_prod" {
   name                         = "api-prod"
   container_app_environment_id = data.azurerm_container_app_environment.shared.id
   resource_group_name          = azurerm_resource_group.prod.name
   revision_mode                = "Single"
-
-  registry {
-    server   = module.container_registry.login_server
-    identity = "system"
-  }
-
-  identity {
-    type = "SystemAssigned"
-  }
 
   template {
     min_replicas = 1
@@ -123,19 +114,12 @@ resource "azurerm_container_app" "api_prod" {
 
   ingress {
     external_enabled = true
-    target_port      = 8000
+    target_port      = 8080
     traffic_weight {
       latest_revision = true
       percentage      = 100
     }
   }
-}
-
-# Grant api-prod managed identity AcrPull on ACR
-resource "azurerm_role_assignment" "api_prod_acr_pull" {
-  scope                = module.container_registry.id
-  role_definition_name = "AcrPull"
-  principal_id         = azurerm_container_app.api_prod.identity[0].principal_id
 }
 
 # Cloud Control Plane API — prod (REQ-CRAWLER-014)
