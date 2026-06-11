@@ -86,4 +86,13 @@ jobs:
 
       - name: Terraform Apply
         if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
-        run: terraform apply -auto-approve
+        run: |
+          # Container App 이미지/revision은 CI deploy가 단독 관리 — Terraform에서 제외
+          TARGETS=$(terraform state list 2>/dev/null \
+            | grep -v 'azurerm_container_app' \
+            | sed 's|^|-target=|' | tr '\n' ' ')
+          if [ -n "$TARGETS" ]; then
+            eval terraform apply -auto-approve $TARGETS
+          else
+            echo "No non-container-app resources changed; skipping apply."
+          fi
