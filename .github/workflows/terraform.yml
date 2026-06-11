@@ -1,6 +1,7 @@
 name: Terraform
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths: ['infra/terraform/**']
@@ -18,11 +19,16 @@ env:
   ARM_TENANT_ID: 42580dce-4bd2-4556-b531-4843eba6431d
   ARM_CLIENT_ID: 6620dc2b-93af-453c-b1b8-20f9582d7354
   ARM_USE_OIDC: "true"
+  TF_VAR_subscription_id: a49390df-1886-495c-9fb0-cf8faf1aa5ef
+  TF_VAR_tenant_id: 42580dce-4bd2-4556-b531-4843eba6431d
+  TF_VAR_db_admin_login: ${{ secrets.TF_VAR_DB_ADMIN_LOGIN }}
+  TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         environment: [prod, staging]
     defaults:
