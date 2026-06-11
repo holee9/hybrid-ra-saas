@@ -120,6 +120,11 @@ jobs:
               "jwt-secret=${{ env.JWT_SEC }}" \
               "minio-pass=${{ env.BLOB_KEY }}"
 
+          # ingress targetPort 확인 (8000 고정)
+          az containerapp ingress update \
+            --name "$APP" --resource-group "$RG" \
+            --target-port 8000
+
           # 이미지 + 환경 변수 업데이트 (단일 revision)
           az containerapp update \
             --name "$APP" --resource-group "$RG" \
@@ -137,8 +142,7 @@ jobs:
               "CORS_ORIGINS=*" \
               "ENVIRONMENT=production" \
               "JWT_TTL_MIN=60" \
-              "RATE_LIMIT_PER_MIN=100" \
-              "API_WORKERS=2"
+              "RATE_LIMIT_PER_MIN=100"
 
       - name: cloud-control-plane-api 배포 (이미지 + 환경 변수)
         run: |
@@ -201,12 +205,13 @@ jobs:
       - name: 헬스체크
         id: health
         run: |
-          sleep 30
+          sleep 60
           URL=$(az containerapp show \
             --name "${{ env.APP_NAME }}-${{ env.SUFFIX }}" \
             --resource-group "${{ env.RESOURCE_GROUP }}" \
             --query properties.configuration.ingress.fqdn -o tsv)
-          curl -f "https://$URL/health" || exit 1
+          curl -f --max-time 30 --retry 5 --retry-delay 15 --retry-connrefused \
+            "https://$URL/health" || exit 1
           echo "PROD_URL=https://$URL" >> $GITHUB_OUTPUT
 
       - name: 배포 실패 시 자동 롤백
