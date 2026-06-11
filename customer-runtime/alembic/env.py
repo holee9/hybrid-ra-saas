@@ -52,9 +52,13 @@ def do_run_migrations(connection):
 
 def _normalize_db_url(url: str) -> str:
     if url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    url = url.replace("sslmode=require", "ssl=require")
+    url = url.replace("sslmode=verify-full", "ssl=require")
+    url = url.replace("sslmode=verify-ca", "ssl=require")
+    url = url.replace("sslmode=disable", "ssl=False")
     return url
 
 

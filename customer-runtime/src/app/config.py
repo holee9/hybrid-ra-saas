@@ -13,11 +13,16 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def normalize_database_url(cls, v: str) -> str:
-        # Azure Key Vault stores plain postgresql:// — asyncpg requires postgresql+asyncpg://
+        # Normalize driver: asyncpg requires postgresql+asyncpg:// scheme
         if v.startswith("postgresql://"):
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
-        if v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgres://"):
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        # asyncpg uses ssl=require, not sslmode=require (psycopg2 syntax)
+        v = v.replace("sslmode=require", "ssl=require")
+        v = v.replace("sslmode=verify-full", "ssl=require")
+        v = v.replace("sslmode=verify-ca", "ssl=require")
+        v = v.replace("sslmode=disable", "ssl=False")
         return v
 
     # JWT
