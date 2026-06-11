@@ -62,13 +62,24 @@ jobs:
 
       - name: Container App 배포
         id: deploy
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          resourceGroup: ${{ env.RESOURCE_GROUP }}
-          containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
-          containerAppName: ${{ env.APP_NAME }}-${{ env.SUFFIX }}
-          imageToDeploy: ${{ env.IMAGE_TAG }}
-          targetPort: 8000
+        run: |
+          APP=${{ env.APP_NAME }}-${{ env.SUFFIX }}
+          RG=${{ env.RESOURCE_GROUP }}
+          ENV_RG=rg-hybrid-ra-saas-staging
+          if az containerapp show --name "$APP" --resource-group "$RG" --query name -o tsv 2>/dev/null | grep -q "$APP"; then
+            az containerapp update --name "$APP" --resource-group "$RG" --image ${{ env.IMAGE_TAG }}
+          else
+            az containerapp create \
+              --name "$APP" \
+              --resource-group "$RG" \
+              --environment ${{ env.CONTAINER_APP_ENV }} \
+              --environment-resource-group "$ENV_RG" \
+              --image ${{ env.IMAGE_TAG }} \
+              --target-port 8000 \
+              --ingress external \
+              --min-replicas 1 \
+              --registry-server ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+          fi
 
       - name: Crawler Container App 배포
         run: |
