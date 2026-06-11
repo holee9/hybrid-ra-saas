@@ -10,6 +10,16 @@ class Settings(BaseSettings):
     # Database
     database_url: str
 
+    @field_validator("database_url")
+    @classmethod
+    def normalize_database_url(cls, v: str) -> str:
+        # Azure Key Vault stores plain postgresql:// — asyncpg requires postgresql+asyncpg://
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        return v
+
     # JWT
     jwt_secret: str
     jwt_ttl_min: int = 60

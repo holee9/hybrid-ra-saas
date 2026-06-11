@@ -32,7 +32,8 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    raw = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    url = _normalize_db_url(raw)
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -49,9 +50,18 @@ def do_run_migrations(connection):
         context.run_migrations()
 
 
+def _normalize_db_url(url: str) -> str:
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    return url
+
+
 async def run_async_migrations() -> None:
     # Allow runtime DATABASE_URL override (used by entrypoint.sh in Azure)
-    url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    raw = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    url = _normalize_db_url(raw)
     connectable = create_async_engine(url)
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

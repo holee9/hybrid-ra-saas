@@ -4,6 +4,7 @@
 # @MX:REASON: Called by main.py lifespan, database.py init_engine, and future crawler tasks.
 """
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +14,16 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str
+
+    @field_validator("database_url")
+    @classmethod
+    def normalize_database_url(cls, v: str) -> str:
+        # Azure Key Vault stores plain postgresql:// — asyncpg requires postgresql+asyncpg://
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        return v
 
     # Crawler source enable flags (REQ-CRAWLER-001)
     crawler_fda_enabled: bool = True
