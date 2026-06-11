@@ -24,6 +24,8 @@ COPY alembic.ini .
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+ENV PYTHONPATH=/app/src
+
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
