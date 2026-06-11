@@ -84,15 +84,22 @@ jobs:
               body: output
             });
 
-      - name: Terraform Apply
+      - name: Terraform State — Container App 제거 (CI가 단독 관리)
         if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
         run: |
-          # Container App 이미지/revision은 CI deploy가 단독 관리 — Terraform에서 제외
-          TARGETS=$(terraform state list 2>/dev/null \
-            | grep -v 'azurerm_container_app' \
-            | sed 's|^|-target=|' | tr '\n' ' ')
-          if [ -n "$TARGETS" ]; then
-            eval terraform apply -auto-approve $TARGETS
-          else
-            echo "No non-container-app resources changed; skipping apply."
-          fi
+          # Container App/Job은 deploy-prod.yml이 단독 관리.
+          # Terraform state에 남아있으면 apply 시 충돌하므로 제거.
+          for R in \
+            azurerm_container_app.api_prod \
+            azurerm_container_app.cloud_control_plane_api \
+            azurerm_container_app_job.crawler_job; do
+            if terraform state show "$R" >/dev/null 2>&1; then
+              terraform state rm "$R" && echo "Removed $R from state"
+            else
+              echo "$R not in state, skipping"
+            fi
+          done
+
+      - name: Terraform Apply
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
+        run: terraform apply -auto-approve

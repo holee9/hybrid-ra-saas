@@ -20,8 +20,3 @@ variable "db_admin_password" {
   sensitive   = true
 }
 
-variable "crawler_image" {
-  description = "Docker image for cloud-control-plane crawler (ACR). Defaults to quickstart placeholder; overridden by CI on v* tag push."
-  type        = string
-  default     = "mcr.microsoft.com/k8se/quickstart:latest"
-}

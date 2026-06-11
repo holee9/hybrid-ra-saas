@@ -74,6 +74,9 @@ import {
   id = "/subscriptions/a49390df-1886-495c-9fb0-cf8faf1aa5ef/resourceGroups/rg-hybrid-ra-saas-prod/providers/Microsoft.Storage/storageAccounts/sthybridrasaasprod/blobServices/default/containers/tfstate"
 }
 
+# NOTE: Container Apps (api-prod, cloud-control-plane-api, crawler-job) are managed
+# exclusively by deploy-prod.yml CI workflow. Terraform does NOT manage these resources.
+
 resource "azurerm_storage_container" "tfstate" {
   name                  = "tfstate"
   storage_account_id    = azurerm_storage_account.prod.id
@@ -89,102 +92,3 @@ module "monitoring" {
   application_type    = "web"
 }
 
-# Shared Container App Environment (owned by staging, referenced here as data)
-data "azurerm_container_app_environment" "shared" {
-  name                = "cae-hybrid-ra-saas-staging"
-  resource_group_name = "rg-hybrid-ra-saas-staging"
-}
-
-# Customer Runtime API — prod (api-prod, placeholder image; deploy-prod.yml updates to real image)
-import {
-  to = azurerm_container_app.api_prod
-  id = "/subscriptions/a49390df-1886-495c-9fb0-cf8faf1aa5ef/resourceGroups/rg-hybrid-ra-saas-prod/providers/Microsoft.App/containerApps/api-prod"
-}
-
-resource "azurerm_container_app" "api_prod" {
-  name                         = "api-prod"
-  container_app_environment_id = data.azurerm_container_app_environment.shared.id
-  resource_group_name          = azurerm_resource_group.prod.name
-  revision_mode                = "Single"
-
-  template {
-    min_replicas = 1
-    container {
-      name   = "api"
-      image  = "mcr.microsoft.com/k8se/quickstart:latest"
-      cpu    = 0.5
-      memory = "1Gi"
-    }
-  }
-
-  ingress {
-    external_enabled = true
-    target_port      = 8000
-    traffic_weight {
-      latest_revision = true
-      percentage      = 100
-    }
-  }
-
-  # CI owns the container image; Terraform manages infra only
-  lifecycle {
-    ignore_changes = [template]
-  }
-}
-
-# Cloud Control Plane API — prod (REQ-CRAWLER-014)
-# CI deploys Python app on port 8000; Terraform manages infra only
-resource "azurerm_container_app" "cloud_control_plane_api" {
-  name                         = "cloud-control-plane-api"
-  container_app_environment_id = data.azurerm_container_app_environment.shared.id
-  resource_group_name          = azurerm_resource_group.prod.name
-  revision_mode                = "Single"
-
-  template {
-    container {
-      name   = "cloud-control-plane-api"
-      image  = var.crawler_image
-      cpu    = 0.25
-      memory = "0.5Gi"
-    }
-  }
-
-  ingress {
-    external_enabled = true
-    target_port      = 8000
-    traffic_weight {
-      latest_revision = true
-      percentage      = 100
-    }
-  }
-
-  # CI owns the container image; Terraform manages infra only
-  lifecycle {
-    ignore_changes = [template]
-  }
-}
-
-# Crawler scheduled job — daily 02:00 UTC (REQ-CRAWLER-013, AC-008)
-resource "azurerm_container_app_job" "crawler_job" {
-  name                         = "crawler-job"
-  container_app_environment_id = data.azurerm_container_app_environment.shared.id
-  resource_group_name          = azurerm_resource_group.prod.name
-  location                     = local.location
-
-  replica_timeout_in_seconds = 1800
-
-  schedule_trigger_config {
-    cron_expression          = "0 2 * * *"
-    parallelism              = 1
-    replica_completion_count = 1
-  }
-
-  template {
-    container {
-      name   = "crawler"
-      image  = var.crawler_image
-      cpu    = 0.5
-      memory = "1Gi"
-    }
-  }
-}
