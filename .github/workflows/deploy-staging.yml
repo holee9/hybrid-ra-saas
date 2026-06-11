@@ -13,7 +13,8 @@ permissions:
   contents: read
 
 env:
-  APP_NAME: api        # TODO: 앱 이름 (api, frontend 등)
+  APP_NAME: api
+  CRAWLER_APP_NAME: cloud-control-plane-api
   SUFFIX: staging
   RESOURCE_GROUP: rg-hybrid-ra-saas-staging
   CONTAINER_APP_ENV: ${{ secrets.AZURE_CONTAINER_APP_ENV }}
@@ -26,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Azure 로그인 (OIDC — 패스워드 없음)
+      - name: Azure 로그인 (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -34,13 +35,9 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: ACR 로그인
-        uses: azure/docker-login@v1
-        with:
-          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
-          username: ${{ fromJSON(steps.azure-login.outputs.login-info).username }}
-          password: ${{ fromJSON(steps.azure-login.outputs.login-info).password }}
+        run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
-      - name: Docker 빌드 및 ACR 푸시
+      - name: Docker 빌드 및 ACR 푸시 (customer-runtime)
         env:
           IMAGE: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ env.APP_NAME }}
           TAG: ${{ github.sha }}
@@ -50,13 +47,32 @@ jobs:
           docker push $IMAGE:$SUFFIX-latest
           echo "IMAGE_TAG=$IMAGE:$TAG" >> $GITHUB_ENV
 
-      - name: Container App 배포
+      - name: Docker 빌드 및 ACR 푸시 (cloud-control-plane)
+        env:
+          IMAGE_CRAWLER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ env.CRAWLER_APP_NAME }}
+          TAG: ${{ github.sha }}
+        run: |
+          docker build -f cloud-control-plane/docker/Dockerfile -t $IMAGE_CRAWLER:$TAG -t $IMAGE_CRAWLER:$SUFFIX-latest cloud-control-plane/
+          docker push $IMAGE_CRAWLER:$TAG
+          docker push $IMAGE_CRAWLER:$SUFFIX-latest
+          echo "IMAGE_CRAWLER_TAG=$IMAGE_CRAWLER:$TAG" >> $GITHUB_ENV
+
+      - name: Container App 배포 (customer-runtime)
         uses: azure/container-apps-deploy-action@v1
         with:
           resourceGroup: ${{ env.RESOURCE_GROUP }}
           containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
           containerAppName: ${{ env.APP_NAME }}-${{ env.SUFFIX }}
           imageToDeploy: ${{ env.IMAGE_TAG }}
+          targetPort: 8000
+
+      - name: Container App 배포 (cloud-control-plane)
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
+          containerAppName: ${{ env.CRAWLER_APP_NAME }}-${{ env.SUFFIX }}
+          imageToDeploy: ${{ env.IMAGE_CRAWLER_TAG }}
           targetPort: 8000
 
       - name: 헬스체크
