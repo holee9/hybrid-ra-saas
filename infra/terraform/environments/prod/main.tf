@@ -47,7 +47,7 @@ module "postgresql" {
   resource_group_name    = azurerm_resource_group.prod.name
   location               = local.location
   pg_version             = "16"
-  sku_name               = "Standard_B1ms"
+  sku_name               = "B_Standard_B1ms"
   storage_mb             = 32768
   administrator_login    = var.db_admin_login
   administrator_password = var.db_admin_password
