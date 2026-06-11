@@ -96,6 +96,11 @@ data "azurerm_container_app_environment" "shared" {
 }
 
 # Customer Runtime API — prod (api-prod, placeholder image; deploy-prod.yml updates to real image)
+import {
+  to = azurerm_container_app.api_prod
+  id = "/subscriptions/a49390df-1886-495c-9fb0-cf8faf1aa5ef/resourceGroups/rg-hybrid-ra-saas-prod/providers/Microsoft.App/containerApps/api-prod"
+}
+
 resource "azurerm_container_app" "api_prod" {
   name                         = "api-prod"
   container_app_environment_id = data.azurerm_container_app_environment.shared.id
