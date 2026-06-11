@@ -1,16 +1,41 @@
-# Global Hybrid AI RA Specialist
+# hybrid-ra-saas — Regula 백엔드 인프라
 
-의료기기 제조사를 위한 하이브리드 AI 규제 운영(RA) 플랫폼 — 기획 패키지 v3.0
+**Regula**(ra-med-bot) 를 구동하는 규제 데이터 파이프라인 + 엔터프라이즈 온프레미스 패키지
+
+> 사용자 접점 제품: **https://regula.abyz-lab.work** (ra-med-bot)  
+> 이 레포: Regula에 공급되는 규제 지식 파이프라인 및 엔터프라이즈 배포 패키지
 
 ---
 
-## 프로젝트 개요
+## 제품 구조
 
-공개 규제 지식(FDA · MFDS · EU MDR)을 클라우드에서 수집·관리하고,  
-민감 문서(설계치·임상 원자료·소스코드)는 **고객 내부망 Docker 런타임**에서만 처리하는  
-**데이터 주권 중심 셀프서비스 규제 운영 플랫폼**입니다.
+```
+사용자 레이어
+└── Regula (ra-med-bot)           https://regula.abyz-lab.work
+    채팅 · 워크플로우 · 규제 레이더 · RBAC
+    Vercel + Cloudflare Workers
 
-> 핵심 포지셔닝: 컨설팅 대행이 아니라, **표준화된 셀프서비스 규제 운영 플랫폼**
+            ↑ 규제 지식 공급            ↑ 고객 문서 컨텍스트
+            │                          │
+인프라 레이어 (이 레포)
+├── Cloud Control Plane (Azure)        Customer Local Runtime (Docker)
+│   규제 크롤러: FDA · MFDS · EU MDR   IFU 15필드 파서 (NLP 3단계)
+│   매일 02:00 UTC → Azure Blob +      Guardrail 검증
+│   PostgreSQL                         Audit Export (규제 제출용)
+│   → [P0] Regula Vectorize 동기화     Air-gap 강제 (FR-210)
+│
+└── Azure Terraform IaC
+    Container Apps · PostgreSQL · Key Vault · ACR
+```
+
+**타깃 품목군:** X-ray 시스템 · 디지털 디텍터 · 촬영실 SW/PACS · 피부미용 초음파
+
+### 제품 티어
+
+| 티어 | 제품 | 배포 | 주요 기능 |
+|------|------|------|----------|
+| **SaaS** | Regula (ra-med-bot) | Vercel | 규제 상담 채팅, 510k/CER 초안, 규제 레이더 |
+| **Enterprise** | Regula Enterprise Edition | Docker Compose (온프레미스) | SaaS 기능 + IFU 파서, Guardrail, Audit Export, Air-gap |
 
 ---
 
@@ -18,28 +43,29 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│            ☁️  Cloud Control Plane                   │
-│  규제 크롤러 / 정규화 파이프라인 / PostgreSQL+pgvector │
-│  S3 Archive / EventBridge / CloudWatch / Budgets    │
+│            ☁️  Cloud Control Plane (Azure)           │
+│  규제 크롤러: FDA · MFDS · EU MDR                    │
+│  PostgreSQL + Azure Blob Storage                    │
+│  Container App Job (cron 02:00 UTC)                 │
+│                                                     │
+│  → [P0 통합] Cloudflare Vectorize 자동 동기화         │
+│    regula-fda / regula-mfds / regula-eu-mdr 인덱스  │
 └──────────────────────┬──────────────────────────────┘
                        │  Outbound HTTPS only
-                       │  증분 메타데이터 · 지식팩 버전관리
-                       │  고객사별 테넌트 격리
+                       │  증분 메타데이터 · 규제 문서 버전관리
 ┌──────────────────────▼──────────────────────────────┐
 │            🛡️  Secure Sync Layer                     │
+│  GET /sync/manifest — 변경 메타데이터만 외부 전달      │
 └──────────────────────┬──────────────────────────────┘
                        │  Pull 방식 (고객 → 클라우드)
 ┌──────────────────────▼──────────────────────────────┐
-│         🖥️  Customer Local Runtime (Docker)          │
-│  n8n Orchestrator / FastAPI / Dynamic Parser        │
-│  Unified Schema Store / Traceability Graph          │
-│  Ollama/vLLM RAG / Review UI / Audit Log            │
+│    🖥️  Customer Local Runtime (Regula Enterprise)    │
+│  FastAPI · IFU 15필드 NLP 파서 · Guardrail           │
+│  pgvector RAG · Audit Export · Air-gap 강제         │
 │                                                     │
 │  ⚠️  민감 문서는 이 경계 밖으로 절대 전송하지 않음     │
 └─────────────────────────────────────────────────────┘
 ```
-
-**타깃 품목군:** X-ray 시스템 · 디지털 디텍터 · 촬영실 SW/PACS · 피부미용 초음파
 
 ---
 
@@ -249,6 +275,21 @@ hybrid-ra-saas/
 
 ---
 
+## 도메인 설정
+
+| 도메인 | 역할 | 대상 |
+|--------|------|------|
+| `regula.abyz-lab.work` | Regula 사용자 접점 | Vercel (ra-med-bot) |
+| `ra.abyz-lab.work` | 엔터프라이즈 API 테스트 엔드포인트 | Azure Container App `api-prod` |
+
+### regula.abyz-lab.work 설정
+
+1. `VERCEL_TOKEN`, `VERCEL_PROJECT_ID` Secrets 추가 ([`docs/secrets-setup.md`](docs/secrets-setup.md) 참고)
+2. GitHub Actions → **`setup-regula-domain.yml`** → Run workflow
+3. ra-med-bot Vercel 대시보드에서 도메인 검증 확인 후 Redeploy
+
+---
+
 ## 배포 가이드 (Azure)
 
 > 상세 체크리스트 → [`docs/deployment.md`](docs/deployment.md)
@@ -266,7 +307,7 @@ git push origin v1.0.0
 
 | 서비스 | Container App 이름 | 포트 |
 |--------|-------------------|------|
-| Customer Runtime API | `api-prod` | 8000 |
+| Customer Runtime API (Regula Enterprise) | `api-prod` | 8000 |
 | 규제 문서 크롤러 API | `cloud-control-plane-api` | 8000 |
 | 크롤러 스케줄 Job | `crawler-job` | — (cron 02:00 UTC) |
 
@@ -279,14 +320,25 @@ git push origin v1.0.0
 
 ---
 
+## 통합 로드맵 (Regula ↔ hybrid-ra-saas)
+
+| 우선순위 | 작업 | 설명 |
+|----------|------|------|
+| **P0** | 크롤러 → Vectorize 자동 동기화 | 매일 수집된 FDA/MFDS/EU MDR 문서를 Regula Cloudflare Vectorize 인덱스로 자동 push. Regula 지식베이스를 항상 최신 상태 유지 |
+| **P1** | IFU 파서 → Regula 프로젝트 컨텍스트 | 고객사가 IFU DOCX 업로드 → 15필드 NLP 추출 → Regula 프로젝트에 기기 컨텍스트 저장. "내 X-ray 기기가 EU MDR Class IIa 요건에 맞나요?" 쿼리 가능 |
+| **P2** | Audit trail 연동 | Regula 상담/결정 이벤트 → Audit log → FDA/MDR 제출용 AI 어시스턴트 추적 패키지 export |
+| **P3** | Regula Enterprise 리브랜딩 | Customer Runtime을 Regula Enterprise Edition으로 포지셔닝, Docker 이미지/README/API 헤더 정렬 |
+
+---
+
 ## 비즈니스 모델
 
-| 플랜 | 가격 | 대상 | 구성 |
+| 플랜 | 가격 | 제품 | 대상 |
 |------|------|------|------|
-| **Core SaaS** | $299/월 | 스타트업/초기팀 | 규제 변경 알림 + 기본 지식팩 + 표준 템플릿 |
-| **Advanced Hybrid** | $12,000/년 | 중견/내부망 기업 | 로컬 Docker 에이전트 + 정합성 가드레일 + 감사로그 |
-| **Setup & Enablement** | 별도 견적 | 초기 배포 고객 | 환경 점검 + 설치 + 교육 |
-| **Regulatory Pack Add-on** | 제품군/국가별 과금 | 확장 고객 | 추가 품목군·국가 규제 지식팩 |
+| **Regula SaaS** | $299/월 | ra-med-bot (Vercel) | 스타트업 / 개인 RA 전문가 |
+| **Regula Enterprise** | $12,000/년 | Customer Runtime (Docker) | 중견 의료기기 제조사 / 내부망 필요 기업 |
+| **Setup & Enablement** | 별도 견적 | 설치 + 교육 패키지 | 초기 엔터프라이즈 배포 고객 |
+| **Regulatory Pack Add-on** | 제품군/국가별 과금 | 추가 규제 지식팩 | 확장 고객 (NMPA, PMDA 등) |
 
 ---
 
@@ -302,14 +354,28 @@ git push origin v1.0.0
 
 ---
 
+## GitHub Actions 워크플로우
+
+| 워크플로우 | 트리거 | 역할 |
+|-----------|--------|------|
+| `deploy-prod.yml` | `v*` 태그 push | Cloud Control Plane + Customer Runtime Docker 빌드 → ACR push → Container App 배포 |
+| `terraform.yml` | PR / main merge | Azure 인프라 Terraform plan / apply |
+| `setup-regula-domain.yml` | 수동 (workflow_dispatch) | **regula.abyz-lab.work** Cloudflare DNS + Vercel 도메인 바인딩 + NEXTAUTH_URL 업데이트 |
+| `domain-setup.yml` | 수동 (workflow_dispatch) | ra.abyz-lab.work → Azure Container App 바인딩 (엔터프라이즈 API용) |
+
+> Secrets 설정 방법 → [`docs/secrets-setup.md`](docs/secrets-setup.md)
+
+---
+
 ## 로드맵
 
-| 단계 | 기간 | 목표 | 핵심 산출물 |
-|------|------|------|-----------|
-| **Phase 1 Infra** | 0~8주 | 규제 수집/저장/동기화 PoC | 크롤러, 지식팩 버전, 웹훅 알림 |
-| **Phase 2 Logic** | 8~16주 | 품목군 스키마 + 파서 튜닝 | Unified Schema v0.9, DOCX/XLSX 파서 |
-| **Phase 3 Product** | 16~28주 | 로컬 런타임 + 검토 워크스페이스 | Docker 패키지, Review UI, Traceability Graph |
-| **Phase 4 Scale** | 28주~ | 품목/국가/파트너 확장 | Add-on 지식팩, 파트너 운영 매뉴얼 |
+| 단계 | 목표 | 핵심 산출물 |
+|------|------|-----------|
+| **완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 | 6개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER) |
+| **P0 — 진행 예정** | 크롤러 → Regula Vectorize 자동 동기화 | `cloud-control-plane` vectorize_sync 서비스 |
+| **P1 — 예정** | IFU 파서 → Regula 프로젝트 컨텍스트 연동 | Regula `device-context` API + 파서 클라이언트 |
+| **P2 — 예정** | Audit trail export 연동 | Regula 이벤트 → SaaS audit log → 제출용 패키지 |
+| **P3 — 예정** | Regula Enterprise 리브랜딩 | Docker 이미지 태그, README, API 헤더 |
 
 ---
 
@@ -330,4 +396,4 @@ git push origin v1.0.0
 
 ---
 
-*버전: v5.2 | 최종 갱신: 2026-06-11 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | 다음: Azure 배포 검증*
+*버전: v6.0 | 최종 갱신: 2026-06-11 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | 도메인 워크플로우 ✅ | 다음: regula.abyz-lab.work 도메인 설정 (Secrets 추가 후 workflow 실행)*
