@@ -38,11 +38,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: ACR 로그인
-        uses: azure/docker-login@v1
-        with:
-          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
-          username: ${{ fromJSON(steps.azure-login.outputs.login-info).username }}
-          password: ${{ fromJSON(steps.azure-login.outputs.login-info).password }}
+        run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
       - name: Docker 빌드 및 ACR 푸시 (customer-runtime)
         env:
