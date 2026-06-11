@@ -68,7 +68,12 @@ resource "azurerm_storage_account" "prod" {
   public_network_access_enabled = true
 }
 
-# Terraform State Container (created by Terraform on bootstrap)
+# Terraform State Container (bootstrapped manually, imported here)
+import {
+  to = azurerm_storage_container.tfstate
+  id = "/subscriptions/a49390df-1886-495c-9fb0-cf8faf1aa5ef/resourceGroups/rg-hybrid-ra-saas-prod/providers/Microsoft.Storage/storageAccounts/sthybridrasaasprod/blobServices/default/containers/tfstate"
+}
+
 resource "azurerm_storage_container" "tfstate" {
   name                  = "tfstate"
   storage_account_id    = azurerm_storage_account.prod.id

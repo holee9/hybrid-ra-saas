@@ -9,4 +9,8 @@ resource "azurerm_postgresql_flexible_server" "this" {
   zone                   = "1"
 
   storage_mb = var.storage_mb
+
+  lifecycle {
+    ignore_changes = [zone]
+  }
 }

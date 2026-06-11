@@ -8,6 +8,10 @@ resource "azurerm_key_vault" "this" {
   sku_name                   = var.sku_name
   soft_delete_retention_days = var.soft_delete_retention_days
   enable_rbac_authorization  = var.enable_rbac_authorization
+
+  lifecycle {
+    ignore_changes = [soft_delete_retention_days]
+  }
 }
 
 data "azurerm_key_vault_secret" "db_connection_string" {

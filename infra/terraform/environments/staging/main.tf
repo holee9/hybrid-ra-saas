@@ -36,28 +36,3 @@ module "key_vault_staging" {
   enable_rbac_authorization = true
 }
 
-# Cloud Control Plane API — staging (placeholder image)
-resource "azurerm_container_app" "cloud_control_plane_api" {
-  name                         = "cloud-control-plane-api"
-  container_app_environment_id = module.container_app_env.environment_id
-  resource_group_name          = azurerm_resource_group.staging.name
-  revision_mode                = "Single"
-
-  template {
-    container {
-      name   = "cloud-control-plane-api"
-      image  = "mcr.microsoft.com/k8se/quickstart:latest"
-      cpu    = 0.25
-      memory = "0.5Gi"
-    }
-  }
-
-  ingress {
-    external_enabled = true
-    target_port      = 8000
-    traffic_weight {
-      latest_revision = true
-      percentage      = 100
-    }
-  }
-}
