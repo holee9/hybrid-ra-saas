@@ -78,6 +78,14 @@ jobs:
 
       - name: Crawler Container App 배포
         run: |
+          ACR_NAME=$(echo "${{ secrets.AZURE_CONTAINER_REGISTRY }}" | cut -d. -f1)
+          ACR_PASS=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
+          az containerapp registry set \
+            --name ${{ env.CRAWLER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --username "$ACR_NAME" \
+            --password "$ACR_PASS"
           az containerapp update \
             --name ${{ env.CRAWLER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -85,10 +93,15 @@ jobs:
 
       - name: Crawler Job 배포
         run: |
+          ACR_NAME=$(echo "${{ secrets.AZURE_CONTAINER_REGISTRY }}" | cut -d. -f1)
+          ACR_PASS=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
           az containerapp job update \
             --name ${{ env.CRAWLER_JOB_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE_CRAWLER_TAG }}
+            --image ${{ env.IMAGE_CRAWLER_TAG }} \
+            --registry-server ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --registry-username "$ACR_NAME" \
+            --registry-password "$ACR_PASS"
 
       - name: 헬스체크
         id: health
