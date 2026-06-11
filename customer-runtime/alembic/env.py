@@ -32,7 +32,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -50,7 +50,8 @@ def do_run_migrations(connection):
 
 
 async def run_async_migrations() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    # Allow runtime DATABASE_URL override (used by entrypoint.sh in Azure)
+    url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
     connectable = create_async_engine(url)
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

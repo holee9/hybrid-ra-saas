@@ -10,17 +10,18 @@ permissions:
   contents: read
 
 env:
-  APP_NAME: api        # TODO: 앱 이름
+  APP_NAME: api
   CRAWLER_APP_NAME: cloud-control-plane-api
   CRAWLER_JOB_NAME: crawler-job
   SUFFIX: prod
   RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
-  CONTAINER_APP_ENV: ${{ secrets.AZURE_CONTAINER_APP_ENV }}
+  STORAGE_ACCOUNT: sthybridrasaasprod
+  KEY_VAULT: kv-hybrid-ra-prod
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production   # GitHub Environment 보호 규칙 적용
+    environment: production
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +31,6 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Azure 로그인 (OIDC)
-        id: azure-login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -60,59 +60,151 @@ jobs:
           docker push $IMAGE_CRAWLER:latest
           echo "IMAGE_CRAWLER_TAG=$IMAGE_CRAWLER:$VERSION" >> $GITHUB_ENV
 
-      - name: Container App 배포
+      - name: 공통 시크릿 값 로드
+        run: |
+          KV="${{ env.KEY_VAULT }}"
+          RG="${{ env.RESOURCE_GROUP }}"
+
+          DB_CONN=$(az keyvault secret show --vault-name "$KV" --name DB-CONNECTION-STRING --query value -o tsv)
+          JWT_SEC=$(az keyvault secret show --vault-name "$KV" --name JWT-SECRET --query value -o tsv)
+          APPI_CONN=$(az keyvault secret show --vault-name "$KV" --name APP-INSIGHTS-CONN-STRING --query value -o tsv)
+          BLOB_KEY=$(az storage account keys list \
+            --account-name "${{ env.STORAGE_ACCOUNT }}" \
+            --resource-group "$RG" \
+            --query "[0].value" -o tsv)
+
+          # Mask all secret values in logs
+          echo "::add-mask::$DB_CONN"
+          echo "::add-mask::$JWT_SEC"
+          echo "::add-mask::$APPI_CONN"
+          echo "::add-mask::$BLOB_KEY"
+
+          # Export for subsequent steps
+          echo "DB_CONN=$DB_CONN" >> $GITHUB_ENV
+          echo "JWT_SEC=$JWT_SEC" >> $GITHUB_ENV
+          echo "APPI_CONN=$APPI_CONN" >> $GITHUB_ENV
+          echo "BLOB_KEY=$BLOB_KEY" >> $GITHUB_ENV
+
+          # Ensure blob container exists
+          az storage container create \
+            --name ra-documents \
+            --account-name "${{ env.STORAGE_ACCOUNT }}" \
+            --account-key "$BLOB_KEY" \
+            --auth-mode key || true
+
+      - name: api-prod 배포 (이미지 + 환경 변수)
         id: deploy
         run: |
+          RG="${{ env.RESOURCE_GROUP }}"
+          APP="${{ env.APP_NAME }}-${{ env.SUFFIX }}"
           ACR_NAME=$(echo "${{ secrets.AZURE_CONTAINER_REGISTRY }}" | cut -d. -f1)
           ACR_PASS=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
+
+          CCP_FQDN=$(az containerapp show \
+            --name "${{ env.CRAWLER_APP_NAME }}" \
+            --resource-group "$RG" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+
+          # ACR 인증 등록
           az containerapp registry set \
-            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --server ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --name "$APP" --resource-group "$RG" \
+            --server "${{ secrets.AZURE_CONTAINER_REGISTRY }}" \
             --username "$ACR_NAME" \
             --password "$ACR_PASS"
-          az containerapp update \
-            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE_TAG }}
 
-      - name: Crawler Container App 배포
+          # 시크릿 등록 (Key Vault 값 직접 주입 — Container App revision에 포함되지 않음)
+          az containerapp secret set \
+            --name "$APP" --resource-group "$RG" \
+            --secrets \
+              "db-conn=${{ env.DB_CONN }}" \
+              "jwt-secret=${{ env.JWT_SEC }}" \
+              "minio-pass=${{ env.BLOB_KEY }}"
+
+          # 이미지 + 환경 변수 업데이트 (단일 revision)
+          az containerapp update \
+            --name "$APP" --resource-group "$RG" \
+            --image "${{ env.IMAGE_TAG }}" \
+            --set-env-vars \
+              "DATABASE_URL=secretref:db-conn" \
+              "JWT_SECRET=secretref:jwt-secret" \
+              "MINIO_ENDPOINT=https://${{ env.STORAGE_ACCOUNT }}.blob.core.windows.net" \
+              "MINIO_USER=${{ env.STORAGE_ACCOUNT }}" \
+              "MINIO_PASSWORD=secretref:minio-pass" \
+              "MINIO_BUCKET=ra-documents" \
+              "OLLAMA_ENDPOINT=http://localhost:11434" \
+              "OLLAMA_MODEL=llama3.1:8b" \
+              "CLOUD_SYNC_ENDPOINT=https://$CCP_FQDN" \
+              "CORS_ORIGINS=*" \
+              "ENVIRONMENT=production" \
+              "JWT_TTL_MIN=60" \
+              "RATE_LIMIT_PER_MIN=100" \
+              "API_WORKERS=2"
+
+      - name: cloud-control-plane-api 배포 (이미지 + 환경 변수)
         run: |
+          RG="${{ env.RESOURCE_GROUP }}"
           ACR_NAME=$(echo "${{ secrets.AZURE_CONTAINER_REGISTRY }}" | cut -d. -f1)
           ACR_PASS=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
+
           az containerapp registry set \
-            --name ${{ env.CRAWLER_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --server ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --name "${{ env.CRAWLER_APP_NAME }}" --resource-group "$RG" \
+            --server "${{ secrets.AZURE_CONTAINER_REGISTRY }}" \
             --username "$ACR_NAME" \
             --password "$ACR_PASS"
-          az containerapp update \
-            --name ${{ env.CRAWLER_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE_CRAWLER_TAG }}
 
-      - name: Crawler Job 배포
+          az containerapp secret set \
+            --name "${{ env.CRAWLER_APP_NAME }}" --resource-group "$RG" \
+            --secrets \
+              "db-conn=${{ env.DB_CONN }}" \
+              "blob-key=${{ env.BLOB_KEY }}" \
+              "appi-conn=${{ env.APPI_CONN }}"
+
+          az containerapp update \
+            --name "${{ env.CRAWLER_APP_NAME }}" --resource-group "$RG" \
+            --image "${{ env.IMAGE_CRAWLER_TAG }}" \
+            --set-env-vars \
+              "DATABASE_URL=secretref:db-conn" \
+              "BLOB_ACCOUNT_NAME=${{ env.STORAGE_ACCOUNT }}" \
+              "BLOB_CONTAINER_NAME=ra-documents" \
+              "BLOB_ACCOUNT_KEY=secretref:blob-key" \
+              "APPINSIGHTS_CONNECTION_STRING=secretref:appi-conn"
+
+      - name: crawler-job 배포 (이미지 + 환경 변수)
         run: |
+          RG="${{ env.RESOURCE_GROUP }}"
           ACR_NAME=$(echo "${{ secrets.AZURE_CONTAINER_REGISTRY }}" | cut -d. -f1)
           ACR_PASS=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
+
           az containerapp job registry set \
-            --name ${{ env.CRAWLER_JOB_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --server ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --name "${{ env.CRAWLER_JOB_NAME }}" --resource-group "$RG" \
+            --server "${{ secrets.AZURE_CONTAINER_REGISTRY }}" \
             --username "$ACR_NAME" \
             --password "$ACR_PASS"
+
+          az containerapp job secret set \
+            --name "${{ env.CRAWLER_JOB_NAME }}" --resource-group "$RG" \
+            --secrets \
+              "db-conn=${{ env.DB_CONN }}" \
+              "blob-key=${{ env.BLOB_KEY }}" \
+              "appi-conn=${{ env.APPI_CONN }}"
+
           az containerapp job update \
-            --name ${{ env.CRAWLER_JOB_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE_CRAWLER_TAG }}
+            --name "${{ env.CRAWLER_JOB_NAME }}" --resource-group "$RG" \
+            --image "${{ env.IMAGE_CRAWLER_TAG }}" \
+            --set-env-vars \
+              "DATABASE_URL=secretref:db-conn" \
+              "BLOB_ACCOUNT_NAME=${{ env.STORAGE_ACCOUNT }}" \
+              "BLOB_CONTAINER_NAME=ra-documents" \
+              "BLOB_ACCOUNT_KEY=secretref:blob-key" \
+              "APPINSIGHTS_CONNECTION_STRING=secretref:appi-conn"
 
       - name: 헬스체크
         id: health
         run: |
-          sleep 20
+          sleep 30
           URL=$(az containerapp show \
-            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name "${{ env.APP_NAME }}-${{ env.SUFFIX }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
             --query properties.configuration.ingress.fqdn -o tsv)
           curl -f "https://$URL/health" || exit 1
           echo "PROD_URL=https://$URL" >> $GITHUB_OUTPUT
@@ -121,11 +213,11 @@ jobs:
         if: failure() && steps.deploy.outcome == 'success'
         run: |
           PREV=$(az containerapp revision list \
-            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name "${{ env.APP_NAME }}-${{ env.SUFFIX }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
             --query "[-2].name" -o tsv)
           az containerapp ingress traffic set \
-            --name ${{ env.APP_NAME }}-${{ env.SUFFIX }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name "${{ env.APP_NAME }}-${{ env.SUFFIX }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
             --revision-weight $PREV=100
           echo "::error::헬스체크 실패 — 이전 revision으로 롤백 완료"
