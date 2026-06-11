@@ -156,6 +156,11 @@ jobs:
             --username "$ACR_NAME" \
             --password "$ACR_PASS"
 
+          # ingress targetPort 확인 (8000 고정 — Python uvicorn)
+          az containerapp ingress update \
+            --name "${{ env.CRAWLER_APP_NAME }}" --resource-group "$RG" \
+            --target-port 8000
+
           az containerapp secret set \
             --name "${{ env.CRAWLER_APP_NAME }}" --resource-group "$RG" \
             --secrets \

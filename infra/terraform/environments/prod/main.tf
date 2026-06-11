@@ -125,10 +125,15 @@ resource "azurerm_container_app" "api_prod" {
       percentage      = 100
     }
   }
+
+  # CI owns the container image; Terraform manages infra only
+  lifecycle {
+    ignore_changes = [template]
+  }
 }
 
 # Cloud Control Plane API — prod (REQ-CRAWLER-014)
-# image is set via var.crawler_image; CI overrides this on v* tag push (REQ-CRAWLER-015)
+# CI deploys Python app on port 8000; Terraform manages infra only
 resource "azurerm_container_app" "cloud_control_plane_api" {
   name                         = "cloud-control-plane-api"
   container_app_environment_id = data.azurerm_container_app_environment.shared.id
@@ -151,6 +156,11 @@ resource "azurerm_container_app" "cloud_control_plane_api" {
       latest_revision = true
       percentage      = 100
     }
+  }
+
+  # CI owns the container image; Terraform manages infra only
+  lifecycle {
+    ignore_changes = [template]
   }
 }
 
