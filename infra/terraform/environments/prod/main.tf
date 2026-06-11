@@ -65,7 +65,7 @@ resource "azurerm_storage_account" "prod" {
     versioning_enabled = false
   }
 
-  public_network_access_enabled = false
+  public_network_access_enabled = true
 }
 
 # Terraform State Container (created by Terraform on bootstrap)
