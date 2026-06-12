@@ -139,7 +139,7 @@ jobs:
               "OLLAMA_ENDPOINT=http://localhost:11434" \
               "OLLAMA_MODEL=llama3.1:8b" \
               "CLOUD_SYNC_ENDPOINT=https://$CCP_FQDN" \
-              "CORS_ORIGINS=*" \
+              "CORS_ORIGINS=https://regula.abyz-lab.work,https://api-prod.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io" \
               "ENVIRONMENT=production" \
               "JWT_TTL_MIN=60" \
               "RATE_LIMIT_PER_MIN=100"
@@ -166,7 +166,9 @@ jobs:
             --secrets \
               "db-conn=${{ env.DB_CONN }}" \
               "blob-key=${{ env.BLOB_KEY }}" \
-              "appi-conn=${{ env.APPI_CONN }}"
+              "appi-conn=${{ env.APPI_CONN }}" \
+              "regula-push-url=${{ secrets.REGULA_KNOWLEDGE_PUSH_URL }}" \
+              "crawl-push-secret=${{ secrets.CRAWL_PUSH_SECRET }}"
 
           az containerapp update \
             --name "${{ env.CRAWLER_APP_NAME }}" --resource-group "$RG" \
@@ -176,7 +178,10 @@ jobs:
               "BLOB_ACCOUNT_NAME=${{ env.STORAGE_ACCOUNT }}" \
               "BLOB_CONTAINER_NAME=ra-documents" \
               "BLOB_ACCOUNT_KEY=secretref:blob-key" \
-              "APPINSIGHTS_CONNECTION_STRING=secretref:appi-conn"
+              "APPINSIGHTS_CONNECTION_STRING=secretref:appi-conn" \
+              "CORS_ORIGINS=https://regula.abyz-lab.work" \
+              "REGULA_KNOWLEDGE_PUSH_URL=secretref:regula-push-url" \
+              "CRAWL_PUSH_SECRET=secretref:crawl-push-secret"
 
       - name: crawler-job 배포 (이미지 + 환경 변수)
         run: |

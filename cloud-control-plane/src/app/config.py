@@ -63,3 +63,14 @@ class Settings(BaseSettings):
     mfds_doc_prefix: str = "/brd/"
     eu_mdr_listing_url: str = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745"
     eu_mdr_doc_prefix: str = "/legal-content/"
+
+    # CORS (GAP-01: allow Regula SaaS UI)
+    cors_origins: str = "https://regula.abyz-lab.work"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    # Regula knowledge push (GAP-03: Vectorize sync)
+    regula_knowledge_push_url: str = ""
+    crawl_push_secret: str = ""

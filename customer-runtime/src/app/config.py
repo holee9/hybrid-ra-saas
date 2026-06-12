@@ -59,3 +59,7 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",")]
+
+    # Regula SaaS API key (GAP-02: server-to-server auth)
+    # Set to a strong random value; ra-med-bot sends this as X-Regula-API-Key header.
+    regula_api_key: str = ""

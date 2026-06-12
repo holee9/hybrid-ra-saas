@@ -23,9 +23,11 @@ from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import Settings
 from app.core.logging import get_logger
 from app.models.regulatory_document import RegulatoryDocument
 from app.services.dedup import DedupService
+from app.services.knowledge_push import KnowledgePushService
 
 logger = get_logger(__name__)
 
@@ -68,10 +70,16 @@ class CrawlOrchestrator:
             extra={"job_id": job_id, "source": "orchestrator"},
         )
 
+        settings = Settings()
+        push_service = KnowledgePushService(
+            push_url=settings.regula_knowledge_push_url,
+            push_secret=settings.crawl_push_secret,
+        )
         dedup = DedupService(self._session)
         total_stored = 0
         total_skipped = 0
         total_failed = 0
+        stored_docs: list[dict] = []
 
         for source in self._sources:
             source_name = getattr(source, "SOURCE_NAME", "unknown")
@@ -125,6 +133,17 @@ class CrawlOrchestrator:
                     await self._session.commit()
 
                     total_stored += 1
+                    stored_docs.append({
+                        "id": blob_path,
+                        "url": url,
+                        "hash": content_hash,
+                        "source": source_name,
+                        "content": (
+                            content.decode("utf-8", errors="replace")
+                            if isinstance(content, bytes)
+                            else str(content)
+                        ),
+                    })
                     logger.info(
                         "document_stored",
                         extra={
@@ -165,5 +184,8 @@ class CrawlOrchestrator:
                 "document_count": total_stored,
             },
         )
+
+        # GAP-03: Push newly stored documents to Regula Vectorize (non-blocking)
+        await push_service.push(job_id=job_id, documents=stored_docs)
 
         return job_id

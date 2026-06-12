@@ -3,6 +3,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
 from app.database import init_engine
@@ -24,10 +25,21 @@ def create_app() -> FastAPI:
     # @MX:ANCHOR: [AUTO] Public factory used by uvicorn entrypoint and test fixtures.
     # @MX:REASON: Called by entrypoint.sh (uvicorn app.main:app) and conftest.py.
     """
+    settings = Settings()
+
     app = FastAPI(
         title="Cloud Control Plane — RA Crawler",
         version="0.1.0",
         lifespan=lifespan,
+    )
+
+    # CORS (GAP-01): allow Regula SaaS UI
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.include_router(health_router)
