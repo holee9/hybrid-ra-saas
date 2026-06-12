@@ -50,6 +50,46 @@ function contrastRatio(fg, bg) {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
 
+// ── Hue Distance Check (보색 기법 검증) ──────────────────────────────────────
+// WCAG contrast only measures luminance — NOT hue.
+// Same-family colors (e.g. blue text on blue bg) can pass WCAG but be visually unreadable.
+// This check warns when fg and bg share the same hue family (hue distance < 40°).
+function hexToHsl(hex) {
+  const h = hex.replace('#', '');
+  let r = parseInt(h.slice(0, 2), 16) / 255;
+  let g = parseInt(h.slice(2, 4), 16) / 255;
+  let b = parseInt(h.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let hue;
+  switch (max) {
+    case r: hue = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+    case g: hue = ((b - r) / d + 2) / 6; break;
+    default: hue = ((r - g) / d + 4) / 6;
+  }
+  return { h: hue * 360, s, l };
+}
+function hueDistance(hex1, hex2) {
+  const h1 = hexToHsl(hex1).h, h2 = hexToHsl(hex2).h;
+  const d = Math.abs(h1 - h2);
+  return Math.min(d, 360 - d); // shortest arc on color wheel
+}
+// Returns a warning string if fg/bg are in the same hue family, null otherwise.
+// Low-saturation colors (near-white/gray/black) are exempt — they're neutral.
+function hueFamilyCheck(fg, bg, name) {
+  const fgHsl = hexToHsl(fg), bgHsl = hexToHsl(bg);
+  // Skip check for near-neutral colors (saturation < 0.15)
+  if (fgHsl.s < 0.15 || bgHsl.s < 0.15) return null;
+  const dist = hueDistance(fg, bg);
+  if (dist < 40) {
+    return `${name}: 색조 거리 ${dist.toFixed(0)}° (40° 미만 — 같은 색상 패밀리, 가독성 저하 위험)`;
+  }
+  return null;
+}
+
 // ── CSS Parser: Extract ACTUAL values from file ───────────────────────────────
 // This is the key difference from the previous circular test.
 // We parse the live CSS from the file and then validate those parsed values.
@@ -201,6 +241,23 @@ test('nav-section 폰트 크기 가독성 기준 (최소 11px)', () => {
   if (fsNavSection < 11) return { warn: `${fsNavSection}px — 비전문가용 최소 기준 11px 미달` };
   return true;
 });
+
+// ── 7b. 색조 거리 검사 (보색 기법) ─────────────────────────────────────────────
+// WCAG 명도 대비만으로는 "파란 배경에 파란 텍스트" 문제를 잡지 못함.
+// 색조 거리 < 40° = 같은 색상 패밀리 → 가독성 위험.
+console.log('\n[7b] 색조 거리 검사 (보색 기법 — WCAG 보완)');
+const hueChecks = [
+  ['nav-section 레이블 vs 배경', fgNavSection, bgDark],
+  ['nav li a 링크 vs 배경',      fgNavA,       bgDark],
+  ['sidebar-version vs 배경',    fgVersion,    bgDark],
+];
+for (const [name, fg, bg] of hueChecks) {
+  if (!fg || !bg) continue;
+  test(`색조 거리: ${name}`, () => {
+    const warn = hueFamilyCheck(fg, bg, name);
+    return warn ? { warn } : true;
+  });
+}
 
 // ── 8. GitHub Pages Readiness ─────────────────────────────────────────────────
 console.log('\n[8] GitHub Pages 호환성');
