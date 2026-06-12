@@ -101,6 +101,8 @@
 
 갭 상세: [`.moai/specs/SPEC-DOC-001/spec.md`](.moai/specs/SPEC-DOC-001/spec.md)
 
+> 📖 **사용 설명서** (RA 담당자 대상): [`docs/user-guide.html`](docs/user-guide.html) — 브라우저에서 바로 열기 가능
+
 ---
 
 ## 구현 현황 (SPEC-API-001)
@@ -251,6 +253,7 @@ hybrid-ra-saas/
 │       └── environments/         # prod / staging 환경 분리
 │
 ├── docs/                         # 지식 베이스 (Markdown, 버전 관리) ← 기준
+│   ├── user-guide.html           # 📖 RA 담당자용 사용 설명서 (브라우저 열람)
 │   ├── bizplan.md                # 사업계획서 (BizPlan v3.0)
 │   ├── mrd.md                    # 시장 요구사항 명세서 (MRD v3.0)
 │   └── prd.md                    # 제품 요구사항 명세서 (PRD v3.0)
@@ -396,4 +399,4 @@ git push origin v1.0.0
 
 ---
 
-*버전: v6.0 | 최종 갱신: 2026-06-11 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | 도메인 워크플로우 ✅ | 다음: regula.abyz-lab.work 도메인 설정 (Secrets 추가 후 workflow 실행)*
+*버전: v6.1 | 최종 갱신: 2026-06-12 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | 도메인 워크플로우 ✅ | 사용 설명서 ✅ | 다음: P0 크롤러→Regula Vectorize 동기화*
