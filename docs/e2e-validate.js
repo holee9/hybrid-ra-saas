@@ -292,6 +292,31 @@ test('비개발자 대상 텍스트 (IT 용어 최소화)', () => {
   return itTermCount < 5 || { warn: `메인 섹션 IT 용어 ${itTermCount}개 (비개발자 대상 확인 필요)` };
 });
 
+// ── 10. CSS Selector ↔ HTML Structure Consistency ────────────────────────────
+console.log('\n[10] CSS 선택자-HTML 구조 정합성');
+test('사이드바 nav 링크 선택자 구조 일치', () => {
+  // <nav id="sidebar"> 구조에서는 #sidebar li a 가 올바른 선택자
+  // #sidebar nav li a 는 sidebar 안에 중첩된 nav가 있어야 매칭됨
+  const hasNestedNav = /<nav[^>]+id="sidebar"[^>]*>[\s\S]*?<nav[\s>]/i.test(html);
+  if (CSS.includes('#sidebar nav li a') && !hasNestedNav) {
+    return { fail: '#sidebar nav li a — HTML에 nav>nav 중첩 구조 없음. #sidebar li a 로 수정 필요' };
+  }
+  return true;
+});
+test('사이드바 ul 선택자 구조 일치', () => {
+  const hasNestedNav = /<nav[^>]+id="sidebar"[^>]*>[\s\S]*?<nav[\s>]/i.test(html);
+  if (CSS.includes('#sidebar nav ul') && !hasNestedNav) {
+    return { fail: '#sidebar nav ul — HTML에 nav>nav 중첩 구조 없음. #sidebar ul 로 수정 필요' };
+  }
+  return true;
+});
+test('사이드바 선택자 적용 가능 요소 존재 확인', () => {
+  // #sidebar li a 선택자가 매칭할 <li><a> 구조가 실제 sidebar 안에 있는지 확인
+  const hasSidebarLinks = /<nav[^>]+id="sidebar"[\s\S]*?<li[^>]*>\s*<a\s/i.test(html);
+  if (!hasSidebarLinks) return { warn: 'sidebar 내부에 <li><a> 구조 없음 — 선택자가 매칭되는 요소가 없을 수 있음' };
+  return true;
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('\n' + '─'.repeat(60));
 console.log(`결과: ✅ ${passed}개 통과  ❌ ${failed}개 실패  ⚠️  ${warnings}개 경고`);
