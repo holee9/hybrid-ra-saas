@@ -229,11 +229,12 @@ function wcagCheck(name, fg, bg, sizePx, isBold, warnThreshold = 5.0) {
 }
 
 // warnThreshold=5.0 means: passes AA but warns when below comfortable reading level
-wcagCheck('nav-section 그룹 레이블', fgNavSection, bgDark, fsNavSection || 11, true,  6.0);
-wcagCheck('nav li a 링크',          fgNavA,       bgDark, fsNavA || 13.5,     false, 5.0);
-wcagCheck('sidebar-version',        fgVersion,    bgDark, fsVersion || 11,    false, 5.0);
-wcagCheck('sidebar-header 서브텍스트', fgHeaderSub, bgDarker, 13,             true,  5.0);
-fgProductName && wcagCheck('product-name 제목', fgProductName, bgDarker, 15,  true,  7.0);
+wcagCheck('nav-section 그룹 레이블',    fgNavSection, bgDark,    fsNavSection || 11, true,  6.0);
+wcagCheck('nav li a 링크',             fgNavA,       bgDark,    fsNavA || 13.5,     false, 5.0);
+// sidebar-version and sidebar-header are inside .sidebar-header div → background is bgDarker (#0f172a)
+wcagCheck('sidebar-version',           fgVersion,    bgDarker,  fsVersion || 11,    false, 5.0);
+wcagCheck('sidebar-header 서브텍스트', fgHeaderSub,  bgDarker,  13,                 true,  5.0);
+fgProductName && wcagCheck('product-name 제목', fgProductName, bgDarker, 15,        true,  7.0);
 
 // Verify nav-section font-size is NOT below 11px
 test('nav-section 폰트 크기 가독성 기준 (최소 11px)', () => {
@@ -247,9 +248,11 @@ test('nav-section 폰트 크기 가독성 기준 (최소 11px)', () => {
 // 색조 거리 < 40° = 같은 색상 패밀리 → 가독성 위험.
 console.log('\n[7b] 색조 거리 검사 (보색 기법 — WCAG 보완)');
 const hueChecks = [
-  ['nav-section 레이블 vs 배경', fgNavSection, bgDark],
-  ['nav li a 링크 vs 배경',      fgNavA,       bgDark],
-  ['sidebar-version vs 배경',    fgVersion,    bgDark],
+  ['nav-section 레이블 vs 배경',      fgNavSection, bgDark],
+  ['nav li a 링크 vs 배경',           fgNavA,       bgDark],
+  // sidebar-version and sidebar-header are in .sidebar-header area → use bgDarker
+  ['sidebar-version vs 헤더 배경',    fgVersion,    bgDarker],
+  ['sidebar-header 서브텍스트 vs 헤더 배경', fgHeaderSub, bgDarker],
 ];
 for (const [name, fg, bg] of hueChecks) {
   if (!fg || !bg) continue;
@@ -258,6 +261,18 @@ for (const [name, fg, bg] of hueChecks) {
     return warn ? { warn } : true;
   });
 }
+
+// Scrollbar thumb visibility (non-text UI element: WCAG 1.4.11 requires 3:1)
+test('스크롤바 썸 가시성 (비텍스트 UI 요소 3:1)', () => {
+  const thumbMatch = CSS.match(/#sidebar::-webkit-scrollbar-thumb\s*\{([^}]*)\}/);
+  if (!thumbMatch) return { warn: '스크롤바 썸 CSS 규칙 없음' };
+  const bgMatch = thumbMatch[1].match(/background\s*:\s*(#[0-9a-fA-F]{6})/);
+  if (!bgMatch) return { warn: 'scrollbar-thumb background 색상 추출 실패' };
+  const thumbColor = bgMatch[1];
+  const ratio = contrastRatio(thumbColor, bgDark);
+  if (ratio < 3.0) return { warn: `스크롤바 썸 ${thumbColor} vs ${bgDark} → ${ratio.toFixed(2)}:1 (3:1 미달)` };
+  return true;
+});
 
 // ── 8. GitHub Pages Readiness ─────────────────────────────────────────────────
 console.log('\n[8] GitHub Pages 호환성');

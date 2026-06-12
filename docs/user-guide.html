@@ -37,14 +37,15 @@
     .sidebar-header {
       background: #0f172a; padding: 20px 16px;
       font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
-      color: #9aa0a6; text-transform: uppercase;
+      /* warm neutral #c8c3bc (hue ~35°) — removes blue-gray cast against dark navy background */
+      color: #c8c3bc; text-transform: uppercase;
     }
     .sidebar-header .product-name {
       font-size: 15px; font-weight: 800; color: #ffffff;
       text-transform: none; letter-spacing: 0;
       margin-bottom: 4px; display: block;
     }
-    .sidebar-version { font-size: 11px; color: #9aa0a6; }
+    .sidebar-version { font-size: 11px; color: #c8c3bc; }
     #sidebar nav ul { list-style: none; padding: 8px 0; }
     #sidebar nav li a {
       display: block; padding: 8px 20px 8px 16px;
@@ -267,7 +268,8 @@
 
     /* ── Scrollbar ── */
     #sidebar::-webkit-scrollbar { width: 4px; }
-    #sidebar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    /* scrollbar thumb: #6b7f96 achieves 3:1 against sidebar bg #1e293b (non-text UI element) */
+    #sidebar::-webkit-scrollbar-thumb { background: #6b7f96; border-radius: 2px; }
   </style>
 </head>
 <body>
