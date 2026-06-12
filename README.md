@@ -101,7 +101,7 @@
 
 갭 상세: [`.moai/specs/SPEC-DOC-001/spec.md`](.moai/specs/SPEC-DOC-001/spec.md)
 
-> 📖 **사용 설명서** (RA 담당자 대상): [`docs/user-guide.html`](docs/user-guide.html) — 브라우저에서 바로 열기 가능
+> 📖 **사용 설명서** (RA 담당자 대상): **[https://holee9.github.io/hybrid-ra-saas/user-guide.html](https://holee9.github.io/hybrid-ra-saas/user-guide.html)** — 클릭하면 바로 열림
 
 ---
 
@@ -253,7 +253,7 @@ hybrid-ra-saas/
 │       └── environments/         # prod / staging 환경 분리
 │
 ├── docs/                         # 지식 베이스 (Markdown, 버전 관리) ← 기준
-│   ├── user-guide.html           # 📖 RA 담당자용 사용 설명서 (브라우저 열람)
+│   ├── user-guide.html           # 📖 RA 담당자용 사용 설명서 → https://holee9.github.io/hybrid-ra-saas/user-guide.html
 │   ├── bizplan.md                # 사업계획서 (BizPlan v3.0)
 │   ├── mrd.md                    # 시장 요구사항 명세서 (MRD v3.0)
 │   └── prd.md                    # 제품 요구사항 명세서 (PRD v3.0)
