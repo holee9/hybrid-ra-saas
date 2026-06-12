@@ -664,8 +664,34 @@ Large PDFs (>10 pages) return a lightweight reference when @-mentioned. Always s
 
 ---
 
-Version: 14.0.0 (Agency v3.2 + Harness Design Integration)
-Last Updated: 2026-04-03
+## 18. Session Handoff Protocol [HARD]
+
+**[HARD] Before any completion report, MoAI MUST execute the Session Handoff Protocol.**
+
+Goal: ensure the next session can resume immediately without asking "where were we?"
+
+### On Session End
+
+1. Write `memory/session-state.md` — completed work, in-progress, next steps, key files, open issues
+2. Update `memory/MEMORY.md` index — add/refresh the session-state pointer
+3. Sync `memory/remaining-work.md` — mark completed items, add new ones
+4. Verify git state — all work committed, Refs #N footers present, pushed to remote
+
+### On Session Start
+
+1. Read `memory/session-state.md` — load previous context before doing anything
+2. Read `memory/lessons.md` — apply domain-relevant anti-patterns
+3. Read `memory/remaining-work.md` — understand current queue
+4. Run `git status` — confirm clean working tree
+
+**[HARD] Never ask the user "where were we?" — answer from memory first.**
+
+For full protocol spec, see `.claude/rules/moai/workflow/session-handoff.md`
+
+---
+
+Version: 14.1.0 (Session Handoff Protocol 추가)
+Last Updated: 2026-06-12
 Language: English
 Core Rule: MoAI is an orchestrator; direct implementation is prohibited
 
