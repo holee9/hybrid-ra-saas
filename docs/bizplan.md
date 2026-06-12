@@ -56,15 +56,18 @@ FDA · MFDS · EU MDR 등 공개 규제 지식을 클라우드에서 수집·정
 
 ## 4. 제품/서비스 정의
 
-### 4.1 시스템 아키텍처 (3레이어)
+### 4.1 시스템 아키텍처 (3+1레이어)
 
 | 레이어 | 배치 위치 | 핵심 구성요소 | 초기 구현 범위 |
 |--------|---------|-----------|-------------|
 | **Cloud Control Plane** | 공급자 클라우드 (Azure/AWS) | 규제 크롤러, 정규화 파이프라인, PostgreSQL/pgvector, S3 Archive, EventBridge/SQS/SNS | FDA/MFDS/EU MDR 크롤러 우선 |
 | **Secure Sync Layer** | 클라우드 ↔ 고객사 경계 | 서명된 지식팩, 증분 매니페스트, 아웃바운드 HTTPS | 테넌트 격리, 버전 관리 |
 | **Customer Local Runtime** | 고객사 내부망 | Docker 에이전트, n8n, FastAPI, SQLite/Postgres, Vector Store, Ollama/vLLM, Web UI | Docker Compose 패키지, 파서, Review Workspace, Impact Analyzer 포함 |
+| **Regula SaaS UI** | Vercel/Cloudflare Workers (글로벌 엣지) | Next.js 15, Auth.js v5, Cloudflare Vectorize, pgvector(Neon), AI 상담 인터페이스 | 공개 규제 지식 기반 RA 상담, 모니터링 대시보드 — 레포: ra-med-bot |
 
-**데이터 경계:** 고객 문서 원문·설계치·임상 원자료는 Customer Local Runtime에서만 처리. Cloud Control Plane에는 공개 규제 지식만 저장.
+**데이터 경계:** 고객 문서 원문·설계치·임상 원자료는 Customer Local Runtime에서만 처리. Cloud Control Plane에는 공개 규제 지식만 저장. Regula SaaS는 공개 지식(Vectorize)과 Cloud Control Plane 크롤러 결과를 소비하며 고객 민감 데이터를 직접 처리하지 않는다.
+
+**Cloud Control Plane ↔ Regula SaaS 연동:** 크롤 완료 후 Vectorize knowledge push(Knowledge Push API) → Regula AI 상담에 반영. 상세: `docs/integration-plan.md`.
 
 ### 4.2 핵심 차별점
 

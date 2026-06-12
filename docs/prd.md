@@ -24,6 +24,7 @@
 | **Cloud Control Plane** | Regulatory Crawler, Normalizer, PostgreSQL/pgvector, S3 Archive, EventBridge/SQS/SNS, CloudWatch/Budgets | 공개 규제 지식 수집·분류·버전관리·변경 알림 | 공개 원문, 청크, 임베딩, 제품군 태그, 변경 메타데이터 |
 | **Secure Sync Layer** | Signed Knowledge Pack, Delta Manifest, Outbound HTTPS Pull, Tenant Isolation | 고객별 지식팩과 변경 이벤트를 안전하게 전달 | 증분 ID, 해시, 버전, 메타데이터, 공개 지식 청크 |
 | **Customer Local Runtime** | Docker Agent, n8n, FastAPI, SQLite/Postgres Local, Vector Store, Ollama/vLLM, Web UI | 민감 문서 처리, 파싱, RAG, 정합성 검사, 검토 워크플로 | 고객 문서, 설계치, SRS/IFU/RMS, 감사로그 |
+| **Regula SaaS UI** *(ra-med-bot)* | Next.js 15 + Auth.js v5 (Vercel), Cloudflare Workers/Vectorize, pgvector(Neon) | 공개 규제 지식 기반 AI RA 상담, 규제 모니터링 대시보드 (Core SaaS 월 $299 플랜) | 공개 규제 청크(Vectorize), 상담 이력, 규제 업데이트 알림 |
 | **Admin/Ops** | Monitoring, Audit Export, Backup, License Manager | 운영 상태, 비용, 지식팩 버전, 라이선스 관리 | 운영 로그, 사용량, 오류 이벤트 |
 
 **데이터 경계 규칙:**
