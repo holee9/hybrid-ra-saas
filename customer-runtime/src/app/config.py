@@ -75,3 +75,7 @@ class Settings(BaseSettings):
     # Regula SaaS webhook URL for outbound audit event push (GAP-06).
     # When set, POST /audit/webhook forwards events to this URL.
     regula_audit_webhook_url: str = ""
+
+    # Regula SaaS webhook URL for IFU parse result push (GAP-07).
+    # When set, a completed parse job pushes structured IFU data to Regula.
+    regula_ifu_webhook_url: str = ""

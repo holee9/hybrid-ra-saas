@@ -1,6 +1,7 @@
 """Background job: parse a document and update status."""
 import logging
 
+import httpx
 
 from app.core.state_machine import validate_transition
 from app.database import async_session
@@ -12,6 +13,51 @@ logger = logging.getLogger(__name__)
 
 # Confidence threshold: above this -> ready_for_check, below -> needs_correction
 CONFIDENCE_THRESHOLD = 0.8
+
+
+async def _push_ifu_result_to_regula(
+    job_id: str,
+    doc_id: str,
+    tenant: str,
+    doc_type: str,
+    result: ParseResult,
+) -> None:
+    """Push IFU parse result to Regula (ra-med-bot) webhook URL.
+
+    # @MX:ANCHOR: [AUTO] Outbound IFU parse result push to Regula SaaS (GAP-07).
+    # @MX:REASON: External integration boundary; fire-and-forget — failure does not affect job status.
+
+    Fire-and-forget: logs on failure, never raises.
+    """
+    from app.config import Settings
+    settings = Settings()
+    webhook_url = settings.regula_ifu_webhook_url
+    if not webhook_url:
+        return
+
+    headers: dict[str, str] = {}
+    if settings.regula_api_key:
+        headers["X-Regula-API-Key"] = settings.regula_api_key
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                webhook_url,
+                json={
+                    "tenant_id": tenant,
+                    "job_id": job_id,
+                    "doc_id": doc_id,
+                    "doc_type": doc_type,
+                    "confidence": result.confidence,
+                    "field_candidates": result.field_candidates,
+                    "required_missing": result.required_missing,
+                },
+                headers=headers,
+            )
+            resp.raise_for_status()
+            logger.info("IFU push OK: job=%s status=%s", job_id, resp.status_code)
+    except Exception:
+        logger.warning("IFU push failed for job=%s (non-fatal)", job_id, exc_info=True)
 
 
 async def run_parse_job(
@@ -70,6 +116,15 @@ async def run_parse_job(
                 "required_missing": result.required_missing,
             }
             job.status = ParseJobStatus.DONE
+
+            # Push IFU result to Regula on successful parse (GAP-07, fire-and-forget)
+            await _push_ifu_result_to_regula(
+                job_id=job_id,
+                doc_id=doc_id,
+                tenant=tenant,
+                doc_type=doc.doc_type,
+                result=result,
+            )
 
         except Exception as exc:
             logger.exception("Parse job %s failed", job_id)
