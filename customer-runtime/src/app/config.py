@@ -71,3 +71,7 @@ class Settings(BaseSettings):
     @property
     def regula_allowed_tenants_set(self) -> set[str]:
         return {t.strip() for t in self.regula_allowed_tenants.split(",") if t.strip()}
+
+    # Regula SaaS webhook URL for outbound audit event push (GAP-06).
+    # When set, POST /audit/webhook forwards events to this URL.
+    regula_audit_webhook_url: str = ""

@@ -119,7 +119,8 @@ jobs:
               "db-conn=${{ env.DB_CONN }}" \
               "jwt-secret=${{ env.JWT_SEC }}" \
               "minio-pass=${{ env.BLOB_KEY }}" \
-              "regula-api-key=${{ secrets.REGULA_API_KEY }}"
+              "regula-api-key=${{ secrets.REGULA_API_KEY }}" \
+              "regula-audit-webhook-url=${{ secrets.REGULA_AUDIT_WEBHOOK_URL }}"
 
           # ingress targetPort 확인 (8000 고정)
           az containerapp ingress update \
@@ -142,6 +143,7 @@ jobs:
               "CLOUD_SYNC_ENDPOINT=https://$CCP_FQDN" \
               "CORS_ORIGINS=https://regula.abyz-lab.work,https://api-prod.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io" \
               "REGULA_API_KEY=secretref:regula-api-key" \
+              "REGULA_AUDIT_WEBHOOK_URL=secretref:regula-audit-webhook-url" \
               "ENVIRONMENT=production" \
               "JWT_TTL_MIN=60" \
               "RATE_LIMIT_PER_MIN=100"
