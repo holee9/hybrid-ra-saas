@@ -63,3 +63,11 @@ class Settings(BaseSettings):
     # Regula SaaS API key (GAP-02: server-to-server auth)
     # Set to a strong random value; ra-med-bot sends this as X-Regula-API-Key header.
     regula_api_key: str = ""
+
+    # Comma-separated tenant IDs allowed to use Regula API key auth (GAP-02).
+    # Empty = all tenants permitted.
+    regula_allowed_tenants: str = ""
+
+    @property
+    def regula_allowed_tenants_set(self) -> set[str]:
+        return {t.strip() for t in self.regula_allowed_tenants.split(",") if t.strip()}

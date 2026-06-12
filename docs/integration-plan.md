@@ -140,9 +140,11 @@ Cloud Control Plane (Azure)
 **현재 권장:** Option A. EU OJ와 FDA Federal Register가 실제로 base crawlers와 중복이면 ra-med-bot Phase 10 cron 비활성화.  
 이 결정은 ra-med-bot 레포 작업에서 확인 후 반영.
 
+**✅ 결정 완료 (2026-06-12):** eu_mdr.py가 EUR-Lex (EU OJ 디지털 공식 채널)를 통해 EU MDR(CELEX:32017R0745)을 이미 크롤링 중. 별도 eu_oj.py 크롤러는 중복이므로 추가하지 않음. IVDR(2017/746) 등 추가 규제 유형이 필요 시 별도 이슈로 신규 작성.
+
 **이 레포 조치:**
-- `docs/integration-plan.md`에 결정 사항 기록 (이 문서)
-- Cloud Control Plane 크롤러가 단일 소스 오브 트루스로 지정될 경우: 크롤러 범위를 EU OJ 포함으로 확장 검토 필요
+- `docs/integration-plan.md`에 결정 사항 기록 (이 문서 ✅ 완료)
+- ~~Cloud Control Plane 크롤러가 단일 소스 오브 트루스로 지정될 경우: 크롤러 범위를 EU OJ 포함으로 확장 검토 필요~~ → 중복으로 불필요 판단
 
 ---
 
