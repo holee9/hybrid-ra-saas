@@ -200,7 +200,7 @@ function fgFromRule(pat) {
 }
 
 const fgNavSection   = fgFromRule('\\.nav-section');
-const fgNavA         = fgFromRule('#sidebar nav li a');
+const fgNavA         = fgFromRule('#sidebar li a');
 const fgVersion      = fgFromRule('\\.sidebar-version');
 const fgHeaderSub    = fgFromRule('\\.sidebar-header');
 const fgProductName  = fgFromRule('\\.sidebar-header \\.product-name') ||
@@ -208,7 +208,7 @@ const fgProductName  = fgFromRule('\\.sidebar-header \\.product-name') ||
 
 // Extract font sizes
 const fsNavSection   = extractFontSizePx('\\.nav-section');
-const fsNavA         = extractFontSizePx('#sidebar nav li a');
+const fsNavA         = extractFontSizePx('#sidebar li a');
 const fsVersion      = extractFontSizePx('\\.sidebar-version');
 
 console.log(`  [추출됨] 사이드바 배경: ${bgDark}, 헤더 배경: ${bgDarker}`);
