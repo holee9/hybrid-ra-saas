@@ -1,0 +1,252 @@
+[
+  {
+    "pack_id": "US-FDA-510K-XRAY-V1",
+    "pathway_id": "US-FDA-510K",
+    "device_family": "X-ray System",
+    "version": "1.0",
+    "source_version": "FDA-ESTAR-2024",
+    "status": "active",
+    "documents": [
+      {
+        "document_id": "DOC-510K-XRAY-DHF",
+        "doc_type": "design_history_file",
+        "title": "Design History File",
+        "required": true,
+        "export_format": "docx",
+        "sort_order": 1,
+        "sections": [
+          {
+            "section_id": "SEC-DHF-001",
+            "section_key": "device_description",
+            "title": "Device Description",
+            "required": true,
+            "instructions": "Provide detailed device description including intended use.",
+            "placeholder": "Describe the device and its intended use...",
+            "source_reference_ids": ["SRC-FDA-ESTAR"],
+            "is_internal": false,
+            "sort_order": 1
+          },
+          {
+            "section_id": "SEC-DHF-002",
+            "section_key": "substantial_equivalence",
+            "title": "Substantial Equivalence",
+            "required": true,
+            "instructions": "Demonstrate substantial equivalence to predicate device.",
+            "placeholder": "Identify predicate device and compare features...",
+            "source_reference_ids": ["SRC-FDA-ESTAR"],
+            "is_internal": false,
+            "sort_order": 2
+          },
+          {
+            "section_id": "SEC-DHF-003",
+            "section_key": "performance_testing",
+            "title": "Performance Testing Summary",
+            "required": true,
+            "instructions": "Summarize bench and clinical testing results.",
+            "placeholder": "List all performance tests and results...",
+            "source_reference_ids": ["SRC-FDA-ESTAR", "SRC-ISO-14971"],
+            "is_internal": false,
+            "sort_order": 3
+          },
+          {
+            "section_id": "SEC-DHF-004",
+            "section_key": "risk_management",
+            "title": "Risk Management File",
+            "required": true,
+            "instructions": "ISO 14971 compliant risk management documentation.",
+            "placeholder": "Risk analysis, evaluation, and control measures...",
+            "source_reference_ids": ["SRC-ISO-14971"],
+            "is_internal": false,
+            "sort_order": 4
+          },
+          {
+            "section_id": "SEC-DHF-SW-001",
+            "section_key": "software_documentation",
+            "title": "Software Documentation (SDS/SRS)",
+            "required": true,
+            "instructions": "IEC 62304 compliant software documentation.",
+            "placeholder": "Software level of concern, SDS, SRS...",
+            "source_reference_ids": ["SRC-FDA-SW-GUIDANCE", "SRC-IEC-62304"],
+            "applicability_rule_id": "RULE-SW-001",
+            "is_internal": false,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "document_id": "DOC-510K-XRAY-QMS",
+        "doc_type": "quality_management",
+        "title": "Quality Management System Evidence",
+        "required": true,
+        "export_format": "docx",
+        "sort_order": 2,
+        "sections": [
+          {
+            "section_id": "SEC-QMS-001",
+            "section_key": "iso13485_cert",
+            "title": "ISO 13485 Certification",
+            "required": true,
+            "instructions": "Provide current ISO 13485 certificate.",
+            "placeholder": "Certificate number, scope, expiry date...",
+            "source_reference_ids": ["SRC-ISO-13485"],
+            "is_internal": false,
+            "sort_order": 1
+          }
+        ]
+      },
+      {
+        "document_id": "DOC-510K-XRAY-LABELING",
+        "doc_type": "labeling",
+        "title": "Device Labeling",
+        "required": true,
+        "export_format": "docx",
+        "sort_order": 3,
+        "sections": [
+          {
+            "section_id": "SEC-LABEL-001",
+            "section_key": "device_label",
+            "title": "Device Label",
+            "required": true,
+            "instructions": "Submit draft device label.",
+            "placeholder": "Device name, model number, manufacturer info...",
+            "source_reference_ids": ["SRC-FDA-ESTAR"],
+            "is_internal": false,
+            "sort_order": 1
+          }
+        ]
+      },
+      {
+        "document_id": "DOC-510K-XRAY-BIOCOMPAT",
+        "doc_type": "biocompatibility",
+        "title": "Biocompatibility Assessment",
+        "required": true,
+        "export_format": "docx",
+        "sort_order": 4,
+        "sections": [
+          {
+            "section_id": "SEC-BIO-001",
+            "section_key": "biocompat_summary",
+            "title": "Biocompatibility Summary",
+            "required": true,
+            "instructions": "ISO 10993 biocompatibility testing summary.",
+            "placeholder": "List patient-contacting materials and biocompat testing...",
+            "source_reference_ids": ["SRC-FDA-ESTAR"],
+            "is_internal": false,
+            "sort_order": 1
+          }
+        ]
+      },
+      {
+        "document_id": "DOC-510K-XRAY-INTERNAL",
+        "doc_type": "internal_notes",
+        "title": "Internal Review Checklist",
+        "required": false,
+        "export_format": "docx",
+        "sort_order": 5,
+        "sections": [
+          {
+            "section_id": "SEC-INT-001",
+            "section_key": "internal_review",
+            "title": "Pre-submission Internal Review",
+            "required": false,
+            "instructions": "Internal only — not submitted to FDA.",
+            "placeholder": "Internal review notes...",
+            "source_reference_ids": [],
+            "is_internal": true,
+            "sort_order": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "pack_id": "KR-MFDS-MD-XRAY-V1",
+    "pathway_id": "KR-MFDS-MD",
+    "device_family": "X-ray System",
+    "version": "1.0",
+    "source_version": "MFDS-2024",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "EU-MDR-IIA-XRAY-V1",
+    "pathway_id": "EU-MDR-IIA",
+    "device_family": "X-ray System",
+    "version": "1.0",
+    "source_version": "MDR-2024",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "US-FDA-510K-MRI-V1",
+    "pathway_id": "US-FDA-510K",
+    "device_family": "MRI System",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "KR-MFDS-MD-MRI-V1",
+    "pathway_id": "KR-MFDS-MD",
+    "device_family": "MRI System",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "EU-MDR-IIA-MRI-V1",
+    "pathway_id": "EU-MDR-IIA",
+    "device_family": "MRI System",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "US-FDA-510K-CT-V1",
+    "pathway_id": "US-FDA-510K",
+    "device_family": "CT Scanner",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "KR-MFDS-MD-CT-V1",
+    "pathway_id": "KR-MFDS-MD",
+    "device_family": "CT Scanner",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "EU-MDR-IIA-CT-V1",
+    "pathway_id": "EU-MDR-IIA",
+    "device_family": "CT Scanner",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "US-FDA-510K-MONITOR-V1",
+    "pathway_id": "US-FDA-510K",
+    "device_family": "Patient Monitor",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "KR-MFDS-MD-MONITOR-V1",
+    "pathway_id": "KR-MFDS-MD",
+    "device_family": "Patient Monitor",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  },
+  {
+    "pack_id": "EU-MDR-IIA-MONITOR-V1",
+    "pathway_id": "EU-MDR-IIA",
+    "device_family": "Patient Monitor",
+    "version": "1.0",
+    "status": "active",
+    "documents": []
+  }
+]
