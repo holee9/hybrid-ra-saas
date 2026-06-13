@@ -76,6 +76,9 @@ def create_app() -> FastAPI:
     app.include_router(checklist_router, prefix="/api/v1", tags=["checklists"])
     # SPEC-EVIDENCE-001: Evidence Binder
     app.include_router(evidence_router, prefix="/api/v1", tags=["evidence"])
+    # SPEC-TRACEABILITY-001: Cross-Document Consistency Guardrail & Traceability Graph
+    from app.routers.traceability import router as traceability_router
+    app.include_router(traceability_router, prefix="/api/v1", tags=["traceability"])
 
     return app
 

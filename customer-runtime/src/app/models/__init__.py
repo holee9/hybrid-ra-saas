@@ -22,6 +22,11 @@ from app.models.evidence_binder import EvidenceBinder
 from app.models.evidence_link import EvidenceLink
 from app.models.evidence_file import EvidenceFile
 from app.models.evidence_gap import EvidenceGap
+# SPEC-TRACEABILITY-001
+from app.models.traceability_node import TraceabilityNode
+from app.models.traceability_edge import TraceabilityEdge
+from app.models.consistency_finding import ConsistencyFinding
+from app.models.impact_analysis import ImpactAnalysis
 # SPEC-PERMISSION-001
 from app.models.user import (
     DecisionType,
@@ -70,4 +75,9 @@ __all__ = [
     "EvidenceLink",
     "EvidenceFile",
     "EvidenceGap",
+    # SPEC-TRACEABILITY-001
+    "TraceabilityNode",
+    "TraceabilityEdge",
+    "ConsistencyFinding",
+    "ImpactAnalysis",
 ]
