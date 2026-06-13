@@ -10,12 +10,16 @@ from app.config import Settings
 from app.core.ratelimit import limiter, rate_limit_exceeded_handler
 from app.database import init_engine
 from app.routers.audit import router as audit_router
+from app.routers.audit_decisions import router as audit_decisions_router
+from app.routers.auth import router as auth_router
 from app.routers.documents import router as documents_router
 from app.routers.guardrail import router as guardrail_router
 from app.routers.health import router as health_router
 from app.routers.parse import router as parse_router
 from app.routers.rag import router as rag_router
+from app.routers.review_items import router as review_items_router
 from app.routers.sync import router as sync_router
+from app.routers.users import router as users_router
 
 
 @asynccontextmanager
@@ -58,6 +62,11 @@ def create_app() -> FastAPI:
     app.include_router(rag_router)
     app.include_router(audit_router)
     app.include_router(sync_router)
+    # SPEC-PERMISSION-001: user auth + RBAC
+    app.include_router(auth_router)
+    app.include_router(users_router)
+    app.include_router(review_items_router)
+    app.include_router(audit_decisions_router)
 
     return app
 

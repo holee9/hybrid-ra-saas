@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # JWT
     jwt_secret: str
     jwt_ttl_min: int = 60
+    jwt_refresh_ttl_min: int = 10080  # 7 days (SPEC-PERMISSION-001)
 
     # MinIO
     minio_endpoint: str

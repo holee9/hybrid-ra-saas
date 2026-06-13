@@ -9,6 +9,16 @@ from app.models.risk import Risk
 from app.models.finding import Finding
 from app.models.audit import AuditEvent
 from app.models.parse_job import ParseJob, ParseJobStatus
+# SPEC-PERMISSION-001
+from app.models.user import (
+    DecisionType,
+    ReviewDecision,
+    ReviewItem,
+    ReviewStatus,
+    RoleAuditLog,
+    User,
+    UserRole,
+)
 
 __all__ = [
     "Base",
@@ -26,4 +36,12 @@ __all__ = [
     "AuditEvent",
     "ParseJob",
     "ParseJobStatus",
+    # SPEC-PERMISSION-001
+    "User",
+    "UserRole",
+    "ReviewItem",
+    "ReviewStatus",
+    "ReviewDecision",
+    "DecisionType",
+    "RoleAuditLog",
 ]
