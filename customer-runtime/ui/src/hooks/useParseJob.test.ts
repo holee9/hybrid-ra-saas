@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { useParseJob } from "./useParseJob";
 import { ExtractionStage } from "../types/parse";
 
@@ -51,9 +51,10 @@ describe("useParseJob", () => {
     vi.restoreAllMocks();
   });
 
-  it("starts with loading=true", () => {
+  it("starts with loading=true", async () => {
     const { result } = renderHook(() => useParseJob("job-123"));
     expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it("fetches data and sets data on success", async () => {
@@ -110,7 +111,9 @@ describe("useParseJob", () => {
     const { result } = renderHook(() => useParseJob("job-123"));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    result.current.refetch();
+    act(() => {
+      result.current.refetch();
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);

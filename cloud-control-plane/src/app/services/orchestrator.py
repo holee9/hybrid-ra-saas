@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+import os
 from typing import Any, Optional
 from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import Settings
 from app.core.logging import get_logger
 from app.models.regulatory_document import RegulatoryDocument
 from app.services.dedup import DedupService
@@ -70,10 +70,9 @@ class CrawlOrchestrator:
             extra={"job_id": job_id, "source": "orchestrator"},
         )
 
-        settings = Settings()
         push_service = KnowledgePushService(
-            push_url=settings.regula_knowledge_push_url,
-            push_secret=settings.crawl_push_secret,
+            push_url=os.getenv("REGULA_KNOWLEDGE_PUSH_URL", ""),
+            push_secret=os.getenv("CRAWL_PUSH_SECRET", ""),
         )
         dedup = DedupService(self._session)
         total_stored = 0

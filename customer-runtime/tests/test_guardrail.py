@@ -75,7 +75,8 @@ class TestGuardrailService:
         from app.services.guardrail import GuardrailService
 
         svc = GuardrailService()
-        mock_db = AsyncMock()
+        mock_db = MagicMock()
+        mock_db.flush = AsyncMock()
 
         # Patch _load_documents_with_requirements to return one doc with no reqs
         with patch.object(
@@ -104,7 +105,8 @@ class TestGuardrailService:
         from app.services.guardrail import GuardrailService
 
         svc = GuardrailService()
-        mock_db = AsyncMock()
+        mock_db = MagicMock()
+        mock_db.flush = AsyncMock()
 
         # requirements with no risks -> High finding
         reqs_map = {"doc-1": [{"req_id": "req-1", "risks": []}]}
@@ -140,7 +142,8 @@ class TestGuardrailService:
         from app.services.guardrail import GuardrailService
 
         svc = GuardrailService()
-        mock_db = AsyncMock()
+        mock_db = MagicMock()
+        mock_db.flush = AsyncMock()
         mock_audit = MagicMock()
         mock_audit.record = AsyncMock()
 

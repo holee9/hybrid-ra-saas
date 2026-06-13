@@ -3,7 +3,7 @@ import hmac
 from datetime import datetime, timezone, timedelta
 
 import jwt
-from fastapi import HTTPException, Security, status
+from fastapi import Header, HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader
 
 
@@ -33,7 +33,10 @@ def decode_token(token: str) -> dict:
 _api_key_header = APIKeyHeader(name="X-Regula-API-Key", auto_error=False)
 
 
-async def verify_api_key(api_key: str | None = Security(_api_key_header)) -> str:
+async def verify_api_key(
+    api_key: str | None = Security(_api_key_header),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> str:
     """FastAPI dependency: validate X-Regula-API-Key header.
 
     # @MX:ANCHOR: [AUTO] Auth boundary for ra-med-bot → Customer Runtime (GAP-02).
@@ -55,5 +58,11 @@ async def verify_api_key(api_key: str | None = Security(_api_key_header)) -> str
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing X-Regula-API-Key",
             headers={"WWW-Authenticate": "ApiKey"},
+        )
+    allowed_tenants = Settings().regula_allowed_tenants_set
+    if allowed_tenants and x_tenant_id not in allowed_tenants:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tenant is not allowed for Regula API key access",
         )
     return api_key

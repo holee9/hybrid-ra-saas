@@ -293,3 +293,73 @@ async def test_job_registry_tracks_status(db_session):
 
     assert job_id in job_registry
     assert job_registry[job_id]["status"] in ("completed", "failed")
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_pushes_only_newly_stored_documents(db_session, monkeypatch):
+    """Knowledge push receives newly stored documents, not duplicate skips."""
+    from app.models.regulatory_document import RegulatoryDocument
+    from app.services.orchestrator import CrawlOrchestrator
+    import sqlalchemy as sa
+
+    existing_content = b"existing content"
+    existing_hash = hashlib.sha256(existing_content).hexdigest()
+    db_session.add(
+        RegulatoryDocument(
+            source="fda",
+            blob_path="regulatory-docs/fda/2026-06-10/existing.pdf",
+            content_hash=existing_hash,
+            fetched_at=datetime.now(timezone.utc),
+            source_url="https://fda.gov/existing.pdf",
+        )
+    )
+    await db_session.commit()
+
+    push_calls: list[dict] = []
+
+    class FakeKnowledgePushService:
+        def __init__(self, push_url: str, push_secret: str) -> None:
+            self.push_url = push_url
+            self.push_secret = push_secret
+
+        async def push(self, job_id: str, documents: list[dict]) -> None:
+            push_calls.append(
+                {
+                    "job_id": job_id,
+                    "push_url": self.push_url,
+                    "push_secret": self.push_secret,
+                    "documents": documents,
+                }
+            )
+
+    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    monkeypatch.setenv("BLOB_ACCOUNT_NAME", "acct")
+    monkeypatch.setenv("BLOB_CONTAINER_NAME", "container")
+    monkeypatch.setenv("BLOB_ACCOUNT_KEY", "key")
+    monkeypatch.setenv("APPINSIGHTS_CONNECTION_STRING", "InstrumentationKey=fake")
+    monkeypatch.setenv("REGULA_KNOWLEDGE_PUSH_URL", "https://regula.example/sync")
+    monkeypatch.setenv("CRAWL_PUSH_SECRET", "secret")
+    monkeypatch.setattr("app.services.orchestrator.KnowledgePushService", FakeKnowledgePushService)
+
+    source = _make_fake_source(
+        "fda",
+        [
+            ("https://fda.gov/existing.pdf", existing_content),
+            ("https://fda.gov/new.pdf", b"new public guidance"),
+        ],
+    )
+    mock_storage = AsyncMock()
+    mock_storage.upload_document = AsyncMock(return_value="regulatory-docs/fda/2026-06-10/new.pdf")
+
+    orch = CrawlOrchestrator(sources=[source], storage=mock_storage, session=db_session)
+
+    job_id = await orch.run(job_id="job-123")
+
+    result = await db_session.execute(sa.select(RegulatoryDocument))
+    rows = result.scalars().all()
+    assert len(rows) == 2
+    assert job_id == "job-123"
+    assert len(push_calls) == 1
+    assert push_calls[0]["push_url"] == "https://regula.example/sync"
+    assert push_calls[0]["push_secret"] == "secret"
+    assert [doc["url"] for doc in push_calls[0]["documents"]] == ["https://fda.gov/new.pdf"]

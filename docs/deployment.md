@@ -76,7 +76,11 @@ az containerapp update \
   --set-env-vars \
     DATABASE_URL=secretref:db-connection-string \
     JWT_SECRET=secretref:jwt-secret \
-    AZURE_STORAGE_CONN_STRING=secretref:azure-storage-conn-string
+    AZURE_STORAGE_CONN_STRING=secretref:azure-storage-conn-string \
+    REGULA_API_KEY=secretref:regula-api-key \
+    REGULA_ALLOWED_TENANTS=tenant-prod \
+    REGULA_AUDIT_WEBHOOK_URL=secretref:regula-audit-webhook-url \
+    REGULA_IFU_WEBHOOK_URL=secretref:regula-ifu-webhook-url
 ```
 
 **cloud-control-plane-api 필요 환경 변수:**
@@ -88,10 +92,29 @@ az containerapp update \
   --set-env-vars \
     DATABASE_URL=secretref:db-connection-string \
     AZURE_STORAGE_CONN_STRING=secretref:azure-storage-conn-string \
-    APPLICATIONINSIGHTS_CONNECTION_STRING=secretref:app-insights-conn-string
+    APPLICATIONINSIGHTS_CONNECTION_STRING=secretref:app-insights-conn-string \
+    REGULA_KNOWLEDGE_PUSH_URL=secretref:regula-knowledge-push-url \
+    CRAWL_PUSH_SECRET=secretref:crawl-push-secret \
+    CORS_ORIGINS=https://regula.abyz-lab.work
 ```
 
-> Key Vault 시크릿 이름: `DB-CONNECTION-STRING`, `JWT-SECRET`, `AZURE-STORAGE-CONN-STRING`, `APP-INSIGHTS-CONN-STRING`
+> Key Vault 시크릿 이름: `DB-CONNECTION-STRING`, `JWT-SECRET`, `AZURE-STORAGE-CONN-STRING`, `APP-INSIGHTS-CONN-STRING`, `REGULA-API-KEY`, `REGULA-KNOWLEDGE-PUSH-URL`, `CRAWL-PUSH-SECRET`, `REGULA-AUDIT-WEBHOOK-URL`, `REGULA-IFU-WEBHOOK-URL`
+
+**Regula 연동 배포 후 검증:**
+
+```bash
+# Cloud Control Plane CORS/health
+curl -i -H "Origin: https://regula.abyz-lab.work" \
+  https://cloud-control-plane-api.<region>.azurecontainerapps.io/health
+
+# Customer Runtime server-to-server auth
+curl -i -X POST https://api-prod.<region>.azurecontainerapps.io/rag/query \
+  -H "Authorization: Bearer <jwt>" \
+  -H "X-Tenant-ID: tenant-prod" \
+  -H "X-Regula-API-Key: <regula-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"test","top_k":1}'
+```
 
 ---
 

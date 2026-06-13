@@ -17,12 +17,13 @@ describe("useListJobs", () => {
     vi.useRealTimers();
   });
 
-  it("starts with loading=true", () => {
+  it("starts with loading=true", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(makeResponse()), { status: 200 })
     );
     const { result } = renderHook(() => useListJobs());
     expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it("resolves data after successful fetch", async () => {

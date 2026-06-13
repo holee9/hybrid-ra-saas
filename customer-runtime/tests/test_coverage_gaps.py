@@ -22,7 +22,8 @@ async def test_audit_service_record_creates_event():
     """AuditService.record creates and flushes an AuditEvent."""
     from app.services.audit import AuditService
 
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
+    mock_db.flush = AsyncMock()
     svc = AuditService()
 
     event = await svc.record(
@@ -48,7 +49,8 @@ async def test_audit_service_record_without_hashes():
     """AuditService.record works when before/after hashes are None."""
     from app.services.audit import AuditService
 
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
+    mock_db.flush = AsyncMock()
     svc = AuditService()
 
     event = await svc.record(

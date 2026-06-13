@@ -38,6 +38,9 @@ class KnowledgePushService:
         if not self._push_url:
             logger.debug("knowledge_push skipped: REGULA_KNOWLEDGE_PUSH_URL not configured")
             return
+        if not self._push_secret:
+            logger.warning("knowledge_push skipped: CRAWL_PUSH_SECRET not configured")
+            return
         if not documents:
             logger.debug("knowledge_push skipped: no new documents in job %s", job_id)
             return

@@ -59,9 +59,35 @@
 | Phase | Name | Focus |
 |-------|------|-------|
 | Phase 1 | Infra | 규제 수집기, 저장소, 동기화 PoC |
-| Phase 2 | Logic | 제품군별 스키마, Parser, Guardrail |
-| Phase 3 | Product | 로컬 런타임 제품화, Review Workspace, 셀프서비스 UX |
-| Phase 4 | Scale | 타 품목 확장, 파트너십 |
+| Phase 2 | Template Foundation | Product Profile, Pathway Resolver, Template Pack Registry, Checklist Engine |
+| Phase 3 | Logic | Parser reconciliation, Guardrail, RAG, Evidence Binder |
+| Phase 4 | Product | Guided Authoring, Review Workspace, Template-Aware Export, 셀프서비스 UX |
+| Phase 5 | Scale | 타 품목/국가 template pack 확장, 파트너십 |
+
+## Template-First Strategy
+
+2026-06-13 기준 제품 축은 ingestion-first에서 template-first로 재정렬한다.
+
+Canonical workflow:
+
+```text
+Product Profile
+-> Regulatory Pathway
+-> Template Pack
+-> Checklist & Gap Analysis
+-> Guided Authoring / Evidence Binder
+-> Parser Reconciliation
+-> Guardrail / RAG Review
+-> Audit / Export
+```
+
+Execution:
+
+- Strategy audit: `docs/template-first-strategy-audit.md`
+- Execution SPEC: `.moai/specs/SPEC-TEMPLATE-001/spec.md`
+- GitHub issue: #29
+
+Existing parser/review/RAG/guardrail work remains valid, but it becomes the downstream validation layer after template pack and checklist generation.
 
 ## Document Package
 

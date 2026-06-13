@@ -38,6 +38,27 @@ gh secret set CLOUDFLARE_ZONE_ID --repo holee9/hybrid-ra-saas
 
 ---
 
+### Regula 연동 (hybrid-ra-saas ↔ ra-med-bot)
+
+| Secret 키 | 용도 | 취득/생성 방법 |
+|-----------|------|---------------|
+| `REGULA_API_KEY` | ra-med-bot → Customer Runtime server-to-server 호출 인증 (`X-Regula-API-Key`) | `openssl rand -hex 32` 등으로 생성 후 양쪽 레포에 동일하게 등록 |
+| `REGULA_ALLOWED_TENANTS` | API key 호출 허용 tenant allowlist | 쉼표 구분 tenant ID. Secret이 아니면 Container App env var로 직접 설정 가능 |
+| `REGULA_KNOWLEDGE_PUSH_URL` | Cloud Control Plane 크롤 완료 후 ra-med-bot 지식 동기화 수신 URL | ra-med-bot `/api/admin/radar/sync` 배포 URL |
+| `CRAWL_PUSH_SECRET` | Cloud Control Plane → ra-med-bot knowledge push 인증 헤더 | `openssl rand -hex 32` 등으로 생성 후 양쪽 레포에 동일하게 등록 |
+| `REGULA_AUDIT_WEBHOOK_URL` | Customer Runtime `/audit/webhook` outbound 대상 | ra-med-bot 감사 이벤트 수신 URL |
+| `REGULA_IFU_WEBHOOK_URL` | IFU 파싱 완료 후 Regula project context push 대상 | ra-med-bot IFU context 수신 URL |
+
+```bash
+gh secret set REGULA_API_KEY --repo holee9/hybrid-ra-saas
+gh secret set REGULA_KNOWLEDGE_PUSH_URL --repo holee9/hybrid-ra-saas
+gh secret set CRAWL_PUSH_SECRET --repo holee9/hybrid-ra-saas
+gh secret set REGULA_AUDIT_WEBHOOK_URL --repo holee9/hybrid-ra-saas
+gh secret set REGULA_IFU_WEBHOOK_URL --repo holee9/hybrid-ra-saas
+```
+
+> `REGULA_ALLOWED_TENANTS`는 운영 정책 값입니다. 비밀값으로 관리하려면 GitHub Secret/Key Vault에 등록하고, 공개 가능한 tenant ID 목록이면 Container App env var로 직접 설정합니다.
+
 ---
 
 ## regula.abyz-lab.work 도메인 설정 절차
@@ -54,13 +75,13 @@ gh secret set CLOUDFLARE_ZONE_ID --repo holee9/hybrid-ra-saas
 > Vercel 관련 Secrets는 이 레포에서 불필요합니다.  
 > Vercel 도메인 바인딩은 ra-med-bot 레포에서 처리합니다.
 
-### 2단계 — 워크플로우 실행
+### 2단계 — DNS/도메인 설정
 
-GitHub Actions → **`setup-regula-domain.yml`** → "Run workflow"  
-`dry_run: false` 선택 후 실행
+현재 이 레포의 실제 workflow는 `ci.yml`, `deploy-staging.yml`, `deploy-prod.yml`, `terraform.yml`입니다.
+도메인 자동화 workflow는 현재 이 레포에 없으므로, Cloudflare DNS와 Vercel 도메인 바인딩은 ra-med-bot 레포 또는 수동 운영 절차에서 처리합니다.
 
-워크플로우가 자동으로 처리하는 내용:
-- Cloudflare DNS: `regula.abyz-lab.work` CNAME → `cname.vercel-dns.com` 추가
+필요 DNS:
+- Cloudflare DNS: `regula.abyz-lab.work` CNAME → `cname.vercel-dns.com`
 
 ### 3단계 — Vercel 측 (ra-med-bot 레포에서 처리)
 
@@ -79,7 +100,7 @@ https://regula.abyz-lab.work/api/health  →  {"status":"ok"} 응답
 ## ra.abyz-lab.work 도메인 설정 (엔터프라이즈 API용, 선택)
 
 Customer Runtime API(`api-prod`) 외부 테스트용 도메인.  
-`domain-setup.yml` 워크플로우 실행 — Azure OIDC 권한 필요.
+현재 이 레포에는 엔터프라이즈 API 도메인 바인딩 workflow가 없으므로, 필요 시 Azure Portal/CLI 또는 별도 인프라 workflow로 설정합니다.
 
 > **운영 용도 아님**: 엔터프라이즈 고객은 Docker Compose로 로컬 배포하므로 외부 도메인 불필요.
 
