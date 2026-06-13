@@ -9,6 +9,9 @@ from app.models.risk import Risk
 from app.models.finding import Finding
 from app.models.audit import AuditEvent
 from app.models.parse_job import ParseJob, ParseJobStatus
+# SPEC-AUTHORING-001
+from app.models.authoring_session import AuthoringSession
+from app.models.authoring_section_entry import AuthoringSectionEntry
 # SPEC-PERMISSION-001
 from app.models.user import (
     DecisionType,
@@ -36,6 +39,9 @@ __all__ = [
     "AuditEvent",
     "ParseJob",
     "ParseJobStatus",
+    # SPEC-AUTHORING-001
+    "AuthoringSession",
+    "AuthoringSectionEntry",
     # SPEC-PERMISSION-001
     "User",
     "UserRole",
