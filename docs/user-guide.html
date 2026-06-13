@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hybrid AI RA Specialist — 사용 설명서 v1.0</title>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" onerror="window.mermaidFailed=true"></script>
   <style>
     :root {
       --primary: #1d4ed8;
@@ -208,7 +207,8 @@
 
     /* ── Architecture diagram ── */
     .arch-diagram { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 32px; overflow-x: auto; }
-    .mermaid { margin: 16px 0; }
+    .workflow-diagram { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; overflow-x: auto; margin: 16px 0; }
+    .workflow-diagram svg { width: 100%; min-width: 720px; height: auto; display: block; }
     .diagram-fallback { display: none; }
 
     /* ── URL chip ── */
@@ -286,7 +286,7 @@
   </div>
   <ul>
     <li class="nav-section">시작하기</li>
-    <li><a href="#overview">1. 이 시스템이란?</a></li>
+    <li><a href="#overview">1. 시스템 개요</a></li>
     <li><a href="#architecture">2. 시스템 구성도</a></li>
     <li><a href="#quickstart">3. 처음 접속하기</a></li>
 
@@ -334,7 +334,7 @@
     <div class="toc">
       <h3>목차</h3>
       <ol>
-        <li><a href="#overview">이 시스템이란?</a></li>
+        <li><a href="#overview">시스템 개요</a></li>
         <li><a href="#architecture">시스템 구성도</a></li>
         <li><a href="#quickstart">처음 접속하기</a></li>
         <li><a href="#queue">검토 큐 화면 사용법</a></li>
@@ -356,7 +356,7 @@
        Section 1: Overview
   ══════════════════════════════════════ -->
   <section id="overview">
-    <h2><span class="section-num">1</span> 이 시스템이란?</h2>
+    <h2><span class="section-num">1</span> 시스템 개요</h2>
 
     <p>
       <strong>Hybrid AI RA Specialist</strong>는 의료기기 인허가(RA, Regulatory Affairs) 담당자가
@@ -902,34 +902,37 @@ curl http://localhost:8000/audit/events \
 
     <p>새로운 IFU(사용 설명서) 문서를 시스템에 업로드하고 파싱 결과를 받는 전체 흐름입니다.</p>
 
-    <div class="mermaid" id="diagram-parse">
-flowchart TD
-    A([👤 RA 담당자]) --> B[IFU 문서 준비\n.docx 또는 .xlsx]
-    B --> C[API로 문서 업로드\nPOST /documents]
-    C --> D[파싱 작업 생성\nPOST /parse/jobs]
-    D --> E{AI 파싱 중...}
-    E --> F[검토 큐에서\n상태 확인]
-    F --> G{상태?}
-    G -->|완료 done| H[행 클릭 → 교정 화면]
-    G -->|처리 중 running| F
-    G -->|실패 failed| I[오류 메시지 확인\n→ 재시도]
-    H --> J[AI 추출 결과 검토]
-    J --> K{교정 필요?}
-    K -->|예| L[수정 입력 → 저장]
-    K -->|아니오| M([✅ 완료])
-    L --> M
-    style A fill:#dbeafe,stroke:#3b82f6
-    style M fill:#dcfce7,stroke:#16a34a
-    style I fill:#fee2e2,stroke:#dc2626
+    <div class="workflow-diagram" id="diagram-parse">
+      <svg viewBox="0 0 920 230" role="img" aria-labelledby="diagram-parse-title" xmlns="http://www.w3.org/2000/svg">
+        <title id="diagram-parse-title">신규 IFU 문서 파싱 workflow</title>
+        <rect x="20" y="45" width="125" height="62" rx="8" fill="#dbeafe" stroke="#3b82f6"/>
+        <text x="82" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">IFU 문서 준비</text>
+        <text x="82" y="92" text-anchor="middle" font-size="12" fill="#1f2937">.docx 또는 .xlsx</text>
+        <text x="155" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="185" y="45" width="125" height="62" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+        <text x="247" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#3730a3">문서 업로드</text>
+        <text x="247" y="92" text-anchor="middle" font-size="12" fill="#1f2937">POST /documents</text>
+        <text x="320" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="350" y="45" width="125" height="62" rx="8" fill="#ecfeff" stroke="#06b6d4"/>
+        <text x="412" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#155e75">파싱 작업 생성</text>
+        <text x="412" y="92" text-anchor="middle" font-size="12" fill="#1f2937">POST /parse/jobs</text>
+        <text x="485" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="515" y="45" width="125" height="62" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+        <text x="577" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#713f12">검토 큐 확인</text>
+        <text x="577" y="92" text-anchor="middle" font-size="12" fill="#1f2937">running / done / failed</text>
+        <text x="650" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="680" y="45" width="125" height="62" rx="8" fill="#f0fdf4" stroke="#16a34a"/>
+        <text x="742" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">교정 화면</text>
+        <text x="742" y="92" text-anchor="middle" font-size="12" fill="#1f2937">결과 검토·저장</text>
+        <text x="815" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="845" y="45" width="55" height="62" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+        <text x="872" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">완료</text>
+        <path d="M577 108 L577 158 L250 158 L250 110" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 5"/>
+        <text x="420" y="150" text-anchor="middle" font-size="12" fill="#475569">처리 중이면 큐에서 상태 재확인</text>
+        <path d="M577 108 L577 195 L742 195 L742 110" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="5 5"/>
+        <text x="660" y="187" text-anchor="middle" font-size="12" fill="#991b1b">실패 시 오류 확인 후 재시도</text>
+      </svg>
     </div>
-
-    <script>
-      // Graceful fallback if Mermaid failed to load
-      if (window.mermaidFailed) {
-        document.getElementById('diagram-parse').innerHTML =
-          '<div class="callout info"><span class="callout-icon">ℹ️</span><div>다이어그램을 보려면 인터넷 연결이 필요합니다. (Mermaid.js CDN 로드 실패)<br><br><strong>텍스트 요약:</strong> IFU 문서 준비 → API 업로드 → 파싱 작업 생성 → AI 파싱 → 검토 큐 확인 → 교정 화면 → 결과 검토 → (교정 필요 시) 수정·저장 → 완료</div></div>';
-      }
-    </script>
 
     <h3>단계별 상세 안내</h3>
 
@@ -964,33 +967,38 @@ curl -X POST http://localhost:8000/parse/jobs \
 
     <p>파싱이 완료된 문서를 검토하고 AI 오류를 수정하는 상세 흐름입니다.</p>
 
-    <div class="mermaid" id="diagram-review">
-flowchart LR
-    A([검토 큐 접속]) --> B[완료 작업 선택]
-    B --> C[전체 신뢰도 확인]
-    C --> D{85% 이상?}
-    D -->|예| E[각 항목 빠르게 검토]
-    D -->|아니오| F[신뢰도 낮은 항목\n우선 검토]
-    E --> G{내용 맞음?}
-    F --> G
-    G -->|예| H[다음 항목]
-    G -->|아니오| I[수정 입력]
-    I --> J[저장 버튼 클릭]
-    J --> K[신뢰도 자동 갱신]
-    K --> H
-    H --> L{모든 항목\n검토 완료?}
-    L -->|아니오| G
-    L -->|예| M([✅ 검토 완료])
-    style A fill:#dbeafe,stroke:#3b82f6
-    style M fill:#dcfce7,stroke:#16a34a
+    <div class="workflow-diagram" id="diagram-review">
+      <svg viewBox="0 0 920 220" role="img" aria-labelledby="diagram-review-title" xmlns="http://www.w3.org/2000/svg">
+        <title id="diagram-review-title">파싱 결과 검토와 교정 workflow</title>
+        <rect x="25" y="45" width="120" height="62" rx="8" fill="#dbeafe" stroke="#3b82f6"/>
+        <text x="85" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">검토 큐 접속</text>
+        <text x="85" y="92" text-anchor="middle" font-size="12" fill="#1f2937">완료 작업 선택</text>
+        <text x="155" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="185" y="45" width="120" height="62" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+        <text x="245" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#713f12">신뢰도 확인</text>
+        <text x="245" y="92" text-anchor="middle" font-size="12" fill="#1f2937">85% 기준 판단</text>
+        <text x="315" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="345" y="25" width="135" height="62" rx="8" fill="#f0fdf4" stroke="#16a34a"/>
+        <text x="412" y="52" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">높은 신뢰도</text>
+        <text x="412" y="72" text-anchor="middle" font-size="12" fill="#1f2937">빠르게 항목 확인</text>
+        <rect x="345" y="120" width="135" height="62" rx="8" fill="#fff7ed" stroke="#f59e0b"/>
+        <text x="412" y="147" text-anchor="middle" font-size="13" font-weight="700" fill="#9a3412">낮은 신뢰도</text>
+        <text x="412" y="167" text-anchor="middle" font-size="12" fill="#1f2937">우선 검토</text>
+        <text x="490" y="83" font-size="22" fill="#64748b">→</text>
+        <rect x="520" y="72" width="125" height="62" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+        <text x="582" y="99" text-anchor="middle" font-size="13" font-weight="700" fill="#3730a3">내용 판정</text>
+        <text x="582" y="119" text-anchor="middle" font-size="12" fill="#1f2937">맞음 / 수정 필요</text>
+        <text x="655" y="110" font-size="22" fill="#64748b">→</text>
+        <rect x="685" y="72" width="120" height="62" rx="8" fill="#ecfeff" stroke="#06b6d4"/>
+        <text x="745" y="99" text-anchor="middle" font-size="13" font-weight="700" fill="#155e75">수정·저장</text>
+        <text x="745" y="119" text-anchor="middle" font-size="12" fill="#1f2937">신뢰도 재계산</text>
+        <text x="815" y="110" font-size="22" fill="#64748b">→</text>
+        <rect x="845" y="72" width="55" height="62" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+        <text x="872" y="109" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">완료</text>
+        <path d="M745 135 L745 190 L582 190 L582 136" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 5"/>
+        <text x="664" y="183" text-anchor="middle" font-size="12" fill="#475569">남은 항목 반복 검토</text>
+      </svg>
     </div>
-
-    <script>
-      if (window.mermaidFailed) {
-        document.getElementById('diagram-review').innerHTML =
-          '<div class="callout info"><span class="callout-icon">ℹ️</span><div>다이어그램 로드 실패. <strong>요약:</strong> 검토 큐 → 완료 작업 선택 → 신뢰도 확인 → 항목별 검토 → 오류 수정·저장 → 모든 항목 완료</div></div>';
-      }
-    </script>
 
     <div class="callout tip">
       <span class="callout-icon">💡</span>
@@ -1013,29 +1021,35 @@ flowchart LR
 
     <p>특정 규제 요건을 AI에게 질문하고 답변을 문서 작업에 활용하는 흐름입니다.</p>
 
-    <div class="mermaid" id="diagram-rag">
-flowchart TD
-    A([RA 담당자]) --> B[구체적인 질문 작성\n예: EU MDR Annex I 요건 중\n소프트웨어 관련 항목은?]
-    B --> C[API 호출 POST /rag/query]
-    C --> D[벡터 검색 — 관련 규제 문서\n청크 5개 검색]
-    D --> E[Ollama LLM 답변 생성]
-    E --> F[답변 + 출처 반환]
-    F --> G[출처 직접 확인]
-    G --> H{답변 신뢰?}
-    H -->|예 + 출처 확인됨| I[문서 작업에 활용]
-    H -->|아니오| J[다른 방식으로 질문 재시도]
-    I --> K([✅ 활용 완료])
-    style A fill:#dbeafe,stroke:#3b82f6
-    style K fill:#dcfce7,stroke:#16a34a
-    style J fill:#fff7ed,stroke:#f59e0b
+    <div class="workflow-diagram" id="diagram-rag">
+      <svg viewBox="0 0 920 210" role="img" aria-labelledby="diagram-rag-title" xmlns="http://www.w3.org/2000/svg">
+        <title id="diagram-rag-title">규제 요건 조회 workflow</title>
+        <rect x="20" y="50" width="125" height="62" rx="8" fill="#dbeafe" stroke="#3b82f6"/>
+        <text x="82" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">질문 작성</text>
+        <text x="82" y="96" text-anchor="middle" font-size="12" fill="#1f2937">구체적 규제 요건</text>
+        <text x="155" y="88" font-size="22" fill="#64748b">→</text>
+        <rect x="185" y="50" width="125" height="62" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+        <text x="247" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#3730a3">API 호출</text>
+        <text x="247" y="96" text-anchor="middle" font-size="12" fill="#1f2937">POST /rag/query</text>
+        <text x="320" y="88" font-size="22" fill="#64748b">→</text>
+        <rect x="350" y="50" width="125" height="62" rx="8" fill="#ecfeff" stroke="#06b6d4"/>
+        <text x="412" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#155e75">벡터 검색</text>
+        <text x="412" y="96" text-anchor="middle" font-size="12" fill="#1f2937">관련 청크 5개</text>
+        <text x="485" y="88" font-size="22" fill="#64748b">→</text>
+        <rect x="515" y="50" width="125" height="62" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+        <text x="577" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#713f12">LLM 답변</text>
+        <text x="577" y="96" text-anchor="middle" font-size="12" fill="#1f2937">답변 + 출처</text>
+        <text x="650" y="88" font-size="22" fill="#64748b">→</text>
+        <rect x="680" y="50" width="125" height="62" rx="8" fill="#f0fdf4" stroke="#16a34a"/>
+        <text x="742" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">출처 확인</text>
+        <text x="742" y="96" text-anchor="middle" font-size="12" fill="#1f2937">원문 근거 검토</text>
+        <text x="815" y="88" font-size="22" fill="#64748b">→</text>
+        <rect x="845" y="50" width="55" height="62" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+        <text x="872" y="87" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">활용</text>
+        <path d="M742 113 L742 168 L82 168 L82 114" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 5"/>
+        <text x="412" y="160" text-anchor="middle" font-size="12" fill="#9a3412">출처가 부족하면 질문을 좁혀 재시도</text>
+      </svg>
     </div>
-
-    <script>
-      if (window.mermaidFailed) {
-        document.getElementById('diagram-rag').innerHTML =
-          '<div class="callout info"><span class="callout-icon">ℹ️</span><div>다이어그램 로드 실패. <strong>요약:</strong> 질문 작성 → API 호출 → 벡터 검색 → LLM 답변 → 출처 확인 → 문서 작업 활용</div></div>';
-      }
-    </script>
 
     <h3>좋은 질문 작성 요령</h3>
     <div class="table-wrap">
@@ -1405,19 +1419,9 @@ docker cp customer-runtime_minio_data_1:/data ./minio-backup</code></pre>
 </div>
 
 <script>
-  // Initialize Mermaid
-  if (!window.mermaidFailed) {
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      flowchart: { curve: 'basis', padding: 20 },
-      fontSize: 14
-    });
-  }
-
   // Sidebar active link highlight
   const sections = document.querySelectorAll('section[id]');
-  const navLinks = document.querySelectorAll('#sidebar nav a');
+  const navLinks = document.querySelectorAll('#sidebar a[href^="#"]');
 
   function updateActiveLink() {
     let current = '';
@@ -1435,10 +1439,15 @@ docker cp customer-runtime_minio_data_1:/data ./minio-backup</code></pre>
   // Smooth scroll
   navLinks.forEach(link => {
     link.addEventListener('click', e => {
-      const target = document.querySelector(link.getAttribute('href'));
+      const href = link.getAttribute('href');
+      const target = document.querySelector(href);
       if (target) {
         e.preventDefault();
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (window.location.hash !== href) {
+          window.location.hash = href;
+        }
+        updateActiveLink();
       }
     });
   });

@@ -19,10 +19,10 @@ const issues = [];
 function test(label, fn) {
   try {
     const result = fn();
-    if (result === false) {
+    if (result === false || (result && result.fail)) {
       failed++;
-      issues.push({ type: 'FAIL', label });
-      console.log(`  ❌ FAIL  ${label}`);
+      issues.push({ type: 'FAIL', label, detail: result && result.fail });
+      console.log(`  ❌ FAIL  ${label}${result && result.fail ? ': ' + result.fail : ''}`);
     } else if (result && result.warn) {
       warnings++;
       issues.push({ type: 'WARN', label, detail: result.warn });
@@ -133,9 +133,23 @@ const navLinks = [...html.matchAll(/<a[^>]+href="#([^"]+)"[^>]*>([^<]+)</g)];
 test('사이드바 nav 링크 존재 (최소 10개)', () => navLinks.length >= 10 || { warn: `발견된 링크: ${navLinks.length}개` });
 test('nav-section 그룹 헤더 존재', () => html.includes('class="nav-section"'));
 test('#sidebar 요소', () => html.includes('id="sidebar"'));
+const sidebarHtml = (html.match(/<nav[^>]+id="sidebar"[\s\S]*?<\/nav>/i) || [''])[0];
+const sidebarLinks = [...sidebarHtml.matchAll(/<a[^>]+href="#([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
+  .map(m => ({
+    href: m[1],
+    text: m[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
+  }));
 const sectionIds = [...html.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
 const navHrefs = [...html.matchAll(/href="#([^"]+)"/g)].map(m => m[1]);
 const brokenLinks = navHrefs.filter(h => h && h !== '#' && !sectionIds.includes(h));
+test('Sidebar link terminal punctuation consistency', () => {
+  const terminalPunctuation = sidebarLinks
+    .filter(link => /[.!?。．]$/.test(link.text))
+    .map(link => `${link.href}: ${link.text}`);
+  return terminalPunctuation.length === 0 || {
+    warn: `terminal punctuation links ${terminalPunctuation.length}: ${terminalPunctuation.join(', ')}`,
+  };
+});
 test('내비게이션 링크 모두 유효 (앵커 존재)', () => brokenLinks.length === 0 || { warn: `끊긴 링크 ${brokenLinks.length}개: ${brokenLinks.join(', ')}` });
 
 // ── 3. Content Completeness ───────────────────────────────────────────────────
@@ -157,11 +171,10 @@ for (const [name, pattern] of mustHaveSections) {
 // ── 4. Diagram Check ──────────────────────────────────────────────────────────
 console.log('\n[4] 다이어그램 검사');
 test('SVG 아키텍처 다이어그램 포함', () => html.includes('<svg') && html.includes('</svg>'));
-test('Mermaid.js 워크플로우 다이어그램', () => html.includes('mermaid') || html.includes('Mermaid'));
+test('오프라인 SVG 워크플로우 다이어그램', () => (html.match(/class="workflow-diagram"/g) || []).length >= 3);
 test('다이어그램 개수 (최소 2개)', () => {
   const svgCount = (html.match(/<svg/g) || []).length;
-  const mermaidCount = (html.match(/class="mermaid"/g) || []).length;
-  const total = svgCount + mermaidCount;
+  const total = svgCount;
   return total >= 2 || { warn: `다이어그램 ${total}개` };
 });
 
@@ -277,6 +290,12 @@ test('스크롤바 썸 가시성 (비텍스트 UI 요소 3:1)', () => {
 // ── 8. GitHub Pages Readiness ─────────────────────────────────────────────────
 console.log('\n[8] GitHub Pages 호환성');
 test('외부 리소스 fallback 처리', () => html.includes('onerror') || html.includes('catch'));
+test('오프라인 자체 포함 HTML (외부 script 없음)', () => {
+  const externalScripts = [...html.matchAll(/<script[^>]+src="(https?:\/\/[^"]+)"/g)].map(m => m[1]);
+  return externalScripts.length === 0 || {
+    fail: `외부 script ${externalScripts.length}개: ${externalScripts.join(', ')}`,
+  };
+});
 test('인라인 CSS (외부 CSS 파일 의존 없음)', () => {
   const externalCss = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="(?!https?:)/g)];
   return externalCss.length === 0 || { warn: `로컬 외부 CSS ${externalCss.length}개` };
@@ -294,6 +313,25 @@ test('비개발자 대상 텍스트 (IT 용어 최소화)', () => {
 
 // ── 10. CSS Selector ↔ HTML Structure Consistency ────────────────────────────
 console.log('\n[10] CSS 선택자-HTML 구조 정합성');
+const hasNestedSidebarNav = /<nav[^>]+id="sidebar"[^>]*>[\s\S]*?<nav[\s>]/i.test(html);
+const scriptNavSelector = (html.match(/const\s+navLinks\s*=\s*document\.querySelectorAll\('([^']+)'\)/) || [])[1];
+test('사이드바 JS nav selector 구조 일치', () => {
+  if (!scriptNavSelector) return { fail: 'navLinks querySelectorAll selector를 찾을 수 없음' };
+  if (scriptNavSelector.includes('#sidebar nav') && !hasNestedSidebarNav) {
+    return { fail: `${scriptNavSelector} — HTML에 nav>nav 중첩 구조 없음. #sidebar a[href^="#"] 로 수정 필요` };
+  }
+  if (sidebarLinks.length > 0 && scriptNavSelector !== '#sidebar a[href^="#"]') {
+    return { warn: `현재 selector ${scriptNavSelector}; 클릭 검증 안정성을 위해 #sidebar a[href^="#"] 권장` };
+  }
+  return true;
+});
+test('사이드바 클릭 후 URL hash 갱신', () => {
+  const clickHandler = (html.match(/link\.addEventListener\('click'[\s\S]*?\n\s*\}\);/) || [''])[0];
+  if (!clickHandler) return { fail: '사이드바 click handler를 찾을 수 없음' };
+  return /history\.pushState|(?:window\.)?location\.hash/.test(clickHandler) || {
+    fail: 'click handler가 preventDefault 후 URL hash를 갱신하지 않아 locator.click() 검증이 기다릴 상태를 만들지 못함',
+  };
+});
 test('사이드바 nav 링크 선택자 구조 일치', () => {
   // <nav id="sidebar"> 구조에서는 #sidebar li a 가 올바른 선택자
   // #sidebar nav li a 는 sidebar 안에 중첩된 nav가 있어야 매칭됨
