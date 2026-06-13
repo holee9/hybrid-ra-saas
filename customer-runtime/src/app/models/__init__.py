@@ -17,6 +17,11 @@ from app.models.checklist_snapshot import ChecklistSnapshot
 from app.models.checklist_item import ChecklistItem
 from app.models.gap_finding import GapFinding
 from app.models.checklist_export import ChecklistExport
+# SPEC-EVIDENCE-001
+from app.models.evidence_binder import EvidenceBinder
+from app.models.evidence_link import EvidenceLink
+from app.models.evidence_file import EvidenceFile
+from app.models.evidence_gap import EvidenceGap
 # SPEC-PERMISSION-001
 from app.models.user import (
     DecisionType,
@@ -60,4 +65,9 @@ __all__ = [
     "ReviewDecision",
     "DecisionType",
     "RoleAuditLog",
+    # SPEC-EVIDENCE-001
+    "EvidenceBinder",
+    "EvidenceLink",
+    "EvidenceFile",
+    "EvidenceGap",
 ]

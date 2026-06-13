@@ -13,6 +13,7 @@ from app.routers.audit import router as audit_router
 from app.routers.authoring import router as authoring_router
 from app.routers.checklist import router as checklist_router
 from app.routers.audit_decisions import router as audit_decisions_router
+from app.routers.evidence import router as evidence_router
 from app.routers.auth import router as auth_router
 from app.routers.documents import router as documents_router
 from app.routers.guardrail import router as guardrail_router
@@ -73,6 +74,8 @@ def create_app() -> FastAPI:
     app.include_router(authoring_router)
     # SPEC-CHECKLIST-001: Checklist & Gap Engine
     app.include_router(checklist_router, prefix="/api/v1", tags=["checklists"])
+    # SPEC-EVIDENCE-001: Evidence Binder
+    app.include_router(evidence_router, prefix="/api/v1", tags=["evidence"])
 
     return app
 
