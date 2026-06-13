@@ -28,7 +28,12 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        run: uv sync --frozen --extra dev
+        run: |
+          if [ -f uv.lock ]; then
+            uv sync --frozen --extra dev
+          else
+            uv sync --extra dev
+          fi
 
       - name: Ruff lint
         run: uv run ruff check .
@@ -58,7 +63,12 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        run: uv sync --frozen --extra dev
+        run: |
+          if [ -f uv.lock ]; then
+            uv sync --frozen --extra dev
+          else
+            uv sync --extra dev
+          fi
 
       - name: Ruff lint
         run: uv run ruff check .
