@@ -18,6 +18,7 @@ os.environ.setdefault("OLLAMA_ENDPOINT", "http://ollama:11434")
 os.environ.setdefault("OLLAMA_MODEL", "llama3.1:8b")
 os.environ.setdefault("CLOUD_SYNC_ENDPOINT", "https://sync.example.com")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:8080")
+os.environ.setdefault("REGULA_API_KEY", "test-regula-api-key")
 
 from tests.conftest import skip_no_docker
 
@@ -193,6 +194,7 @@ class TestRagEndpoint:
                     headers={
                         "Authorization": f"Bearer {token}",
                         "X-Tenant-ID": "tenant-1",
+                        "X-Regula-API-Key": "test-regula-api-key",
                     },
                     json={"question": "What are the safety requirements?"},
                 )
@@ -218,7 +220,11 @@ async def test_rag_endpoint_integration(client):
     token = create_token("user-1", "tenant-1")
     resp = await client.post(
         "/rag/query",
-        headers={"Authorization": f"Bearer {token}", "X-Tenant-ID": "tenant-1"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "X-Tenant-ID": "tenant-1",
+            "X-Regula-API-Key": "test-regula-api-key",
+        },
         json={
             "question": "What safety requirements apply?",
             "evidence_required": True,
