@@ -11,6 +11,7 @@ from app.core.ratelimit import limiter, rate_limit_exceeded_handler
 from app.database import init_engine
 from app.routers.audit import router as audit_router
 from app.routers.authoring import router as authoring_router
+from app.routers.checklist import router as checklist_router
 from app.routers.audit_decisions import router as audit_decisions_router
 from app.routers.auth import router as auth_router
 from app.routers.documents import router as documents_router
@@ -70,6 +71,8 @@ def create_app() -> FastAPI:
     app.include_router(audit_decisions_router)
     # SPEC-AUTHORING-001: Guided Authoring Workspace
     app.include_router(authoring_router)
+    # SPEC-CHECKLIST-001: Checklist & Gap Engine
+    app.include_router(checklist_router, prefix="/api/v1", tags=["checklists"])
 
     return app
 

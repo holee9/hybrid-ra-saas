@@ -12,6 +12,11 @@ from app.models.parse_job import ParseJob, ParseJobStatus
 # SPEC-AUTHORING-001
 from app.models.authoring_session import AuthoringSession
 from app.models.authoring_section_entry import AuthoringSectionEntry
+# SPEC-CHECKLIST-001
+from app.models.checklist_snapshot import ChecklistSnapshot
+from app.models.checklist_item import ChecklistItem
+from app.models.gap_finding import GapFinding
+from app.models.checklist_export import ChecklistExport
 # SPEC-PERMISSION-001
 from app.models.user import (
     DecisionType,
@@ -42,6 +47,11 @@ __all__ = [
     # SPEC-AUTHORING-001
     "AuthoringSession",
     "AuthoringSectionEntry",
+    # SPEC-CHECKLIST-001
+    "ChecklistSnapshot",
+    "ChecklistItem",
+    "GapFinding",
+    "ChecklistExport",
     # SPEC-PERMISSION-001
     "User",
     "UserRole",
