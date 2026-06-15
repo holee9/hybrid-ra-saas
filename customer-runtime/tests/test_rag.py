@@ -162,7 +162,7 @@ class TestRagEndpoint:
         """Valid request -> 200 with answer, evidence_links, confidence, submit_safe."""
         from httpx import ASGITransport, AsyncClient
         from app.main import create_app
-        from app.core.security import create_token
+        from app.core.security import create_token, verify_api_key
         from app.deps import get_db
         from app.services.rag import RagService
 
@@ -175,6 +175,9 @@ class TestRagEndpoint:
             "submit_safe": True,
         }
 
+        async def mock_verify_api_key():
+            return "test-regula-api-key"
+
         with patch.object(
             RagService,
             "query",
@@ -184,6 +187,7 @@ class TestRagEndpoint:
                 yield MagicMock()
 
             app.dependency_overrides[get_db] = mock_db
+            app.dependency_overrides[verify_api_key] = mock_verify_api_key
             token = create_token("user-1", "tenant-1")
 
             async with AsyncClient(
