@@ -357,7 +357,7 @@ async def test_create_user_duplicate_email_returns_409(perm_client):
     token = await _get_token(ac, tenant_id="tenant-test", email="admin3@example.com", password="adminpass")
     resp = await ac.post(
         "/users",
-        json={"email": "dup@example.com", "password": "pass2", "role": "practitioner"},
+        json={"email": "dup@example.com", "password": "pass2222", "role": "practitioner"},
         headers={"Authorization": f"Bearer {token}", "X-Tenant-ID": "tenant-test"},
     )
     assert resp.status_code == 409

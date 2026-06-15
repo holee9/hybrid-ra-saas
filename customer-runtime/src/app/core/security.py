@@ -1,7 +1,7 @@
 """JWT HS256 token creation/validation and API key authentication.
 
 SPEC-PERMISSION-001 additions:
-  - hash_password / verify_password  (bcrypt via passlib)
+  - hash_password / verify_password  (bcrypt direct — passlib removed, incompatible with bcrypt>=4)
   - create_user_token                (JWT with role claim)
   - create_refresh_token             (longer-lived JWT)
 
@@ -11,14 +11,10 @@ must NOT be modified.
 import hmac
 from datetime import datetime, timezone, timedelta
 
+import bcrypt
 import jwt
 from fastapi import Header, HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader
-from passlib.context import CryptContext
-
-# @MX:NOTE: [AUTO] bcrypt context — cost factor 12 is the project default.
-# Changing rounds requires re-hashing all existing passwords.
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _get_secret() -> str:
@@ -49,12 +45,12 @@ def hash_password(plain: str) -> str:
     # @MX:ANCHOR: [AUTO] Password hashing entry point for all user creation paths.
     # @MX:REASON: Called by user creation endpoint and test helpers; bcrypt is mandatory.
     """
-    return _pwd_context.hash(plain)
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Verify a plaintext password against a bcrypt hash."""
-    return _pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def create_user_token(
