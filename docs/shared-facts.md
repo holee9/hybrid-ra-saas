@@ -86,3 +86,34 @@ Sources:
 - [IntuitionLabs - GxP Compliance Software eQMS Platform Comparison 2026](https://intuitionlabs.ai/articles/gxp-compliance-software-eqms-comparison-2026)
 - [G2 - Veeva Vault QMS Reviews 2026](https://www.g2.com/products/veeva-vault-qms/reviews)
 - [Capterra - TrackWise Digital vs Vault Quality Suite 2025](https://www.capterra.com/quality-management-software/compare/175662-178567/Trackwise-Digital-vs-Vault-Quality-Suite)
+
+## Template-First Strategy Canonical (2026-06-13)
+
+**정본 판단:** 제품 시작점은 기존 문서 업로드만이 아니라 `Product Profile -> Regulatory Pathway -> Template Pack -> Checklist -> Authoring/Evidence -> Review/Audit` 흐름이어야 한다.
+
+**유지할 기존 기능:**
+- Dynamic Parser
+- Manual Correction UI
+- Review Queue
+- RAG Assistant
+- Consistency Guardrail
+- Crawler/Knowledge Sync
+- Audit Export
+
+**신규 정본 컴포넌트:**
+- Regulatory Pathway Resolver
+- Template Pack Registry
+- Checklist & Gap Engine
+- Guided Authoring Workspace
+- Evidence Binder
+- Template-Aware Export
+
+**공식 근거:**
+- FDA eSTAR는 510(k)/De Novo 제출을 구조화된 template-driven submission model로 운영한다.
+- FDA software guidance는 SRS, risk management file, architecture, V&V, traceability 등 구조화 문서군을 요구한다.
+- EU MDR Annex II/III는 technical documentation과 PMS documentation의 명확하고 정리된 구조를 요구한다.
+
+**실행 추적:**
+- Strategy audit: `docs/template-first-strategy-audit.md`
+- SPEC: `.moai/specs/SPEC-TEMPLATE-001/spec.md`
+- GitHub issue: https://github.com/holee9/hybrid-ra-saas/issues/29

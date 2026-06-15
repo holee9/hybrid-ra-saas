@@ -1,0 +1,26 @@
+[
+  {
+    "pathway_id": "KR-MFDS-MD",
+    "market": "KR",
+    "authority": "MFDS",
+    "submission_type": "medical_device",
+    "device_class": "Class II",
+    "applicable_standards": ["ISO 13485", "IEC 62304"]
+  },
+  {
+    "pathway_id": "US-FDA-510K",
+    "market": "US",
+    "authority": "FDA",
+    "submission_type": "510k",
+    "device_class": "Class II",
+    "applicable_standards": ["ISO 13485", "IEC 62304", "ISO 14971"]
+  },
+  {
+    "pathway_id": "EU-MDR-IIA",
+    "market": "EU",
+    "authority": "EU",
+    "submission_type": "mdr_technical_doc",
+    "device_class": "Class IIa",
+    "applicable_standards": ["ISO 13485", "IEC 62304", "ISO 14971", "MDR 2017/745"]
+  }
+]

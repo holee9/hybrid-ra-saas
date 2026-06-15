@@ -1,0 +1,9 @@
+[
+  {
+    "rule_id": "RULE-SW-001",
+    "condition_field": "software_in_device",
+    "condition_value": "true",
+    "template_pack_id": "US-FDA-510K-XRAY-V1",
+    "explanation": "Software documentation only required when device contains software."
+  }
+]

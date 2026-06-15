@@ -9,6 +9,8 @@ from app.config import Settings
 from app.database import init_engine
 from app.routers.crawl import router as crawl_router
 from app.routers.health import router as health_router
+from app.routers.product_profiles import router as product_profiles_router
+from app.routers.template_packs import router as template_packs_router
 
 
 @asynccontextmanager
@@ -44,6 +46,8 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(crawl_router)
+    app.include_router(product_profiles_router)
+    app.include_router(template_packs_router)
 
     return app
 

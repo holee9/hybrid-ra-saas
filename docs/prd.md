@@ -811,3 +811,89 @@ resource "aws_budgets_budget" "cost_guard" {
 ---
 
 *버전: v3.0 | 갭 트래커: [SPEC-DOC-001](.moai/specs/SPEC-DOC-001/spec.md)*
+
+---
+
+## 15. 2026-06-13 제품 개정: Template-First Product Rebase
+
+> 근거 문서: [`docs/template-first-strategy-audit.md`](template-first-strategy-audit.md), 실행 SPEC: [`.moai/specs/SPEC-TEMPLATE-001/spec.md`](../.moai/specs/SPEC-TEMPLATE-001/spec.md), GitHub [#29](https://github.com/holee9/hybrid-ra-saas/issues/29)
+
+### 15.1 제품 흐름 변경
+
+기존 제품 흐름:
+
+```text
+Upload document -> Parse -> Correction -> Review queue -> Guardrail/RAG -> Audit export
+```
+
+개정 제품 흐름:
+
+```text
+Product profile
+-> Regulatory pathway selection
+-> Template pack generation
+-> Guided authoring / evidence attachment
+-> Checklist and gap analysis
+-> Parser reconciliation for uploaded files
+-> Guardrail/RAG review
+-> Audit/export package
+```
+
+기존 파서, 보정 UI, 검토 큐, RAG, Guardrail, Audit Export는 유지한다. 단, 제품 시작점은 기존 문서 업로드가 아니라 경로별 템플릿 팩과 체크리스트 생성으로 이동한다.
+
+### 15.2 Unified Schema 확장
+
+| 엔티티 | 주요 필드 | 설명 |
+|--------|---------|------|
+| **ProductProfile** | `profile_id`, `device_family`, `intended_use`, `target_markets`, `software_in_device`, `risk_class`, `predicate_strategy` | template pack/pathway 선택 입력 |
+| **RegulatoryPathway** | `pathway_id`, `jurisdiction`, `authority`, `pathway_type`, `version`, `status` | FDA 510(k), De Novo, EU MDR, MFDS 등 경로 메타데이터 |
+| **TemplatePack** | `pack_id`, `pathway_id`, `device_family`, `version`, `source_version`, `status` | 경로/품목군별 문서 템플릿 묶음 |
+| **TemplateDocument** | `document_id`, `doc_type`, `title`, `required`, `export_format` | 제출 패키지 내 문서 단위 |
+| **TemplateSection** | `section_id`, `section_key`, `title`, `required`, `instructions`, `placeholder`, `source_reference_ids` | 작성 섹션과 증적 placeholder |
+| **ApplicabilityRule** | `rule_id`, `expression`, `explanation` | 제품 프로필에 따른 섹션 포함/제외 규칙 |
+| **SourceReference** | `source_id`, `authority`, `title`, `url`, `retrieved_at`, `section_ref` | 공식 출처/내부 best practice 근거 |
+| **ChecklistItem** | `checklist_item_id`, `section_id`, `status`, `blocking`, `evidence_required`, `reviewer_status` | 작성·검토·승인 상태 관리 |
+
+### 15.3 신규 기능 요구사항
+
+| ID | 기능 | 설명 | 구현 포인트 | 수용 기준 |
+|----|------|------|-----------|---------|
+| **FR-211** | Regulatory Pathway Resolver | 제품 프로필로 적용 가능한 인허가 경로와 template pack 후보를 반환 | `POST /template-packs/resolve` | 미지원 경로는 speculative 생성 없이 unsupported 반환 |
+| **FR-212** | Template Pack Registry | 경로/국가/품목군별 문서/섹션/출처/적용 규칙을 버전 관리 | seed fixture -> DB registry 순서 | 규제 기반 section은 source reference 필수 |
+| **FR-213** | Checklist Engine | template section을 checklist item으로 변환하고 상태를 관리 | `POST /checklists/generate`, `GET /checklists/{id}` | required 누락과 blocking gap 표면화 |
+| **FR-214** | Guided Authoring Workspace | 사용자가 template section 단위로 초안, 증적, 검토 상태를 관리 | 별도 `SPEC-AUTHORING-001` | AI 초안은 human approval 없이는 approved 불가 |
+| **FR-215** | Evidence Binder | 요구사항/위험/시험/IFU/첨부 파일을 제출 패키지로 연결 | traceability matrix 확장 | unlinked high-risk control 자동 finding |
+| **FR-216** | Template-Aware Export | eSTAR attachment binder, EU MDR Annex II/III 패키지, checklist export | 별도 `SPEC-EXPORT-001` | pack version, source ref, reviewer, audit hash 포함 |
+
+### 15.4 API 백로그
+
+| Method | Path | 목적 | SPEC |
+|--------|------|------|------|
+| `GET` | `/template-packs` | 사용 가능한 template pack 목록 조회 | SPEC-TEMPLATE-001 |
+| `POST` | `/template-packs/resolve` | ProductProfile 기반 pack/pathway 선택 | SPEC-TEMPLATE-001 |
+| `POST` | `/checklists/generate` | applicable section 기반 checklist 생성 | SPEC-TEMPLATE-001 |
+| `GET` | `/checklists/{checklist_id}` | checklist 상세, source ref, evidence 상태 조회 | SPEC-TEMPLATE-001 |
+| `PATCH` | `/checklists/{checklist_id}/items/{item_id}` | item status/reviewer status 변경 및 audit 기록 | SPEC-TEMPLATE-001 |
+
+### 15.5 백로그 우선순위 개정
+
+| Epic | 주요 작업 | 산출물 | 우선순위 |
+|------|---------|-------|---------|
+| **Template Pack Foundation** | ProductProfile, Pathway, TemplatePack, Section, SourceReference, Checklist schema | `SPEC-TEMPLATE-001` MVP | P0 |
+| **Cloud Knowledge Foundation** | 소스 목록, 크롤러, 저장, 문서 해시, 메타 DB | 수집/변경 감지 | P0 |
+| **Local Ingestion** | DOCX/XLSX 파서, confidence, 보정 UI | parser reconciliation | P0 |
+| **Checklist & Gap Engine** | required/optional section 상태, blocking gap, source ref | checklist MVP | P0 |
+| **Guided Authoring** | section editor, AI draft labeling, evidence attach | authoring MVP | P1 |
+| **Traceability Graph** | requirement/risk/control/evidence 연결 | 정합성 검사 | P1 |
+| **Review Workspace** | 검토 큐, 역할/상태, 승인/반려 | checklist + finding 통합 큐 | P1 |
+| **Template-Aware Export** | eSTAR attachment binder, XLSX checklist, audit package | 제출 준비 package | P2 |
+
+### 15.6 이슈 추적
+
+| 이슈 | PRD 연결 |
+|------|---------|
+| [#24](https://github.com/holee9/hybrid-ra-saas/issues/24) | CI가 `customer-runtime`, `cloud-control-plane`, `ui` 품질 게이트를 모두 막도록 확장 |
+| [#25](https://github.com/holee9/hybrid-ra-saas/issues/25) | Regula 연동 경계 회귀 테스트 보강 |
+| [#26](https://github.com/holee9/hybrid-ra-saas/issues/26) | parser 품질 수치의 실효성 확보 |
+| [#27](https://github.com/holee9/hybrid-ra-saas/issues/27) | README/연동/배포/시크릿 문서 상태 동기화 |
+| [#29](https://github.com/holee9/hybrid-ra-saas/issues/29) | template-first 제품 축 실행 SPEC |

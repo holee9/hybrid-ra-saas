@@ -22,10 +22,10 @@ ra-med-bot(Regula UI) 내부 구현은 해당 레포에서 별도 진행한다.
 | `/guardrail/run` | ✅ 구현 완료 | `customer-runtime/src/app/routers/guardrail.py` |
 | `/audit/export` | ✅ 구현 완료 | `customer-runtime/src/app/routers/audit.py` |
 | JWT Bearer 인증 | ✅ 구현 완료 | `customer-runtime/src/app/core/security.py` |
-| **Vectorize 지식 Push 엔드포인트** | ❌ 미구현 | — |
-| **ra-med-bot API Key 인증 미들웨어** | ❌ 미구현 | — |
-| **CORS: regula.abyz-lab.work 허용** | ❌ 미설정 | `.env.example`, `deploy-prod.yml` |
-| **Cloud Control Plane CORS 미들웨어** | ❌ 없음 | `cloud-control-plane/src/app/main.py` |
+| **Vectorize 지식 Push 클라이언트** | ✅ 구현 완료 / 운영 secret 필요 | `cloud-control-plane/src/app/services/knowledge_push.py`, `cloud-control-plane/src/app/services/orchestrator.py` |
+| **ra-med-bot API Key 인증** | ✅ 구현 완료 / tenant allowlist 보강 | `customer-runtime/src/app/core/security.py`, `customer-runtime/src/app/routers/rag.py` |
+| **CORS: regula.abyz-lab.work 허용** | ✅ 기본값 반영 / 배포 env 검증 필요 | `customer-runtime/.env.example`, `cloud-control-plane/src/app/config.py` |
+| **Cloud Control Plane CORS 미들웨어** | ✅ 구현 완료 | `cloud-control-plane/src/app/main.py` |
 
 **Azure 엔드포인트:**  
 `https://api-prod.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io`
@@ -50,37 +50,35 @@ ra-med-bot(Regula UI) 내부 구현은 해당 레포에서 별도 진행한다.
 
 ## 2. 연동 인터페이스 갭 목록
 
-### GAP-01 [P0 BLOCKER] CORS: regula.abyz-lab.work 미허용
+### GAP-01 [P0 완료 / 운영 검증 필요] CORS: regula.abyz-lab.work 허용
 
 **현황:**
-- Customer Runtime 프로덕션: `CORS_ORIGINS=*` (`.github/workflows/deploy-prod.yml` line 142)
-- Cloud Control Plane: CORS 미들웨어 자체 없음 (`main.py` 에 `CORSMiddleware` 없음)
-- ra-med-bot이 Azure API를 직접 호출 시 CORS 차단 위험 (향후 `*` 제거 시)
+- Customer Runtime과 Cloud Control Plane 모두 `CORS_ORIGINS` 기반 allowlist를 사용한다.
+- Cloud Control Plane `main.py`에는 `CORSMiddleware`가 적용되어 있다.
+- 운영 Container App 환경 변수에 `https://regula.abyz-lab.work`가 반영됐는지 배포 후 확인해야 한다.
 
-**필요 조치 (이 레포):**
-1. `deploy-prod.yml`: `CORS_ORIGINS=*` → `CORS_ORIGINS=https://regula.abyz-lab.work,https://api-prod.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io`
-2. Cloud Control Plane `main.py`에 `CORSMiddleware` 추가 (regula.abyz-lab.work 허용)
-3. `.env.example` 기본값 업데이트
+**남은 조치:**
+1. Azure Container App `CORS_ORIGINS` 값 확인
+2. 배포 후 `Origin: https://regula.abyz-lab.work` 요청으로 preflight/실요청 검증
 
 ---
 
-### GAP-02 [P0 BLOCKER] 인증 브릿지: JWT Bearer ↔ Auth.js 세션 쿠키
+### GAP-02 [P0/P1 완료 / 운영 secret 필요] 인증 브릿지: JWT Bearer ↔ Auth.js 세션 쿠키
 
 **현황:**
 - hybrid-ra-saas: `Authorization: Bearer <jwt_token>` (JWT, HS256)
 - ra-med-bot: Auth.js v5 세션 쿠키 (`authjs.session-token`)
-- 서버 간(ra-med-bot backend → hybrid-ra-saas) 호출 시 사용할 인증 수단 미정의
+- 서버 간(ra-med-bot backend → hybrid-ra-saas) 호출은 `X-Regula-API-Key` 패턴으로 정리됐다.
+- Customer Runtime은 `REGULA_ALLOWED_TENANTS`로 server-to-server tenant allowlist를 강제한다.
 
 **설계 결정:**  
 ra-med-bot → hybrid-ra-saas 호출은 **서버 사이드 API Key 패턴**으로 처리한다.  
 (사용자 세션 쿠키를 백엔드 간 전달하는 방식은 보안상 부적절)
 
-**필요 조치 (이 레포):**
-1. Customer Runtime에 API Key 인증 미들웨어 추가 (`X-Regula-API-Key` 헤더)
-2. `config.py`에 `regula_api_key: str` 설정 추가
-3. `deps.py`에 `get_regula_client()` 의존성 추가 (API Key 검증)
-4. `.env.example`에 `REGULA_API_KEY=` 항목 추가
-5. GitHub Secrets에 `REGULA_API_KEY` 등록 필요
+**남은 조치 (운영):**
+1. GitHub Secrets/Container App secret에 `REGULA_API_KEY` 등록
+2. 필요 시 `REGULA_ALLOWED_TENANTS`에 허용 tenant 목록 등록
+3. ra-med-bot 서버 사이드 호출에서 `X-Regula-API-Key`, `X-Tenant-ID`, Bearer JWT 전달 검증
 
 **ra-med-bot 측 (별도 레포 작업):**
 - `.env.example`에 `HYBRID_RA_API_KEY=`, `HYBRID_RA_API_URL=` 추가
@@ -88,19 +86,19 @@ ra-med-bot → hybrid-ra-saas 호출은 **서버 사이드 API Key 패턴**으�
 
 ---
 
-### GAP-03 [P0 BLOCKER] Vectorize 지식 동기화 파이프라인 없음
+### GAP-03 [P0 완료 / 외부 수신부 및 secret 필요] Vectorize 지식 동기화 파이프라인
 
 **현황:**
-- hybrid-ra-saas Cloud Control Plane: FDA/EU MDR/MFDS 문서를 크롤링 → Azure Blob/PostgreSQL 저장
+- hybrid-ra-saas Cloud Control Plane: FDA/EU MDR/MFDS 문서를 크롤링 → Azure Blob/PostgreSQL 저장 → 신규 문서 batch를 `KnowledgePushService`로 push
 - ra-med-bot: `CLOUDFLARE_VECTORIZE_INDEX_NAME=` (빈 값) — Vectorize 미연결, pgvector fallback 사용 중
 - `SPEC-REGULA-VECTORIZE-001` (ra-med-bot 내 `lib/ai/hybrid-router.ts`) pending 상태
-- **두 레포 사이에 문서 동기화 메커니즘이 전혀 없음**
+- 이 레포의 push client는 구현됐고, ra-med-bot 수신 endpoint/Vectorize upsert와 운영 secret 설정이 남아 있다.
 
 **아키텍처 결정:**  
 Cloud Control Plane 크롤 완료 후 → Cloudflare Workers를 통해 Vectorize에 upsert하는  
 **Push 방식(Webhook trigger)**이 Pull 폴링보다 적합하다. (실시간성, Azure Egress 절감)
 
-**필요 조치 (이 레포):**
+**구현 완료 (이 레포):**
 
 ```
 Cloud Control Plane (Azure)
@@ -111,14 +109,17 @@ Cloud Control Plane (Azure)
 ```
 
 1. `cloud-control-plane/src/app/services/orchestrator.py`:  
-   크롤 완료 후 `knowledge_push_service.push(documents)` 호출 추가
-2. `cloud-control-plane/src/app/services/` 에 `knowledge_push.py` 신규 작성:  
+   크롤 완료 후 `KnowledgePushService.push(job_id, documents)` 호출
+2. `cloud-control-plane/src/app/services/knowledge_push.py`:
    HTTP POST to `REGULA_KNOWLEDGE_PUSH_URL`, signed with `CRAWL_PUSH_SECRET`
-3. `cloud-control-plane/src/app/config.py`에 추가:
+3. `cloud-control-plane/src/app/config.py`:
    - `regula_knowledge_push_url: str = ""`  
    - `crawl_push_secret: str = ""`
-4. `.env.example`에 해당 항목 추가
-5. GitHub Secrets: `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET`
+
+**남은 조치:**
+1. GitHub Secrets/Container App secret에 `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET` 등록
+2. ra-med-bot 수신 endpoint와 Cloudflare Vectorize binding 설정
+3. 배포 후 크롤 job 완료 → push 수신 → Vectorize 검색까지 E2E 검증
 
 ---
 
@@ -193,17 +194,17 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 
 ## 3. hybrid-ra-saas에서 해야 할 작업 (이 레포 전용)
 
-### P0 — 연동 차단 해제 (구현 전 필수)
+### P0 — 연동 차단 해제 (구현 완료 / 운영 적용 필요)
 
 | 작업 | 파일 | 유형 |
 |-----|------|------|
-| Cloud Control Plane CORS 미들웨어 추가 | `cloud-control-plane/src/app/main.py` | 코드 수정 |
-| Customer Runtime CORS 운영 환경 명시적 허용 | `deploy-prod.yml` line 142 | 설정 수정 |
-| Customer Runtime API Key 인증 미들웨어 | `customer-runtime/src/app/core/security.py` | 코드 추가 |
-| `config.py` — regula_api_key 항목 추가 | `customer-runtime/src/app/config.py` | 코드 수정 |
-| knowledge_push.py 서비스 신규 작성 | `cloud-control-plane/src/app/services/knowledge_push.py` | 신규 파일 |
-| orchestrator.py — 크롤 완료 후 push 호출 | `cloud-control-plane/src/app/services/orchestrator.py` | 코드 수정 |
-| `.env.example` 연동 항목 추가 | `.env.example` | 설정 수정 |
+| Cloud Control Plane CORS 미들웨어 | `cloud-control-plane/src/app/main.py` | 구현 완료 |
+| Customer Runtime CORS 운영 환경 명시적 허용 | Container App env / `deploy-prod.yml` | 운영 검증 필요 |
+| Customer Runtime API Key 인증 | `customer-runtime/src/app/core/security.py` | 구현 완료 |
+| `config.py` — regula_api_key / tenant allowlist 항목 | `customer-runtime/src/app/config.py` | 구현 완료 |
+| knowledge_push.py 서비스 | `cloud-control-plane/src/app/services/knowledge_push.py` | 구현 완료 |
+| orchestrator.py — 크롤 완료 후 push 호출 | `cloud-control-plane/src/app/services/orchestrator.py` | 구현 완료 |
+| `.env.example` 연동 항목 | `.env.example`, 서비스별 `.env.example` | 확인 필요 |
 | GitHub Secrets 등록 | Repository Settings | 운영 작업 |
 
 ### P1 — 연동 안정화
@@ -254,8 +255,9 @@ cloud-control-plane crrawl 완료
 ```
 
 **이 레포 작업:**
-- `orchestrator.py` 크롤 완료 후 push 호출
-- `knowledge_push.py` HTTP client 구현
+- `orchestrator.py` 크롤 완료 후 push 호출 구현 완료
+- `knowledge_push.py` HTTP client 구현 완료
+- 회귀 테스트: #25
 
 **ra-med-bot 레포 작업 (별도):**
 - `SPEC-REGULA-VECTORIZE-001` 구현 완료

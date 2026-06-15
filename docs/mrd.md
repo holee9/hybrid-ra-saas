@@ -234,3 +234,54 @@
 ---
 
 *버전: v3.0 | 갭 트래커: [SPEC-DOC-001](.moai/specs/SPEC-DOC-001/spec.md)*
+
+---
+
+## 12. 2026-06-13 전략 개정: Template-First RA Workspace
+
+> 근거 문서: [`docs/template-first-strategy-audit.md`](template-first-strategy-audit.md), GitHub [#29](https://github.com/holee9/hybrid-ra-saas/issues/29)
+
+### 12.1 개정 판단
+
+기존 MVP는 `업로드 → 파싱 → 교정 → 검토 큐 → 가드레일/감사` 흐름을 중심으로 구현되었다. 이 흐름은 이미 IFU/SRS/RMS/시험요약 문서를 보유한 고객에게는 실사용 가치가 있다.
+
+다만 초기 의료기기 스타트업과 RA 인력이 부족한 팀의 첫 문제는 "완성된 문서를 어떻게 검토할 것인가"가 아니라 "어떤 문서를 어떤 구조로 작성해야 하는가"이다. 따라서 시장 요구사항은 ingestion-first가 아니라 template-first로 보강되어야 한다.
+
+### 12.2 사용자 가치 재정의
+
+| 사용자 | 기존 가치 | 보강되어야 할 가치 |
+|--------|----------|------------------|
+| 스타트업 CTO | 기존 문서 업로드 후 AI 파싱/검토 | 인허가 경로별 문서 템플릿과 체크리스트를 받아 첫 문서 체계를 구축 |
+| RA/QA 실무자 | 파싱 결과 교정, 검토 큐 처리 | 섹션별 누락, 증적 미첨부, 검토/승인 상태를 제출 구조 기준으로 관리 |
+| 컨설팅/시험기관 파트너 | 고객 문서 반복 검토 | 표준 입력 템플릿과 증적 바인더를 재사용해 고객별 온보딩 비용 절감 |
+| 경영/품질 책임자 | 감사로그와 export 확인 | 경로별 제출 준비율, blocking gap, 승인 이력, 근거 출처를 대시보드화 |
+
+### 12.3 신규 시장 요구사항
+
+| ID | 요구사항 | 구현 기준 | 범위 | 수용/검증 기준 |
+|----|---------|---------|------|-------------|
+| **REQ-MRD-111** | Regulatory Pathway Selection | 제품 프로필을 기반으로 FDA 510(k), De Novo, EU MDR, MFDS 등 적용 가능한 인허가 경로 후보를 제시 | MVP 확장 필수 | unsupported 경로는 추정 생성하지 않고 명확히 미지원 응답 |
+| **REQ-MRD-112** | Template Pack Registry | 경로/국가/품목군별 문서 템플릿, 섹션, 증적 placeholder, 출처를 버전 관리 | MVP 확장 필수 | 규제 기반 섹션은 최소 1개 공식 출처를 보유 |
+| **REQ-MRD-113** | Guided Authoring | 사용자가 템플릿 섹션에 맞춰 IFU/SRS/RMS/소프트웨어/증적 문서를 작성·상태관리 | P1 | AI 초안은 draft로 표시되고 RA/QA 승인 전 최종 상태가 될 수 없음 |
+| **REQ-MRD-114** | Checklist & Gap Analysis | 템플릿 섹션을 live checklist로 전환하고 누락/미검토/증적 미첨부 항목을 finding으로 표시 | MVP 확장 필수 | required section 누락 시 blocking gap 생성 |
+| **REQ-MRD-115** | Evidence Binder | 요구사항, 위험통제, 시험, IFU 경고, 첨부 파일을 제출 패키지 단위로 연결 | P1 | high-risk control 중 미검증/미연결 항목을 자동 표면화 |
+
+### 12.4 릴리즈 우선순위 개정
+
+| Release | 개정 후 필수 기능 | 고객 검증 목표 | Go/No-Go 기준 |
+|---------|----------------|-------------|-------------|
+| **MVP 0.1** | 규제 수집기, 로컬 업로드, 기본 파서, 근거 검색 | 기존 문서 20세트로 파싱/검색 검증 | 핵심 필드 추출 70%+ |
+| **MVP 0.3** | Template Pack Registry, FDA 510(k) seed pack, checklist 생성 | 문서가 없는 사용자도 제출 준비 구조를 이해 | 프로필 입력 후 문서/섹션/checklist 생성 가능 |
+| **MVP 0.5** | Guided authoring 최소화면, parser-to-template reconciliation | 템플릿 기반 작성물과 기존 업로드 문서 병행 검토 | blocking gap과 parser finding을 같은 큐에서 확인 |
+| **Beta 1.0** | Guardrail, Impact Analyzer, Audit Export, Evidence Binder | 유료 파일럿 전환 검토 큐와 감사로그 실사용 | 검토 큐, checklist, audit export 실사용 |
+| **Commercial 1.0** | 관리자/권한, 지식팩 버전, 운영 모니터링, template pack 확장 | Tier2 판매 가능 | 1일 설치/운영 가이드와 템플릿 pack 업데이트 절차 완성 |
+
+### 12.5 이슈 추적
+
+| 이슈 | 역할 | MRD 반영 상태 |
+|------|------|-------------|
+| [#24](https://github.com/holee9/hybrid-ra-saas/issues/24) | 전체 CI 품질 게이트 확장 | 품질 기준 후속 |
+| [#25](https://github.com/holee9/hybrid-ra-saas/issues/25) | ra-med-bot 연동 경계 회귀 테스트 | 연동 안정성 후속 |
+| [#26](https://github.com/holee9/hybrid-ra-saas/issues/26) | golden IFU F1 게이트 실효화 | parser 품질 후속 |
+| [#27](https://github.com/holee9/hybrid-ra-saas/issues/27) | 구현/문서 상태 동기화 | 문서 동기화 후속 |
+| [#29](https://github.com/holee9/hybrid-ra-saas/issues/29) | Template Pack Registry | 본 개정의 실행 SPEC |

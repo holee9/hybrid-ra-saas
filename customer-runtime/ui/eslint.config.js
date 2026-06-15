@@ -1,8 +1,13 @@
 import js from "@eslint/js";
 import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default [
+  {
+    ignores: ["dist/**", "coverage/**", "node_modules/**", "*.config.*"],
+  },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: {
@@ -17,13 +22,14 @@ export default [
       },
     },
     rules: {
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "prefer-const": "error",
       "no-var": "error",
     },
-  },
-  {
-    ignores: ["dist/**", "node_modules/**", "*.config.*"],
   },
 ];

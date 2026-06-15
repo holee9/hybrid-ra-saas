@@ -287,9 +287,11 @@ hybrid-ra-saas/
 
 ### regula.abyz-lab.work 설정
 
-1. `VERCEL_TOKEN`, `VERCEL_PROJECT_ID` Secrets 추가 ([`docs/secrets-setup.md`](docs/secrets-setup.md) 참고)
-2. GitHub Actions → **`setup-regula-domain.yml`** → Run workflow
+1. Cloudflare DNS에 `regula.abyz-lab.work` CNAME을 Vercel 대상으로 설정
+2. ra-med-bot 레포/Vercel 프로젝트에서 도메인 바인딩과 `NEXTAUTH_URL` 설정
 3. ra-med-bot Vercel 대시보드에서 도메인 검증 확인 후 Redeploy
+
+> 현재 이 레포의 workflow는 `ci.yml`, `deploy-staging.yml`, `deploy-prod.yml`, `terraform.yml`입니다. 도메인 바인딩 workflow는 이 레포에 없습니다.
 
 ---
 
@@ -361,10 +363,10 @@ git push origin v1.0.0
 
 | 워크플로우 | 트리거 | 역할 |
 |-----------|--------|------|
+| `ci.yml` | PR → `main`, `develop` | Customer Runtime Python, Cloud Control Plane Python, Customer Runtime UI lint/test/build |
+| `deploy-staging.yml` | `main` push / 수동 | staging Container App Docker 빌드 → ACR push → 배포 → 헬스체크 |
 | `deploy-prod.yml` | `v*` 태그 push | Cloud Control Plane + Customer Runtime Docker 빌드 → ACR push → Container App 배포 |
 | `terraform.yml` | PR / main merge | Azure 인프라 Terraform plan / apply |
-| `setup-regula-domain.yml` | 수동 (workflow_dispatch) | **regula.abyz-lab.work** Cloudflare DNS + Vercel 도메인 바인딩 + NEXTAUTH_URL 업데이트 |
-| `domain-setup.yml` | 수동 (workflow_dispatch) | ra.abyz-lab.work → Azure Container App 바인딩 (엔터프라이즈 API용) |
 
 > Secrets 설정 방법 → [`docs/secrets-setup.md`](docs/secrets-setup.md)
 
@@ -375,10 +377,12 @@ git push origin v1.0.0
 | 단계 | 목표 | 핵심 산출물 |
 |------|------|-----------|
 | **완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 | 6개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER) |
-| **P0 — 진행 예정** | 크롤러 → Regula Vectorize 자동 동기화 | `cloud-control-plane` vectorize_sync 서비스 |
-| **P1 — 예정** | IFU 파서 → Regula 프로젝트 컨텍스트 연동 | Regula `device-context` API + 파서 클라이언트 |
-| **P2 — 예정** | Audit trail export 연동 | Regula 이벤트 → SaaS audit log → 제출용 패키지 |
+| **P0 — 구현 완료 / 운영 검증 필요** | 크롤러 → Regula Vectorize 자동 동기화 | `KnowledgePushService`, `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET` |
+| **P1 — 구현 완료 / 운영 검증 필요** | IFU 파서 → Regula 프로젝트 컨텍스트 연동 | `/rag/query` API key 인증, tenant allowlist |
+| **P2 — 구현 완료 / 운영 검증 필요** | Audit trail / IFU webhook 연동 | `/audit/webhook`, `REGULA_AUDIT_WEBHOOK_URL`, `REGULA_IFU_WEBHOOK_URL` |
 | **P3 — 예정** | Regula Enterprise 리브랜딩 | Docker 이미지 태그, README, API 헤더 |
+
+품질 보강 추적: [#24](https://github.com/holee9/hybrid-ra-saas/issues/24), [#25](https://github.com/holee9/hybrid-ra-saas/issues/25), [#26](https://github.com/holee9/hybrid-ra-saas/issues/26), [#27](https://github.com/holee9/hybrid-ra-saas/issues/27). 템플릿-우선 제품 개편: [#29](https://github.com/holee9/hybrid-ra-saas/issues/29). 연동 구현 이력: [#23](https://github.com/holee9/hybrid-ra-saas/issues/23).
 
 ---
 

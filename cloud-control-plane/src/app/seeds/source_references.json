@@ -1,0 +1,37 @@
+[
+  {
+    "ref_id": "SRC-FDA-ESTAR",
+    "regulation_name": "FDA eSTAR Program",
+    "article": "eSTAR",
+    "url": "https://www.fda.gov/medical-devices/how-study-and-market-your-device/estar-program",
+    "effective_date": null
+  },
+  {
+    "ref_id": "SRC-FDA-SW-GUIDANCE",
+    "regulation_name": "FDA Software Submission Guidance",
+    "article": "Software Functions",
+    "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/content-premarket-submissions-device-software-functions",
+    "effective_date": null
+  },
+  {
+    "ref_id": "SRC-ISO-13485",
+    "regulation_name": "ISO 13485:2016 Quality Management Systems",
+    "article": "Clause 7.3",
+    "url": "https://www.iso.org/standard/59752.html",
+    "effective_date": null
+  },
+  {
+    "ref_id": "SRC-IEC-62304",
+    "regulation_name": "IEC 62304:2006 Medical Device Software Lifecycle",
+    "article": "Clause 5",
+    "url": "https://www.iec.ch/standard/38421.html",
+    "effective_date": null
+  },
+  {
+    "ref_id": "SRC-ISO-14971",
+    "regulation_name": "ISO 14971:2019 Risk Management",
+    "article": "Clause 4",
+    "url": "https://www.iso.org/standard/72704.html",
+    "effective_date": null
+  }
+]
