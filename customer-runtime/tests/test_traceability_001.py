@@ -25,7 +25,6 @@ TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 @pytest_asyncio.fixture
 async def client():
     """Async httpx client backed by SQLite in-memory DB."""
-    from app.database import init_engine
     from app.main import create_app
     from app.models.base import Base
     import app.models  # noqa: F401 — registers all ORM models
@@ -118,8 +117,7 @@ async def test_findings_have_confidence_field(client):
 
 # AC-008: REQ-TRACE-010 — high finding blocks approval
 async def test_high_finding_blocks_approval():
-    from app.core.approval_guard import ApprovalBlockedError, assert_no_blocking_findings
-    from app.services.traceability.finding_service import FindingResolveError
+    from app.core.approval_guard import ApprovalBlockedError
     # Unit test: if open high findings exist → ApprovalBlockedError raised
     # We test this logic directly without HTTP
     assert ApprovalBlockedError is not None  # class exists

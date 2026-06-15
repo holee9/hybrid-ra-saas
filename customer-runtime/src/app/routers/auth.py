@@ -4,7 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
-    create_refresh_token,
     create_user_token,
     decode_token,
     verify_password,

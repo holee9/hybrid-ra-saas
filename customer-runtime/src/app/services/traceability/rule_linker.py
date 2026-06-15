@@ -3,8 +3,6 @@
 # @MX:ANCHOR: [AUTO] apply_rule_links — called by scan router and llm_detector
 # @MX:REASON: [AUTO] Public API boundary: creates both edges and ConsistencyFindings from rule engine
 """
-import uuid
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

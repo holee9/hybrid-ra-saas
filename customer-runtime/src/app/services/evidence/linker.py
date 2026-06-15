@@ -5,7 +5,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.evidence_link import EvidenceLink

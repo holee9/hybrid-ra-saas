@@ -1,7 +1,7 @@
 """SPEC-PERMISSION-001: Pydantic v2 request/response schemas."""
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------

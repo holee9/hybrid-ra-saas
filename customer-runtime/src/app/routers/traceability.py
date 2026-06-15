@@ -57,12 +57,12 @@ async def scan_documents(
 
     nodes = await build_nodes(body.document_id, db)
 
-    edges = await apply_rule_links(nodes, db)
+    _ = await apply_rule_links(nodes, db)
 
     # Build node lookup for LLM detector
     node_map = {n.node_id: n for n in nodes}
     all_edges = list((await db.execute(select(TraceabilityEdge))).scalars().all())
-    llm_findings = await detect_semantic_mismatches(all_edges, node_map, db)
+    _ = await detect_semantic_mismatches(all_edges, node_map, db)
 
     await db.commit()
 

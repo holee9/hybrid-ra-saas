@@ -4,19 +4,15 @@
 """
 from __future__ import annotations
 
-import uuid
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db
 from app.models.evidence_binder import EvidenceBinder
-from app.models.evidence_file import EvidenceFile
 from app.models.evidence_gap import EvidenceGap
-from app.models.evidence_link import EvidenceLink
 from app.schemas.evidence import (
     BinderCreate,
     BinderDetailOut,

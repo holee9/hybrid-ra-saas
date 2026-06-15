@@ -29,7 +29,6 @@ TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 @pytest_asyncio.fixture(scope="function")
 async def client():
     """Async httpx client backed by SQLite in-memory DB."""
-    from app.database import init_engine
     from app.main import create_app
     from app.models.base import Base
     # Register all models so SQLite schema includes checklist tables

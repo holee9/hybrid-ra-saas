@@ -22,7 +22,6 @@ os.environ.setdefault("REGULA_API_KEY", "test-api-key")
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -38,7 +37,6 @@ async def authoring_client():
 
     Overrides get_db dependency to use the in-memory session.
     """
-    from app.database import init_engine
     from app.main import create_app
     from app.models.base import Base
     # Register all models including authoring models

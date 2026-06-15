@@ -21,7 +21,7 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:8080")
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # ---------------------------------------------------------------------------
 # In-memory SQLite fixtures (no Docker required for SPEC-PERMISSION-001 tests)
@@ -37,7 +37,6 @@ async def perm_client():
     Overrides get_db dependency to use the in-memory session.
     Overrides get_current_user to use the test DB.
     """
-    from app.database import init_engine
     from app.main import create_app
     from app.models.base import Base
 
@@ -455,7 +454,7 @@ async def test_list_review_items(perm_client):
 async def test_assign_review_item(perm_client):
     ac, sf = perm_client
     qm = await _create_user(sf, email="qm@example.com", password="pass", role="quality_manager")
-    submitter = await _create_user(sf, email="sub2@example.com", password="pass")
+    _ = await _create_user(sf, email="sub2@example.com", password="pass")
 
     # Create review item
     sub_token = await _get_token(ac, tenant_id="tenant-test", email="sub2@example.com", password="pass")
@@ -507,8 +506,8 @@ async def test_assign_requires_qm_or_admin(perm_client):
 @pytest.mark.asyncio
 async def test_decide_review_item_approved(perm_client):
     ac, sf = perm_client
-    qm = await _create_user(sf, email="qm2@example.com", password="pass", role="quality_manager")
-    submitter = await _create_user(sf, email="sub3@example.com", password="pass")
+    _ = await _create_user(sf, email="qm2@example.com", password="pass", role="quality_manager")
+    _ = await _create_user(sf, email="sub3@example.com", password="pass")
 
     sub_token = await _get_token(ac, tenant_id="tenant-test", email="sub3@example.com", password="pass")
     item_resp = await ac.post(
@@ -533,7 +532,7 @@ async def test_decide_review_item_approved(perm_client):
 async def test_decide_conflict_of_interest_rejected(perm_client):
     """Admin who submitted an item cannot approve their own item."""
     ac, sf = perm_client
-    admin = await _create_user(sf, email="self_admin@example.com", password="pass", role="admin")
+    _ = await _create_user(sf, email="self_admin@example.com", password="pass", role="admin")
 
     admin_token = await _get_token(ac, tenant_id="tenant-test", email="self_admin@example.com", password="pass")
 
@@ -558,7 +557,7 @@ async def test_decide_conflict_of_interest_rejected(perm_client):
 async def test_decide_rejected_decision_no_conflict_check(perm_client):
     """Rejected decision has no conflict of interest rule."""
     ac, sf = perm_client
-    admin = await _create_user(sf, email="self_admin2@example.com", password="pass", role="admin")
+    _ = await _create_user(sf, email="self_admin2@example.com", password="pass", role="admin")
     admin_token = await _get_token(ac, tenant_id="tenant-test", email="self_admin2@example.com", password="pass")
 
     item_resp = await ac.post(
@@ -580,7 +579,7 @@ async def test_decide_rejected_decision_no_conflict_check(perm_client):
 @pytest.mark.asyncio
 async def test_decide_practitioner_returns_403(perm_client):
     ac, sf = perm_client
-    pract = await _create_user(sf, email="pract3@example.com", password="pass")
+    _ = await _create_user(sf, email="pract3@example.com", password="pass")
     token = await _get_token(ac, tenant_id="tenant-test", email="pract3@example.com", password="pass")
 
     # Create item with same user (practitioner)

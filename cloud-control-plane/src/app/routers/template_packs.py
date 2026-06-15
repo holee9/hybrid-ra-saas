@@ -11,7 +11,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
-from app.models.applicability_rule import ApplicabilityRule
 from app.models.product_profile import ProductProfile
 from app.models.regulatory_pathway import RegulatoryPathway
 from app.models.source_reference import SourceReference
