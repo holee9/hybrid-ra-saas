@@ -170,8 +170,10 @@ class TestDoOrmExecuteListener:
         token = set_tenant_context("tenant-filter-test")
         try:
             execute_state = self._make_execute_state(is_column_load=False)
+            # Capture the original statement mock before the listener replaces it.
+            original_stmt = execute_state.statement
             _DO_ORM_EXECUTE(execute_state)
-            execute_state.statement.options.assert_called_once()
+            original_stmt.options.assert_called_once()
         finally:
             clear_tenant_context(token)
 

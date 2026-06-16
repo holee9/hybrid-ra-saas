@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
     """Initialize resources on startup."""
     settings = Settings()
     init_engine(settings.database_url)
+    # Tenant filter is registered in init_engine via database.py → register_tenant_filter
     yield
 
 
