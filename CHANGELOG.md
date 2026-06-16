@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-17
+
+### Added (SPEC-TENANT-ISOLATION-001)
+
+- `customer-runtime/src/app/db/` 신규 서브패키지: ORM 수준 자동 테넌트 필터링 인프라
+  - `db/tenant_context.py`: `ContextVar` 기반 요청 범위 테넌트 컨텍스트 관리
+    - `set_tenant_context()` / `get_tenant_context()` / `clear_tenant_context()`
+    - `bypass_tenant_context()`: 관리자 우회 async context manager
+    - `explicit_tenant_context()`: 백그라운드 태스크용 명시적 컨텍스트 (REQ-TI-010)
+    - `TenantContextError`: 컨텍스트 미설정 시 fail-closed 예외
+  - `db/tenant_filter.py`: SQLAlchemy 2.0 ORM 이벤트 리스너 (REQ-TI-002, REQ-TI-004, REQ-TI-005)
+    - `do_orm_execute` 리스너: `with_loader_criteria(TenantMixin, ..., include_aliases=True)` 자동 주입
+      - 관계(relationship) eager/lazy 로드 포함 모든 SELECT에 적용
+      - 컨텍스트 미설정 시 `TenantContextError` (fail-closed, 빈 결과 반환 없음)
+    - `before_flush` 리스너: INSERT 시 `tenant_id` 자동 설정, 교차 테넌트 쓰기 시 `TenantWriteViolation` 발생
+    - `register_tenant_filter(session_factory)`: 세션 팩토리에 두 리스너 등록
+- `database.py`: `init_engine()` 내부에 `register_tenant_filter()` 연결 (투명한 적용)
+- `deps.py`: `get_current_tenant`, `get_current_user` async generator 전환 — ContextVar 설정/해제 보장
+- `core/security.py`: `verify_hybrid_bearer_token`, `verify_api_key` async generator 전환
+  - `verify_api_key` 함수 시그니처 FROZEN 유지 (REQ-TI-NF-003)
+- `models/base.py`: `is_tenant_scoped()` helper 추가 (REQ-TI-011 모델 인벤토리)
+- `tests/test_tenant_isolation.py` 신규: 단위 테스트 22개 (DB 불필요, ContextVar + ORM 리스너)
+- `tests/test_model_tenant_coverage.py` 신규: CI 감사 테스트
+  - `KNOWN_GLOBAL_MODELS`: 의도적 글로벌 모델 명시적 분류
+  - `MIGRATION_PENDING_MODELS`: SPEC 이전 15개 기존 모델 명시적 분류 (향후 마이그레이션 대상)
+
+### Security
+
+- 교차 테넌트 데이터 유출 구조적 차단: 개발자가 쿼리마다 `WHERE tenant_id=:x` 수동 작성에 의존하지 않음
+- 테넌트 스푸핑 방어: `before_flush`에서 `tenant_id` 위조 시도 즉시 탐지·거부 및 보안 로그 기록
+
 ## [0.7.0] - 2026-06-16
 
 ### Added (SPEC-APITOK-001)
