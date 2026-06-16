@@ -80,3 +80,8 @@ class Settings(BaseSettings):
     # Regula SaaS webhook URL for IFU parse result push (GAP-07).
     # When set, a completed parse job pushes structured IFU data to Regula.
     regula_ifu_webhook_url: str = ""
+
+    # SPEC-APITOK-001: Bearer API token for ra-med-bot → Customer Runtime service-to-service auth.
+    # Generate with: openssl rand -hex 32
+    # ra-med-bot sends this as: Authorization: Bearer <token>
+    hybrid_ra_api_token: str = ""

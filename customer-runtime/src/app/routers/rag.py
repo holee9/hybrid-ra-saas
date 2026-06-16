@@ -2,8 +2,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import verify_api_key
-from app.deps import get_current_tenant, get_db
+from app.core.security import verify_hybrid_bearer_token
+from app.deps import get_db
 from app.schemas.rag import RagQueryRequest, RagQueryResponse
 from app.services.rag import RagService
 
@@ -15,9 +15,8 @@ _rag_service = RagService()
 @router.post("/query", response_model=RagQueryResponse)
 async def rag_query(
     payload: RagQueryRequest,
-    tenant: str = Depends(get_current_tenant),
+    tenant: str = Depends(verify_hybrid_bearer_token),
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(verify_api_key),
 ):
     """Retrieve and generate answer from requirements corpus.
 

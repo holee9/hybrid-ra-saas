@@ -139,6 +139,7 @@ async def test_sync_manifest_endpoint_requires_auth():
     from httpx import AsyncClient, ASGITransport
     from app.main import create_app
 
+    os.environ["HYBRID_RA_API_TOKEN"] = "test-token-32-bytes-minimum-here!"
     test_app = create_app()
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
         resp = await ac.get("/sync/manifest", headers={"X-Tenant-ID": "t1"})
@@ -161,7 +162,6 @@ async def test_sync_manifest_endpoint_returns_200():
     os.environ.setdefault("CORS_ORIGINS", "http://localhost:8080")
 
     from httpx import AsyncClient, ASGITransport
-    from app.core.security import create_token
     from app.services.sync import SyncService
     from app.deps import get_db
     from app.main import create_app
@@ -179,17 +179,18 @@ async def test_sync_manifest_endpoint_returns_200():
     async def override_get_db():
         yield mock_session
 
+    _api_token = "test-token-32-bytes-minimum-here!"
+    os.environ["HYBRID_RA_API_TOKEN"] = _api_token
     test_app = create_app()
     test_app.dependency_overrides[get_db] = override_get_db
 
     with patch.object(SyncService, "build_manifest", new=AsyncMock(return_value=fake_manifest)):
-        token = create_token(user_id="u1", tenant_id="t1")
         async with AsyncClient(
             transport=ASGITransport(app=test_app), base_url="http://test"
         ) as ac:
             resp = await ac.get(
                 "/sync/manifest",
-                headers={"Authorization": f"Bearer {token}", "X-Tenant-ID": "t1"},
+                headers={"Authorization": f"Bearer {_api_token}", "X-Tenant-ID": "t1"},
             )
 
     test_app.dependency_overrides.clear()

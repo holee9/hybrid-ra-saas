@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import verify_hybrid_bearer_token
 from app.deps import get_db
 from app.models.evidence_binder import EvidenceBinder
 from app.models.evidence_gap import EvidenceGap
@@ -37,7 +38,11 @@ from app.services.evidence.linker import create_link, delete_link
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/evidence-binders", tags=["evidence"])
+router = APIRouter(
+    prefix="/evidence-binders",
+    tags=["evidence"],
+    dependencies=[Depends(verify_hybrid_bearer_token)],
+)
 
 
 # ---------------------------------------------------------------------------

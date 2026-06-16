@@ -123,3 +123,47 @@ async def verify_api_key(
             detail="Tenant is not allowed for Regula API key access",
         )
     return api_key
+
+
+async def verify_hybrid_bearer_token(
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> str:
+    """Validate Authorization: Bearer <HYBRID_RA_API_TOKEN> for ra-med-bot service calls.
+
+    # @MX:ANCHOR: [AUTO] Service-to-service auth boundary — ra-med-bot → Customer Runtime (SPEC-APITOK-001).
+    # @MX:REASON: All ra-med-bot callable endpoints depend on this; must not be weakened.
+
+    Returns tenant_id from X-Tenant-ID header.
+    Raises:
+        503 if HYBRID_RA_API_TOKEN is not configured
+        401 if Authorization header is missing or token is invalid
+        400 if X-Tenant-ID header is missing
+    """
+    from app.config import Settings
+
+    expected = Settings().hybrid_ra_api_token
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API token authentication not configured on this runtime",
+        )
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization: Bearer <token> required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = authorization.split(" ", 1)[1]
+    if not hmac.compare_digest(token.encode(), expected.encode()):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not x_tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-Tenant-ID header required",
+        )
+    return x_tenant_id

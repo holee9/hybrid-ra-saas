@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.security import verify_hybrid_bearer_token
 from app.deps import get_db
 from app.models.checklist_export import ChecklistExport
 from app.models.checklist_item import ChecklistItem
@@ -34,7 +35,11 @@ from app.services.checklist.state_machine import ChecklistStateError, validate_i
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/checklists", tags=["checklists"])
+router = APIRouter(
+    prefix="/checklists",
+    tags=["checklists"],
+    dependencies=[Depends(verify_hybrid_bearer_token)],
+)
 
 
 # ---------------------------------------------------------------------------

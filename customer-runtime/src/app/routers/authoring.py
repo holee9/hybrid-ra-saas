@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.security import verify_api_key
+from app.core.security import verify_hybrid_bearer_token
 from app.deps import get_db
 from app.models.authoring_section_entry import AuthoringSectionEntry
 from app.models.authoring_session import AuthoringSession
@@ -121,7 +121,7 @@ def _get_section_meta(section_id: str, sections: list[dict]) -> dict:
 async def create_session(
     body: SessionCreate,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(verify_api_key),
+    _: str = Depends(verify_hybrid_bearer_token),
 ) -> SessionOut:
     """POST /authoring/sessions — Create a new authoring session.
 
@@ -158,7 +158,7 @@ async def create_session(
 async def get_session(
     session_id: str,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(verify_api_key),
+    _: str = Depends(verify_hybrid_bearer_token),
 ) -> dict:
     """GET /authoring/sessions/{session_id} — Session + progress summary."""
     data = await session_svc.get_session_with_progress(session_id, db)
@@ -171,7 +171,7 @@ async def get_session(
 async def get_sections(
     session_id: str,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(verify_api_key),
+    _: str = Depends(verify_hybrid_bearer_token),
 ) -> list[SectionWithEntry]:
     """GET /authoring/sessions/{session_id}/sections — Section list with entries."""
     result = await db.execute(
@@ -226,7 +226,7 @@ async def patch_section(
     entry_id: str,
     body: EntryPatch,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(verify_api_key),
+    _: str = Depends(verify_hybrid_bearer_token),
 ) -> dict:
     """PATCH /authoring/sections/{entry_id} — Update section content/status."""
     result = await db.execute(
@@ -285,7 +285,7 @@ async def patch_section(
 async def generate_ai_draft(
     entry_id: str,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(verify_api_key),
+    _: str = Depends(verify_hybrid_bearer_token),
 ) -> dict:
     """POST /authoring/sections/{entry_id}/ai-draft — Generate AI draft.
 
@@ -363,7 +363,7 @@ async def export_session(
     session_id: str,
     body: ExportRequest,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(verify_api_key),
+    _: str = Depends(verify_hybrid_bearer_token),
 ) -> Any:
     """POST /authoring/sessions/{session_id}/export — Export session as DOCX or JSON."""
     if body.format not in ("docx", "json"):

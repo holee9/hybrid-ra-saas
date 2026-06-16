@@ -108,10 +108,12 @@ async def test_upload_no_auth_returns_401():
     We need to provide a fake DB dependency so the endpoint can at least
     attempt auth before failing. FastAPI resolves all dependencies in parallel.
     """
+    import os
     from httpx import ASGITransport, AsyncClient
     from app.main import create_app
     from app.deps import get_db
 
+    os.environ["HYBRID_RA_API_TOKEN"] = "test-token-32-bytes-minimum-here!"
     app = create_app()
 
     # Override get_db with a no-op to avoid "DB not initialized" error

@@ -167,11 +167,13 @@ class TestAuditExportEndpoint:
     """Test POST /audit/export endpoint."""
 
     async def test_endpoint_requires_auth(self):
-        """No auth header -> 401."""
+        """No auth header -> 401 (HYBRID_RA_API_TOKEN must be configured)."""
+        import os
         from httpx import ASGITransport, AsyncClient
         from app.main import create_app
         from app.deps import get_db
 
+        os.environ["HYBRID_RA_API_TOKEN"] = "test-token-32-bytes-minimum-here!"
         app = create_app()
 
         async def mock_db():
@@ -188,12 +190,14 @@ class TestAuditExportEndpoint:
 
     async def test_endpoint_returns_200_json_export(self):
         """Valid JSON export request -> 200 StreamingResponse."""
+        import os
         from httpx import ASGITransport, AsyncClient
         from app.main import create_app
-        from app.core.security import create_token
         from app.deps import get_db
         from app.services.export import ExportService
 
+        _api_token = "test-token-32-bytes-minimum-here!"
+        os.environ["HYBRID_RA_API_TOKEN"] = _api_token
         app = create_app()
 
         mock_result = {
@@ -207,7 +211,6 @@ class TestAuditExportEndpoint:
                 yield MagicMock()
 
             app.dependency_overrides[get_db] = mock_db
-            token = create_token("user-1", "tenant-1")
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
@@ -215,7 +218,7 @@ class TestAuditExportEndpoint:
                 resp = await ac.post(
                     "/audit/export",
                     headers={
-                        "Authorization": f"Bearer {token}",
+                        "Authorization": f"Bearer {_api_token}",
                         "X-Tenant-ID": "tenant-1",
                     },
                     json={"scope": "full", "format": "JSON"},
