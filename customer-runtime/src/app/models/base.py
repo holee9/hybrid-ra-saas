@@ -16,8 +16,17 @@ class Base(DeclarativeBase):
 
 
 class TenantMixin:
-    """Adds tenant_id column with index."""
+    """Adds tenant_id column with index.
+
+    # @MX:ANCHOR: [AUTO] Marker mixin — all subclasses are subject to automatic tenant filtering.
+    # @MX:REASON: do_orm_execute listener uses isinstance(TenantMixin) to determine filter applicability.
+    """
     tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+
+
+def is_tenant_scoped(model_class) -> bool:
+    """Return True if model_class inherits TenantMixin (tenant-isolated)."""
+    return issubclass(model_class, TenantMixin)
 
 
 class TimestampMixin:

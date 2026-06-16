@@ -93,17 +93,20 @@ _api_key_header = APIKeyHeader(name="X-Regula-API-Key", auto_error=False)
 async def verify_api_key(
     api_key: str | None = Security(_api_key_header),
     x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
-) -> str:
+):
     """FastAPI dependency: validate X-Regula-API-Key header.
 
     # @MX:ANCHOR: [AUTO] Auth boundary for ra-med-bot → Customer Runtime (GAP-02).
     # @MX:REASON: Used by any endpoint that accepts server-to-server calls from Regula SaaS.
 
+    Yields api_key with tenant context active.
     Raises:
         503 if REGULA_API_KEY is not configured on this runtime.
         401 if the key is missing or does not match.
     """
     from app.config import Settings
+    from app.db.tenant_context import set_tenant_context, clear_tenant_context
+
     expected = Settings().regula_api_key
     if not expected:
         raise HTTPException(
@@ -122,25 +125,30 @@ async def verify_api_key(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tenant is not allowed for Regula API key access",
         )
-    return api_key
+    ctx_token = set_tenant_context(x_tenant_id)
+    try:
+        yield api_key
+    finally:
+        clear_tenant_context(ctx_token)
 
 
 async def verify_hybrid_bearer_token(
     authorization: str | None = Header(default=None),
     x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
-) -> str:
+):
     """Validate Authorization: Bearer <HYBRID_RA_API_TOKEN> for ra-med-bot service calls.
 
     # @MX:ANCHOR: [AUTO] Service-to-service auth boundary — ra-med-bot → Customer Runtime (SPEC-APITOK-001).
     # @MX:REASON: All ra-med-bot callable endpoints depend on this; must not be weakened.
 
-    Returns tenant_id from X-Tenant-ID header.
+    Yields tenant_id from X-Tenant-ID header with tenant context active.
     Raises:
         503 if HYBRID_RA_API_TOKEN is not configured
         401 if Authorization header is missing or token is invalid
         400 if X-Tenant-ID header is missing
     """
     from app.config import Settings
+    from app.db.tenant_context import set_tenant_context, clear_tenant_context
 
     expected = Settings().hybrid_ra_api_token
     if not expected:
@@ -166,4 +174,8 @@ async def verify_hybrid_bearer_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="X-Tenant-ID header required",
         )
-    return x_tenant_id
+    ctx_token = set_tenant_context(x_tenant_id)
+    try:
+        yield x_tenant_id
+    finally:
+        clear_tenant_context(ctx_token)

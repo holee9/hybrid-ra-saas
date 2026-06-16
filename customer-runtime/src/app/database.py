@@ -24,6 +24,8 @@ def init_engine(database_url: str) -> None:
     global _engine, _session_factory
     _engine = create_engine_from_url(database_url)
     _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
+    from app.db.tenant_filter import register_tenant_filter
+    register_tenant_filter(_session_factory)
 
 
 @asynccontextmanager
