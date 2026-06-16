@@ -113,14 +113,31 @@
 |------|------|
 | **엔드포인트** | 7개 (GET /health, POST /documents/upload, POST /parse/jobs, POST /guardrail/run, POST /rag/query, POST /audit/export, GET /sync/manifest) |
 | **데이터 모델** | SQLAlchemy 9개 (Product, Document, Requirement, Risk, Control, Evidence, Finding, AuditEvent, ParseJob) + pgvector |
-| **인증** | JWT HS256 + X-Tenant-ID 멀티테넌시 |
+| **인증** | JWT HS256 + X-Tenant-ID (사용자 인증) / Bearer token (서비스간 인증, SPEC-APITOK-001) |
 | **Docker** | 5서비스 (api, postgres, minio, ollama, redis) multi-stage 빌드 |
-| **테스트** | 92 passed / 0 failed (Docker 통합 테스트 23개는 CI 전용 자동 스킵) |
+| **테스트** | 299 passed / 0 failed (Docker 통합 테스트는 CI 전용 자동 스킵) |
 | **커버리지** | 82% (목표 80% 초과) |
 | **lint** | ruff 0 errors |
 | **FR-210** | Air-Gap 아웃바운드 검증 구현 완료 |
 
 SPEC 상세: [`.moai/specs/SPEC-API-001/spec.md`](.moai/specs/SPEC-API-001/spec.md)
+
+---
+
+## 구현 현황 (SPEC-APITOK-001)
+
+> 2026-06-16 기준 — Customer Local Runtime 서비스간 Bearer 토큰 인증 완료
+
+| 항목 | 내용 |
+|------|------|
+| **신규 함수** | `verify_hybrid_bearer_token` (`security.py`) — 기존 `verify_api_key` / JWT 함수 FROZEN |
+| **적용 라우터** | 8개 (rag, sync, audit, guardrail, documents, authoring, checklist, evidence) |
+| **에러 코드** | 503 (미설정), 401 (잘못된 토큰), 400 (X-Tenant-ID 누락) |
+| **환경변수** | `HYBRID_RA_API_TOKEN` (최소 32자) — ra-med-bot 측 `HYBRID_RA_API_BASE_URL`, `HYBRID_RA_TENANT_ID`와 쌍 |
+| **테스트** | `test_apitok_001.py` 인증 전용, 299 unit tests pass |
+| **계약 문서** | [`docs/integration-contract.md`](docs/integration-contract.md) — ra-med-bot 연동 API 계약 명세 |
+
+SPEC 상세: [`.moai/specs/SPEC-APITOK-001/spec.md`](.moai/specs/SPEC-APITOK-001/spec.md)
 
 ---
 
@@ -254,6 +271,7 @@ hybrid-ra-saas/
 │
 ├── docs/                         # 지식 베이스 (Markdown, 버전 관리) ← 기준
 │   ├── user-guide.html           # 📖 RA 담당자용 사용 설명서 → https://holee9.github.io/hybrid-ra-saas/user-guide.html
+│   ├── integration-contract.md   # ra-med-bot ↔ hybrid-ra-saas API 계약 명세 (SPEC-APITOK-001)
 │   ├── bizplan.md                # 사업계획서 (BizPlan v3.0)
 │   ├── mrd.md                    # 시장 요구사항 명세서 (MRD v3.0)
 │   └── prd.md                    # 제품 요구사항 명세서 (PRD v3.0)
@@ -376,7 +394,7 @@ git push origin v1.0.0
 
 | 단계 | 목표 | 핵심 산출물 |
 |------|------|-----------|
-| **완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 | 6개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER) |
+| **완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 + Bearer 인증 | 7개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER/APITOK) |
 | **P0 — 구현 완료 / 운영 검증 필요** | 크롤러 → Regula Vectorize 자동 동기화 | `KnowledgePushService`, `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET` |
 | **P1 — 구현 완료 / 운영 검증 필요** | IFU 파서 → Regula 프로젝트 컨텍스트 연동 | `/rag/query` API key 인증, tenant allowlist |
 | **P2 — 구현 완료 / 운영 검증 필요** | Audit trail / IFU webhook 연동 | `/audit/webhook`, `REGULA_AUDIT_WEBHOOK_URL`, `REGULA_IFU_WEBHOOK_URL` |
@@ -403,4 +421,4 @@ git push origin v1.0.0
 
 ---
 
-*버전: v6.1 | 최종 갱신: 2026-06-12 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | 도메인 워크플로우 ✅ | 사용 설명서 ✅ | 다음: P0 크롤러→Regula Vectorize 동기화*
+*버전: v6.2 | 최종 갱신: 2026-06-16 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | Bearer 인증 ✅ | API 계약 명세 ✅ | 다음: P0 크롤러→Regula Vectorize 동기화*

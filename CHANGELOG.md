@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-16
+
+### Added (SPEC-APITOK-001)
+
+- `verify_hybrid_bearer_token` FastAPI 의존성 추가 (`security.py`): 서비스간 Bearer 토큰 인증
+  - `HYBRID_RA_API_TOKEN` 미설정 시 503 (인프라 설정 오류), 잘못된 토큰 시 401, `X-Tenant-ID` 누락 시 400
+  - 기존 `verify_api_key`·JWT 인증 함수 FROZEN (미변경)
+- 8개 라우터에 Bearer 인증 적용: `rag`, `sync`, `audit`, `guardrail`, `documents`, `authoring`, `checklist`, `evidence`
+- `test_apitok_001.py` 신규: 인증 전용 테스트 파일 (503/401/400/200 시나리오)
+- `docs/integration-contract.md` 신규: ra-med-bot ↔ hybrid-ra-saas API 계약 명세
+
+### Changed
+
+- `.env.example`: `HYBRID_RA_API_TOKEN` 필수 환경변수 추가 (최소 32자)
+- 전체 테스트: 299 passed / 0 failed (단위 테스트 기준)
+
 ## [0.6.0] - 2026-06-11
 
 ### Added (SPEC-CRAWLER-001)
@@ -93,7 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Compose 5서비스 (api, postgres, minio, ollama, redis)
 - Air-Gap 아웃바운드 검증 (FR-210)
 
-[Unreleased]: https://github.com/holee9/hybrid-ra-saas/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/holee9/hybrid-ra-saas/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.3.0...v0.4.0

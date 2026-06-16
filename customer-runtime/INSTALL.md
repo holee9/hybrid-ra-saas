@@ -42,6 +42,7 @@ cp .env.example .env
 | `DB_PASSWORD` | PostgreSQL 비밀번호 |
 | `CLOUD_SYNC_ENDPOINT` | Hybrid RA 클라우드 API URL |
 | `ORG` | 조직 식별자 |
+| `HYBRID_RA_API_TOKEN` | ra-med-bot 서비스간 인증 토큰 (최소 32자). `openssl rand -hex 32` 로 생성. ra-med-bot 측 동일 값 설정 필요 |
 
 ### 3. 서비스 시작
 
