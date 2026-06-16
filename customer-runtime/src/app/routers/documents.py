@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import verify_hybrid_bearer_token
 from app.deps import get_current_tenant, get_db
 from app.models.base import new_id
 from app.models.document import Document, DocumentStatus
@@ -141,7 +142,7 @@ def _get_storage() -> StorageService:
 @router.post("/upload", response_model=UploadResponse)
 async def upload_document(
     background_tasks: BackgroundTasks,
-    tenant: str = Depends(get_current_tenant),
+    tenant: str = Depends(verify_hybrid_bearer_token),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     storage: StorageService = Depends(_get_storage),

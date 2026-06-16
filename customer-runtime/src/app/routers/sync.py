@@ -7,7 +7,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.deps import get_current_tenant, get_db
+from app.core.security import verify_hybrid_bearer_token
+from app.deps import get_db
 from app.schemas.sync import ManifestResponse
 from app.services.airgap import AirGapService
 from app.services.sync import SyncService
@@ -24,7 +25,7 @@ async def get_sync_manifest(
         default=None,
         description="ISO 8601 timestamp; return only entities updated after this time",
     ),
-    tenant: str = Depends(get_current_tenant),
+    tenant: str = Depends(verify_hybrid_bearer_token),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """Return delta manifest for cloud sync (REQ-API-012).

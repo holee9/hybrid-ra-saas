@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
+from app.core.security import verify_hybrid_bearer_token
 from app.deps import get_current_tenant, get_db
 from app.schemas.audit import AuditExportRequest, AuditWebhookRequest, AuditWebhookResponse
 from app.services.audit import AuditService
@@ -21,7 +22,7 @@ _export_service = ExportService()
 @router.post("/export")
 async def audit_export(
     payload: AuditExportRequest,
-    tenant: str = Depends(get_current_tenant),
+    tenant: str = Depends(verify_hybrid_bearer_token),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate binary audit export (XLSX/PDF/JSON) and stream to client.

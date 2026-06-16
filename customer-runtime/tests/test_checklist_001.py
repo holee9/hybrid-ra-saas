@@ -60,9 +60,12 @@ async def client():
                 raise
 
     from app.deps import get_db
+    from app.core.security import verify_hybrid_bearer_token
 
+    os.environ["HYBRID_RA_API_TOKEN"] = "test-token-32-bytes-minimum-here!"
     app = create_app()
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_hybrid_bearer_token] = lambda: "test-tenant"
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

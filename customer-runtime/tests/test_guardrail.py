@@ -175,10 +175,12 @@ class TestGuardrailEndpoint:
 
     async def test_endpoint_requires_auth(self):
         """No auth header -> 401."""
+        import os
         from httpx import ASGITransport, AsyncClient
         from app.main import create_app
         from app.deps import get_db
 
+        os.environ["HYBRID_RA_API_TOKEN"] = "test-token-32-bytes-minimum-here!"
         app = create_app()
 
         async def mock_db():
@@ -195,12 +197,14 @@ class TestGuardrailEndpoint:
 
     async def test_endpoint_returns_200_with_valid_request(self):
         """Valid request -> 200 with findings, run_id, documents_flagged."""
+        import os
         from httpx import ASGITransport, AsyncClient
         from app.main import create_app
-        from app.core.security import create_token
         from app.deps import get_db
         from app.services.guardrail import GuardrailService
 
+        _api_token = "test-token-32-bytes-minimum-here!"
+        os.environ["HYBRID_RA_API_TOKEN"] = _api_token
         app = create_app()
 
         async def mock_db():
@@ -218,7 +222,6 @@ class TestGuardrailEndpoint:
             new=AsyncMock(return_value=mock_result),
         ):
             app.dependency_overrides[get_db] = mock_db
-            token = create_token("user-1", "tenant-1")
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
@@ -226,7 +229,7 @@ class TestGuardrailEndpoint:
                 resp = await ac.post(
                     "/guardrail/run",
                     headers={
-                        "Authorization": f"Bearer {token}",
+                        "Authorization": f"Bearer {_api_token}",
                         "X-Tenant-ID": "tenant-1",
                     },
                     json={"product_id": "prod-1", "doc_set_ids": ["doc-1"]},

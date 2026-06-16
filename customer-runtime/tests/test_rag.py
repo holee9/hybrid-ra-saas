@@ -143,10 +143,12 @@ class TestRagEndpoint:
 
     async def test_endpoint_requires_auth(self):
         """No auth header -> 401."""
+        import os
         from httpx import ASGITransport, AsyncClient
         from app.main import create_app
         from app.deps import get_db
 
+        os.environ["HYBRID_RA_API_TOKEN"] = "test-token-32-bytes-minimum-here!"
         app = create_app()
 
         async def mock_db():
@@ -160,12 +162,14 @@ class TestRagEndpoint:
 
     async def test_endpoint_returns_200_with_valid_request(self):
         """Valid request -> 200 with answer, evidence_links, confidence, submit_safe."""
+        import os
         from httpx import ASGITransport, AsyncClient
         from app.main import create_app
-        from app.core.security import create_token, verify_api_key
         from app.deps import get_db
         from app.services.rag import RagService
 
+        _api_token = "test-token-32-bytes-minimum-here!"
+        os.environ["HYBRID_RA_API_TOKEN"] = _api_token
         app = create_app()
 
         mock_result = {
@@ -174,9 +178,6 @@ class TestRagEndpoint:
             "confidence": 0.85,
             "submit_safe": True,
         }
-
-        async def mock_verify_api_key():
-            return "test-regula-api-key"
 
         with patch.object(
             RagService,
@@ -187,8 +188,6 @@ class TestRagEndpoint:
                 yield MagicMock()
 
             app.dependency_overrides[get_db] = mock_db
-            app.dependency_overrides[verify_api_key] = mock_verify_api_key
-            token = create_token("user-1", "tenant-1")
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
@@ -196,9 +195,8 @@ class TestRagEndpoint:
                 resp = await ac.post(
                     "/rag/query",
                     headers={
-                        "Authorization": f"Bearer {token}",
+                        "Authorization": f"Bearer {_api_token}",
                         "X-Tenant-ID": "tenant-1",
-                        "X-Regula-API-Key": "test-regula-api-key",
                     },
                     json={"question": "What are the safety requirements?"},
                 )

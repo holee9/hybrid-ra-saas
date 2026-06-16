@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.deps import get_current_tenant, get_db
+from app.core.security import verify_hybrid_bearer_token
+from app.deps import get_db
 from app.schemas.guardrail import GuardrailRunRequest, GuardrailRunResponse, FindingOut
 from app.services.audit import AuditService
 from app.services.guardrail import GuardrailService
@@ -16,7 +17,7 @@ _guardrail_service = GuardrailService()
 @router.post("/run", response_model=GuardrailRunResponse)
 async def run_guardrail(
     payload: GuardrailRunRequest,
-    tenant: str = Depends(get_current_tenant),
+    tenant: str = Depends(verify_hybrid_bearer_token),
     db: AsyncSession = Depends(get_db),
 ):
     """Run guardrail rule engine over a document set.
