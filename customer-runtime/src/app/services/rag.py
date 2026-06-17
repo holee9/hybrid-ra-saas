@@ -30,7 +30,8 @@ _EXECUTOR = ThreadPoolExecutor(max_workers=2)
 
 OLLAMA_ENDPOINT = os.environ.get("OLLAMA_ENDPOINT", "http://ollama:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
-OLLAMA_TIMEOUT = 25.0  # seconds — leaves 5s margin for REQ-API-009 30s total budget
+# 8s × 3 attempts + 3s backoff = 27s ≤ 28s Ollama budget (30s SLA − 2s embed/DB)
+OLLAMA_TIMEOUT = 8.0
 OLLAMA_MAX_RETRIES = 3  # max attempts (initial + 2 retries) with exponential backoff
 
 

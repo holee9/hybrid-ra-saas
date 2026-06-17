@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-06-17
+
+### Fixed
+
+- `OLLAMA_TIMEOUT` 25s → 8s 조정 — REQ-API-009 준수 (3회 retry 시 최악 27s ≤ 30s SLA)
+  (`customer-runtime/src/app/services/rag.py`, Refs #46)
+
 ## [0.9.0] - 2026-06-17
 
 ### Added (SPEC-JOBQUEUE-001)
@@ -169,7 +176,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Compose 5서비스 (api, postgres, minio, ollama, redis)
 - Air-Gap 아웃바운드 검증 (FR-210)
 
-[Unreleased]: https://github.com/holee9/hybrid-ra-saas/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/holee9/hybrid-ra-saas/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/holee9/hybrid-ra-saas/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/holee9/hybrid-ra-saas/compare/v0.6.0...v0.7.0
