@@ -239,6 +239,25 @@ SPEC 상세: [`.moai/specs/SPEC-PARSER-001/spec.md`](.moai/specs/SPEC-PARSER-001
 
 ---
 
+## 구현 현황 (SPEC-TENANT-ISOLATION-001)
+
+> 2026-06-17 기준 — ORM 수준 자동 테넌트 필터링 완료
+
+| 항목 | 내용 |
+|------|------|
+| **적용 범위** | SQLAlchemy 2.0 ORM `do_orm_execute` 이벤트 리스너 — 모든 SELECT에 `WHERE tenant_id=:x` 자동 주입 |
+| **ContextVar** | 요청 범위 테넌트 컨텍스트 (`set_tenant_context` / `get_tenant_context` / `clear_tenant_context`) |
+| **우회 패턴** | `bypass_tenant_context()` async context manager — 관리자 전용 |
+| **백그라운드** | `explicit_tenant_context()` — arq 워커 등 요청 외부 태스크용 (REQ-TI-010) |
+| **쓰기 보호** | `before_flush` 리스너: INSERT 시 `tenant_id` 자동 설정, 교차 테넌트 쓰기 시 `TenantWriteViolation` |
+| **Fail-closed** | 컨텍스트 미설정 시 빈 결과 반환이 아닌 `TenantContextError` 예외 발생 |
+| **테스트** | 단위 22개 (DB 불필요, ContextVar + ORM 리스너 직접 검증) |
+| **모델 인벤토리** | `is_tenant_scoped()` helper + `MIGRATION_PENDING_MODELS` 15개 명시적 분류 |
+
+SPEC 상세: [`.moai/specs/SPEC-TENANT-ISOLATION-001/spec.md`](.moai/specs/SPEC-TENANT-ISOLATION-001/spec.md)
+
+---
+
 ## 구현 현황 (SPEC-JOBQUEUE-001)
 
 > 2026-06-17 기준 — BackgroundTasks → arq 영속 Job Queue 전환 완료
