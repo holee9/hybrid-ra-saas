@@ -74,3 +74,6 @@ class Settings(BaseSettings):
     # Regula knowledge push (GAP-03: Vectorize sync)
     regula_knowledge_push_url: str = ""
     crawl_push_secret: str = ""
+
+    # SPEC-JOBQUEUE-001: Redis broker URL for arq crawl job queue
+    redis_url: str = "redis://localhost:6379"

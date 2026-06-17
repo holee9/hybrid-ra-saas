@@ -12,7 +12,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.core.logging import get_logger
 from app.schemas.crawl import JobStatusResponse, TriggerResponse
@@ -127,15 +127,18 @@ async def run_crawl_job() -> str:
 
 
 @router.post("/trigger", response_model=TriggerResponse, status_code=202)
-async def trigger_crawl(background_tasks: BackgroundTasks) -> TriggerResponse:
+async def trigger_crawl(request: Request) -> TriggerResponse:
     """Start an async crawl job and return the job_id immediately (REQ-011).
 
-    Registers the job as 'pending', schedules it as a background task,
+    Registers the job as 'pending', enqueues via arq (SPEC-JOBQUEUE-001),
     and returns 202 + job_id before the crawl completes.
     Use GET /crawl/status/{job_id} to poll for completion.
     """
+    from app.queue.arq_pool import get_arq_pool
+
     job_id = await run_crawl_job()
-    background_tasks.add_task(_execute_crawl_job, job_id)
+    pool = get_arq_pool(request)
+    await pool.enqueue_job("execute_crawl_job", job_id)
     return TriggerResponse(job_id=job_id)
 
 

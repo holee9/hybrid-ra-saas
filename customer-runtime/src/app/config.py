@@ -85,3 +85,7 @@ class Settings(BaseSettings):
     # Generate with: openssl rand -hex 32
     # ra-med-bot sends this as: Authorization: Bearer <token>
     hybrid_ra_api_token: str = ""
+
+    # SPEC-JOBQUEUE-001: Redis broker URL for arq job queue
+    # Worker and API both read this to connect to the same Redis instance.
+    redis_url: str = "redis://localhost:6379"

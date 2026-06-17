@@ -3,7 +3,7 @@ import hashlib
 import json
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from app.deps import get_current_tenant, get_db
 from app.models.base import new_id
 from app.models.document import Document, DocumentStatus
 from app.models.parse_job import ParseJob, ParseJobStatus
+from app.queue.arq_pool import get_arq_pool
 from app.schemas.document import UploadResponse
 from app.services.audit import AuditService
 from app.services.storage import StorageService
@@ -141,13 +142,14 @@ def _get_storage() -> StorageService:
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload_document(
-    background_tasks: BackgroundTasks,
+    request: Request,
     tenant: str = Depends(verify_hybrid_bearer_token),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     storage: StorageService = Depends(_get_storage),
+    arq_pool=Depends(get_arq_pool),
 ):
-    """Accept DOCX/XLSX, compute SHA-256, upload to MinIO, enqueue parse job."""
+    """Accept DOCX/XLSX, compute SHA-256, upload to MinIO, enqueue parse job via arq."""
     # Validate extension
     filename = file.filename or ""
     ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -196,15 +198,8 @@ async def upload_document(
     db.add(parse_job)
     await db.flush()
 
-    # Enqueue background task
-    from app.jobs.parse_job import run_parse_job
-    background_tasks.add_task(
-        run_parse_job,
-        job_id=job_id,
-        doc_id=doc_id,
-        tenant=tenant,
-        file_bytes=file_bytes,
-    )
+    # Enqueue parse job via arq (SPEC-JOBQUEUE-001)
+    await arq_pool.enqueue_job("run_parse_job", job_id, doc_id, tenant, file_bytes=file_bytes)
 
     return UploadResponse(doc_id=doc_id, parse_job_id=job_id)
 

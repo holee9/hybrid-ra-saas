@@ -31,7 +31,15 @@ async def lifespan(app: FastAPI):
     settings = Settings()
     init_engine(settings.database_url)
     # Tenant filter is registered in init_engine via database.py → register_tenant_filter
+
+    # SPEC-JOBQUEUE-001: arq Redis pool lifecycle
+    from app.queue.arq_pool import create_arq_pool
+    app.state.arq_pool = await create_arq_pool(settings.redis_url)
+
     yield
+
+    # Graceful pool shutdown
+    await app.state.arq_pool.aclose()
 
 
 def create_app() -> FastAPI:

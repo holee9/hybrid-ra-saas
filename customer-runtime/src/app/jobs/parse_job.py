@@ -1,13 +1,20 @@
-"""Background job: parse a document and update status."""
+"""Background job: parse a document and update status.
+
+Migrated to arq (SPEC-JOBQUEUE-001): ctx is always the first arg.
+ParserService removed from signature — not Redis-serializable.
+"""
+from __future__ import annotations
+
 import logging
 
 import httpx
 
 from app.core.state_machine import validate_transition
 from app.database import async_session
+from app.db.tenant_context import explicit_tenant_context
 from app.models.document import Document, DocumentStatus
 from app.models.parse_job import ParseJob, ParseJobStatus
-from app.services.parser import ParserService, StubParserService, ParseResult
+from app.services.parser import ParseResult, StubParserService
 
 logger = logging.getLogger(__name__)
 
@@ -61,72 +68,84 @@ async def _push_ifu_result_to_regula(
 
 
 async def run_parse_job(
+    ctx: dict,
     job_id: str,
     doc_id: str,
     tenant: str,
-    parser: ParserService | None = None,
+    *,
     file_bytes: bytes = b"",
 ) -> None:
-    """Execute a parse job: fetch doc, parse, update status."""
-    async with async_session() as db:
-        job = await db.get(ParseJob, job_id)
-        doc = await db.get(Document, doc_id)
+    """Execute a parse job: fetch doc, parse, update status.
 
-        if job is None or doc is None:
-            logger.error("Job %s or Document %s not found", job_id, doc_id)
-            return
+    # @MX:ANCHOR: [AUTO] arq task entry point — enqueued by POST /documents/upload
+    # @MX:REASON: fan_in >= 3: upload endpoint, worker, orphan recovery on_startup
 
-        # Transition job: pending -> running
-        job.status = ParseJobStatus.RUNNING
-        await db.flush()
+    Args:
+        ctx: arq worker context (MUST be first arg for arq tasks).
+        job_id: ParseJob primary key.
+        doc_id: Document primary key.
+        tenant: Tenant identifier — used to set explicit tenant context (REQ-JQ-005).
+        file_bytes: Raw file content to parse (keyword-only, default empty).
+    """
+    # REQ-JQ-005: background tasks must set explicit tenant context
+    async with explicit_tenant_context(tenant):
+        async with async_session() as db:
+            job = await db.get(ParseJob, job_id)
+            doc = await db.get(Document, doc_id)
 
-        # Transition document: uploaded -> parsing
-        try:
-            validate_transition(doc.status, DocumentStatus.PARSING)
-            doc.status = DocumentStatus.PARSING
+            if job is None or doc is None:
+                logger.error("Job %s or Document %s not found", job_id, doc_id)
+                return
+
+            # Transition job: pending -> running
+            job.status = ParseJobStatus.RUNNING
             await db.flush()
-        except ValueError as e:
-            logger.error("State machine error: %s", e)
-            job.status = ParseJobStatus.FAILED
-            job.error = str(e)
-            return
 
-        try:
-            if parser is None:
+            # Transition document: uploaded -> parsing
+            try:
+                validate_transition(doc.status, DocumentStatus.PARSING)
+                doc.status = DocumentStatus.PARSING
+                await db.flush()
+            except ValueError as e:
+                logger.error("State machine error: %s", e)
+                job.status = ParseJobStatus.FAILED
+                job.error = str(e)
+                return
+
+            try:
                 default_result = ParseResult(
                     confidence=0.9, field_candidates={}, required_missing=[]
                 )
                 parser = StubParserService(default_result)
+                result = await parser.parse(file_bytes, doc.doc_type)
 
-            result = await parser.parse(file_bytes, doc.doc_type)
+                # Determine next document status based on confidence
+                if result.confidence >= CONFIDENCE_THRESHOLD:
+                    next_status = DocumentStatus.READY_FOR_CHECK
+                else:
+                    next_status = DocumentStatus.NEEDS_CORRECTION
 
-            # Determine next document status based on confidence
-            if result.confidence >= CONFIDENCE_THRESHOLD:
-                next_status = DocumentStatus.READY_FOR_CHECK
-            else:
-                next_status = DocumentStatus.NEEDS_CORRECTION
+                validate_transition(doc.status, next_status)
+                doc.status = next_status
 
-            validate_transition(doc.status, next_status)
-            doc.status = next_status
+                # Store result in job
+                job.result_json = {
+                    "confidence": result.confidence,
+                    "field_candidates": result.field_candidates,
+                    "required_missing": result.required_missing,
+                }
+                job.status = ParseJobStatus.DONE
 
-            # Store result in job
-            job.result_json = {
-                "confidence": result.confidence,
-                "field_candidates": result.field_candidates,
-                "required_missing": result.required_missing,
-            }
-            job.status = ParseJobStatus.DONE
+                # Push IFU result to Regula on successful parse (GAP-07, AC-009, fire-and-forget)
+                await _push_ifu_result_to_regula(
+                    job_id=job_id,
+                    doc_id=doc_id,
+                    tenant=tenant,
+                    doc_type=doc.doc_type,
+                    result=result,
+                )
 
-            # Push IFU result to Regula on successful parse (GAP-07, fire-and-forget)
-            await _push_ifu_result_to_regula(
-                job_id=job_id,
-                doc_id=doc_id,
-                tenant=tenant,
-                doc_type=doc.doc_type,
-                result=result,
-            )
-
-        except Exception as exc:
-            logger.exception("Parse job %s failed", job_id)
-            job.status = ParseJobStatus.FAILED
-            job.error = str(exc)
+            except Exception as exc:
+                logger.exception("Parse job %s failed", job_id)
+                job.status = ParseJobStatus.FAILED
+                job.error = str(exc)

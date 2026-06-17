@@ -18,7 +18,14 @@ async def lifespan(app: FastAPI):
     """Initialize resources on startup (REQ-CRAWLER-003, T-003)."""
     settings = Settings()
     init_engine(settings.database_url)
+
+    # SPEC-JOBQUEUE-001: arq Redis pool for crawl job queue (AC-006)
+    from app.queue.arq_pool import create_arq_pool
+    app.state.arq_pool = await create_arq_pool(settings.redis_url)
+
     yield
+
+    await app.state.arq_pool.aclose()
 
 
 def create_app() -> FastAPI:
