@@ -239,6 +239,26 @@ SPEC 상세: [`.moai/specs/SPEC-PARSER-001/spec.md`](.moai/specs/SPEC-PARSER-001
 
 ---
 
+## 구현 현황 (SPEC-JOBQUEUE-001)
+
+> 2026-06-17 기준 — BackgroundTasks → arq 영속 Job Queue 전환 완료
+
+| 항목 | 내용 |
+|------|------|
+| **전환 대상** | `customer-runtime` + `cloud-control-plane` FastAPI `BackgroundTasks` → arq (async Redis queue) |
+| **새 모듈** | `jobs/worker.py`, `jobs/worker_health.py`, `queue/arq_pool.py` (양 서비스 공히) |
+| **재시도 / DLQ** | `max_tries=3` 지수 백오프 → 소진 시 `ParseJob.status='failed'` + terminal error 기록 |
+| **orphan 복구** | `on_startup`: DB `status='running'` + Redis 부재 작업 → 재적재 또는 `'failed'` 처리 |
+| **헬스 신호** | Redis heartbeat TTL key — Azure Container App exec liveness probe |
+| **테넌트 격리** | arq 워커 경로 `explicit_tenant_context` 적용 (REQ-TI-010) |
+| **API 무변경** | `GET /parse/jobs/{job_id}/status` 응답 스키마 동일 |
+| **테스트** | 단위 18개 (arq Redis 모킹, Docker 불필요) + 통합 `skip_no_docker` (CI 전용 실 Redis) |
+| **의존성** | `arq>=0.26` 추가 (customer-runtime, cloud-control-plane) |
+
+SPEC 상세: [`.moai/specs/SPEC-JOBQUEUE-001/spec.md`](.moai/specs/SPEC-JOBQUEUE-001/spec.md)
+
+---
+
 ## 레포지토리 구조
 
 ```

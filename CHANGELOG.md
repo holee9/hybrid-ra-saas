@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-17
+
+### Added (SPEC-JOBQUEUE-001)
+
+- `customer-runtime/src/app/jobs/worker.py` 신규: arq `WorkerSettings` 정의
+  - `max_tries=3` 지수 백오프 재시도 (REQ-JQ-004)
+  - `on_startup` orphan 복구: DB `status='running'` + Redis 부재 작업 → 재적재 또는 `'failed'` 전이 (REQ-JQ-003)
+  - `on_job_abort` DLQ 전이: 최대 재시도 소진 시 `ParseJob.status='failed'` + terminal error 기록 (REQ-JQ-005)
+- `customer-runtime/src/app/jobs/worker_health.py` 신규: Redis heartbeat TTL key — Azure Container App liveness probe (REQ-JQ-008)
+- `customer-runtime/src/app/queue/arq_pool.py` 신규: `ArqRedis` 풀 생성/주입, 단일 enqueue 진입점 (fan_in ≥ 3)
+- `cloud-control-plane/src/app/jobs/crawl_worker.py` 신규: `_execute_crawl_job` arq task 등록 (REQ-JQ-006)
+- `cloud-control-plane/src/app/queue/arq_pool.py` 신규: cloud-control-plane `ArqRedis` 풀
+- `customer-runtime/tests/test_job_queue_unit.py` 신규: 18개 단위 테스트 (arq Redis 인터페이스 모킹, Docker 불필요)
+- `customer-runtime/tests/test_job_queue_integration.py` 신규: 통합 테스트 (`skip_no_docker`, CI 전용 실 Redis)
+
+### Changed
+
+- `customer-runtime/src/app/jobs/parse_job.py`: arq task 시그니처 (`ctx` 첫 인자), `explicit_tenant_context` 적용 (REQ-TI-010)
+- `customer-runtime/src/app/routers/documents.py`: `background_tasks.add_task(run_parse_job, ...)` → arq enqueue (REQ-JQ-002)
+- `customer-runtime/src/app/main.py`: arq pool lifespan 통합
+- `cloud-control-plane/src/app/routers/crawl.py`: `background_tasks.add_task(...)` → arq enqueue (REQ-JQ-006)
+- `customer-runtime/pyproject.toml`, `cloud-control-plane/pyproject.toml`: `arq>=0.26` 의존성 추가
+
+### Security / Resilience
+
+- FastAPI `BackgroundTasks` 인메모리 실행 제거 → Redis 영속 큐로 전환: Azure Container App 재시작/스케일 이벤트에서 작업 유실 차단
+- `ParseJob.status='running'` 좀비 작업 구조적 제거 (orphan 복구)
+- API 계약 무변경: `GET /parse/jobs/{job_id}/status` 응답 스키마 동일 (REQ-JQ-007)
+
 ## [0.8.0] - 2026-06-17
 
 ### Added (SPEC-TENANT-ISOLATION-001)
