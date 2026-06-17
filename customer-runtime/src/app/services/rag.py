@@ -4,10 +4,11 @@ Embeds questions via sentence-transformers, searches pgvector, generates answers
 
 # @MX:ANCHOR: [AUTO] RagService.query — public API boundary for RAG retrieval
 # @MX:REASON: fan_in >= 3 (router, test_rag, future async job)
-# @MX:NOTE: [AUTO] Ollama HTTP call is an external dependency with 25s timeout; graceful fallback on error
+# @MX:NOTE: [AUTO] Ollama HTTP call retries up to OLLAMA_MAX_RETRIES times with exponential backoff
 # @MX:NOTE: [AUTO] pgvector <=> cosine distance operator requires pgvector extension in PostgreSQL
 """
 import asyncio
+import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -22,12 +23,15 @@ try:
 except ImportError:  # pragma: no cover
     SentenceTransformer = None  # type: ignore[assignment, misc]
 
+logger = logging.getLogger(__name__)
+
 _EMBEDDING_DIM = 384
 _EXECUTOR = ThreadPoolExecutor(max_workers=2)
 
 OLLAMA_ENDPOINT = os.environ.get("OLLAMA_ENDPOINT", "http://ollama:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
 OLLAMA_TIMEOUT = 25.0  # seconds — leaves 5s margin for REQ-API-009 30s total budget
+OLLAMA_MAX_RETRIES = 3  # max attempts (initial + 2 retries) with exponential backoff
 
 
 class RagService:
@@ -60,6 +64,7 @@ class RagService:
         # Step 3: generate answer via Ollama if evidence found
         answer = "No relevant evidence found."
         confidence = 0.0
+        llm_available = False
 
         if evidence:
             context = "\n".join(e["text"] for e in evidence)
@@ -67,12 +72,19 @@ class RagService:
             try:
                 answer = await self._call_ollama(prompt)
                 confidence = min(1.0, sum(e.get("score", 0.5) for e in evidence) / len(evidence))
-            except (TimeoutError, httpx.TimeoutException, Exception):
+                llm_available = True
+            except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+                logger.warning("Ollama unavailable after %d attempts: %s", OLLAMA_MAX_RETRIES, exc)
+                req_ids = ", ".join(evidence_links)
+                answer = f"LLM service unavailable. Relevant evidence: {req_ids}"
+                confidence = 0.0
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Unexpected Ollama error: %s", exc)
                 answer = "LLM service unavailable"
                 confidence = 0.0
 
-        # Step 4: compute submit_safe
-        submit_safe = len(evidence_links) > 0
+        # Step 4: compute submit_safe — False when no evidence or LLM failed
+        submit_safe = len(evidence_links) > 0 and llm_available
         if evidence_required and not evidence_links:
             submit_safe = False
 
@@ -141,15 +153,36 @@ class RagService:
             return []
 
     async def _call_ollama(self, prompt: str) -> str:
-        """POST to Ollama generate endpoint with 25s timeout.
+        """POST to Ollama generate endpoint with retry and exponential backoff.
 
-        # @MX:NOTE: [AUTO] External HTTP call — timeout raises TimeoutError for caller to handle
+        Retries on timeout and 5xx errors. Raises on 4xx or after OLLAMA_MAX_RETRIES exhausted.
+
+        # @MX:ANCHOR: [AUTO] Ollama retry entrypoint — callers expect TimeoutException or HTTPStatusError on exhaustion
+        # @MX:REASON: fan_in >= 2 (query method, tests); retry contract must be stable
         """
-        async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT) as client:
-            resp = await client.post(
-                f"{OLLAMA_ENDPOINT}/api/generate",
-                json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return data.get("response", "")
+        last_exc: Exception | None = None
+        for attempt in range(OLLAMA_MAX_RETRIES):
+            if attempt > 0:
+                await asyncio.sleep(2 ** (attempt - 1))  # 1s, 2s backoff
+            try:
+                async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT) as client:
+                    resp = await client.post(
+                        f"{OLLAMA_ENDPOINT}/api/generate",
+                        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+                    )
+                    resp.raise_for_status()
+                    return resp.json().get("response", "")
+            except httpx.TimeoutException as exc:
+                logger.warning("Ollama timeout (attempt %d/%d)", attempt + 1, OLLAMA_MAX_RETRIES)
+                last_exc = exc
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code >= 500:
+                    logger.warning(
+                        "Ollama %d error (attempt %d/%d)",
+                        exc.response.status_code, attempt + 1, OLLAMA_MAX_RETRIES,
+                    )
+                    last_exc = exc
+                else:
+                    raise  # 4xx — not retryable
+        assert last_exc is not None
+        raise last_exc

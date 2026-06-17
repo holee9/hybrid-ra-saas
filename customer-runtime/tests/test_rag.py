@@ -125,6 +125,89 @@ class TestRagService:
         assert "answer" in result
         assert result["submit_safe"] is False  # no evidence -> False
 
+    async def test_submit_safe_false_when_llm_fails_with_evidence(self):
+        """Evidence found but Ollama unavailable -> submit_safe=False (issue #46)."""
+        from app.services.rag import RagService
+        import httpx
+
+        svc = RagService()
+        evidence = [{"req_id": "req-3", "text": "Safety requirement", "score": 0.7}]
+
+        with patch.object(svc, "_embed_question", new=AsyncMock(return_value=[0.1] * 384)):
+            with patch.object(svc, "_similarity_search", new=AsyncMock(return_value=evidence)):
+                with patch.object(
+                    svc, "_call_ollama",
+                    new=AsyncMock(side_effect=httpx.TimeoutException("t/o")),
+                ):
+                    result = await svc.query(
+                        db=AsyncMock(),
+                        tenant_id="tenant-1",
+                        question="Safety requirements?",
+                        product_id=None,
+                        evidence_required=False,
+                        top_k=5,
+                    )
+
+        assert result["confidence"] == 0.0
+        assert result["submit_safe"] is False
+        assert "req-3" in result["answer"]
+
+    async def test_call_ollama_retries_on_timeout_then_succeeds(self):
+        """_call_ollama retries once on timeout and returns on second attempt (issue #46)."""
+        from app.services.rag import RagService
+        import httpx
+
+        svc = RagService()
+        call_count = 0
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"response": "Retry success"}
+        mock_response.raise_for_status = MagicMock()
+
+        async def flaky_post(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise httpx.TimeoutException("timeout")
+            return mock_response
+
+        mock_client = AsyncMock()
+        mock_client.post = flaky_post
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("app.services.rag.asyncio.sleep", new=AsyncMock()):
+            with patch("app.services.rag.httpx.AsyncClient", return_value=mock_client):
+                result = await svc._call_ollama("test prompt")
+
+        assert result == "Retry success"
+        assert call_count == 2
+
+    async def test_call_ollama_all_retries_exhausted_raises(self):
+        """_call_ollama raises TimeoutException after OLLAMA_MAX_RETRIES attempts (issue #46)."""
+        from app.services.rag import RagService, OLLAMA_MAX_RETRIES
+        import httpx
+
+        svc = RagService()
+        call_count = 0
+
+        async def always_timeout(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            raise httpx.TimeoutException("timeout")
+
+        mock_client = AsyncMock()
+        mock_client.post = always_timeout
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("app.services.rag.asyncio.sleep", new=AsyncMock()):
+            with patch("app.services.rag.httpx.AsyncClient", return_value=mock_client):
+                with pytest.raises(httpx.TimeoutException):
+                    await svc._call_ollama("test prompt")
+
+        assert call_count == OLLAMA_MAX_RETRIES
+
     async def test_embed_question_fallback_when_sentence_transformers_missing(self):
         """ImportError on sentence_transformers -> zero vector returned gracefully."""
         from app.services.rag import RagService
