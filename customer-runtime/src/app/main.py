@@ -11,6 +11,8 @@ from app.core.ratelimit import limiter, rate_limit_exceeded_handler
 from app.database import init_engine
 from app.routers.audit import router as audit_router
 from app.routers.authoring import router as authoring_router
+from app.routers.authoring_bff import router as authoring_bff_router
+from app.routers.evidence_bff import router as evidence_bff_router
 from app.routers.checklist import router as checklist_router
 from app.routers.audit_decisions import router as audit_decisions_router
 from app.routers.evidence import router as evidence_router
@@ -85,6 +87,10 @@ def create_app() -> FastAPI:
     app.include_router(checklist_router, prefix="/api/v1", tags=["checklists"])
     # SPEC-EVIDENCE-001: Evidence Binder
     app.include_router(evidence_router, prefix="/api/v1", tags=["evidence"])
+    # Issue #47: Evidence BFF API for ra-med-bot
+    app.include_router(evidence_bff_router, prefix="/api/v1", tags=["evidence-bff"])
+    # Issue #48: Authoring BFF API for ra-med-bot
+    app.include_router(authoring_bff_router, prefix="/api/v1", tags=["authoring-bff"])
     # SPEC-TRACEABILITY-001: Cross-Document Consistency Guardrail & Traceability Graph
     from app.routers.traceability import router as traceability_router
     app.include_router(traceability_router, prefix="/api/v1", tags=["traceability"])
