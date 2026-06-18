@@ -58,7 +58,7 @@ async def test_verify_api_key_returns_503_when_not_configured(monkeypatch):
     monkeypatch.setenv("REGULA_API_KEY", "")
 
     with pytest.raises(HTTPException) as exc:
-        await verify_api_key(api_key="anything")
+        await anext(verify_api_key(api_key="anything"))
 
     assert exc.value.status_code == 503
 
@@ -72,7 +72,7 @@ async def test_verify_api_key_rejects_missing_or_wrong_key(monkeypatch):
 
     for supplied in (None, "wrong"):
         with pytest.raises(HTTPException) as exc:
-            await verify_api_key(api_key=supplied)
+            await anext(verify_api_key(api_key=supplied))
         assert exc.value.status_code == 401
 
 
@@ -84,7 +84,7 @@ async def test_verify_api_key_accepts_expected_key(monkeypatch):
     monkeypatch.setenv("REGULA_API_KEY", "expected")
     monkeypatch.setenv("REGULA_ALLOWED_TENANTS", "")
 
-    assert await verify_api_key(api_key="expected") == "expected"
+    assert await anext(verify_api_key(api_key="expected")) == "expected"
 
 
 @pytest.mark.asyncio
@@ -96,10 +96,10 @@ async def test_verify_api_key_enforces_tenant_allowlist(monkeypatch):
     monkeypatch.setenv("REGULA_ALLOWED_TENANTS", "tenant-a,tenant-b")
 
     with pytest.raises(HTTPException) as exc:
-        await verify_api_key(api_key="expected", x_tenant_id="tenant-c")
+        await anext(verify_api_key(api_key="expected", x_tenant_id="tenant-c"))
 
     assert exc.value.status_code == 403
-    assert await verify_api_key(api_key="expected", x_tenant_id="tenant-a") == "expected"
+    assert await anext(verify_api_key(api_key="expected", x_tenant_id="tenant-a")) == "expected"
 
 
 @pytest.mark.asyncio
