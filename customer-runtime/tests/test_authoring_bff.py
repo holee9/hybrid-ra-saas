@@ -58,7 +58,7 @@ class TestCreateDraft:
         mock_db = AsyncMock()
         mock_session = _make_session()
 
-        with patch("app.routers.authoring_bff.create_session", new=AsyncMock(return_value=mock_session)):
+        with patch("app.services.authoring_session.create_session", new=AsyncMock(return_value=mock_session)):
             # Mock the second select (reload with entries)
             mock_result = MagicMock()
             mock_result.scalar_one.return_value = mock_session
@@ -89,7 +89,7 @@ class TestCreateDraft:
         async def _raise(*args, **kwargs):
             raise ValueError("Template sections must not be empty.")
 
-        with patch("app.routers.authoring_bff.create_session", side_effect=_raise):
+        with patch("app.services.authoring_session.create_session", side_effect=_raise):
             with pytest.raises(ValueError):
                 await create_draft(
                     body=DraftRequest(
@@ -248,7 +248,7 @@ class TestReviewDraft:
             raise HTTPException(status_code=503, detail="LLM service unavailable")
 
         with patch("app.routers.authoring_bff._get_session_or_404", new=AsyncMock(return_value=mock_session)):
-            with patch("app.routers.authoring_bff._call_ollama_simple", side_effect=_raise_503):
+            with patch("app.routers.authoring_bff._call_ollama_simple", new=AsyncMock(side_effect=_raise_503)):
                 with pytest.raises(HTTPException) as exc_info:
                     await review_draft(
                         draft_id="test-draft-id",

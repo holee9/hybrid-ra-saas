@@ -54,7 +54,7 @@ class TestCollectEndpoint:
             "submit_safe": True,
         }
 
-        with patch("app.routers.evidence_bff.RagService") as MockRag:
+        with patch("app.services.rag.RagService") as MockRag:
             mock_svc = MockRag.return_value
             mock_svc.query = AsyncMock(return_value=rag_result)
 
@@ -88,7 +88,7 @@ class TestCollectEndpoint:
         mock_collect = _make_collect()
         mock_collect.items = []
 
-        with patch("app.routers.evidence_bff.RagService") as MockRag:
+        with patch("app.services.rag.RagService") as MockRag:
             mock_svc = MockRag.return_value
             mock_svc.query = AsyncMock(return_value={
                 "answer": "no evidence",

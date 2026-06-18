@@ -5,6 +5,7 @@ Thin BFF wrapper over AuthoringSession for ra-med-bot draft creation and review.
 # @MX:ANCHOR: [AUTO] Authoring BFF public API boundary — 5 endpoints consumed by ra-med-bot.
 # @MX:REASON: fan_in >= 3 (ra-med-bot client, test_authoring_bff, future async worker)
 """
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -234,7 +235,6 @@ async def review_draft(
         )
         try:
             raw = await _call_ollama_simple(prompt)
-            import json
             parsed = json.loads(raw)
             review_items.append(
                 ReviewItem(
