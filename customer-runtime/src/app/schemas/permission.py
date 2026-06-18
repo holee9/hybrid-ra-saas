@@ -21,10 +21,20 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int = Field(..., description="TTL in seconds")
+    refresh_token: str | None = Field(
+        default=None, description="Opaque refresh token for POST /auth/refresh"
+    )
 
 
 class RefreshRequest(BaseModel):
     """POST /auth/refresh body."""
+    model_config = ConfigDict(extra="forbid")
+
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    """POST /auth/logout body — revokes a refresh token."""
     model_config = ConfigDict(extra="forbid")
 
     refresh_token: str

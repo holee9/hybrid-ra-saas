@@ -5,10 +5,16 @@ SPEC-PERMISSION-001 additions:
   - create_user_token                (JWT with role claim)
   - create_refresh_token             (longer-lived JWT)
 
+Issue #41 additions (DB-backed refresh token revocation):
+  - hash_token                       (sha256 hex digest of raw opaque token)
+  - generate_raw_refresh_token       (returns raw token string + expiry datetime for DB storage)
+
 The original create_token, decode_token, and verify_api_key are FROZEN and
 must NOT be modified.
 """
+import hashlib
 import hmac
+import secrets
 from datetime import datetime, timezone, timedelta
 
 import bcrypt
@@ -84,6 +90,31 @@ def create_refresh_token(user_id: str, tenant_id: str, role: str) -> str:
 
     ttl = Settings().jwt_refresh_ttl_min
     return create_user_token(user_id, tenant_id, role, ttl_min=ttl)
+
+
+def hash_token(token: str) -> str:
+    """Return the SHA-256 hex digest of a raw token string.
+
+    Used to store and look up refresh tokens without persisting the raw value.
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def generate_raw_refresh_token() -> tuple[str, datetime]:
+    """Generate a cryptographically random opaque refresh token.
+
+    # @MX:ANCHOR: [AUTO] Raw refresh token factory — pair with hash_token() before DB insert.
+    # @MX:REASON: POST /auth/login and POST /auth/refresh both issue DB-persisted refresh tokens.
+
+    Returns:
+        (raw_token, expires_at): raw_token is sent to client; expires_at stored in DB.
+    """
+    from app.config import Settings
+
+    raw_token = secrets.token_urlsafe(48)  # 64-char URL-safe string
+    ttl_days = Settings().jwt_refresh_ttl_min // (60 * 24)  # minutes → days
+    expires_at = datetime.now(timezone.utc) + timedelta(days=ttl_days)
+    return raw_token, expires_at
 
 
 # GAP-02: server-to-server API key authentication for ra-med-bot → Customer Runtime calls

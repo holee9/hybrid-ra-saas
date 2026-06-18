@@ -37,6 +37,8 @@ from app.models.user import (
     User,
     UserRole,
 )
+# Issue #41: DB-backed refresh token revocation
+from app.models.token import RefreshToken
 
 __all__ = [
     "Base",
@@ -80,4 +82,6 @@ __all__ = [
     "TraceabilityEdge",
     "ConsistencyFinding",
     "ImpactAnalysis",
+    # Issue #41
+    "RefreshToken",
 ]
