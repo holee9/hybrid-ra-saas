@@ -10,8 +10,9 @@ Embeds questions via sentence-transformers, searches pgvector, generates answers
 import asyncio
 import logging
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 from sqlalchemy import text
@@ -34,6 +35,27 @@ logger = logging.getLogger(__name__)
 
 _EMBEDDING_DIM = 384
 _EXECUTOR = ThreadPoolExecutor(max_workers=2)
+
+# Simple in-memory embedding cache (process-local, TTL 1 hour)
+# @MX:NOTE: [AUTO] Embedding cache — reduces sentence-transformers CPU load for repeated queries.
+# Replace with Redis for multi-instance deployments.
+_embedding_cache: dict[str, tuple[list[float], float]] = {}
+EMBEDDING_CACHE_TTL = 3600  # 1 hour
+
+
+def _get_cached_embedding(text: str) -> Optional[list[float]]:
+    """Return cached embedding if present and not expired, else None."""
+    if text in _embedding_cache:
+        embedding, ts = _embedding_cache[text]
+        if time.time() - ts < EMBEDDING_CACHE_TTL:
+            return embedding
+        del _embedding_cache[text]
+    return None
+
+
+def _set_cached_embedding(text: str, embedding: list[float]) -> None:
+    """Store embedding in cache with current timestamp."""
+    _embedding_cache[text] = (embedding, time.time())
 
 OLLAMA_ENDPOINT = os.environ.get("OLLAMA_ENDPOINT", "http://ollama:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
@@ -112,8 +134,13 @@ class RagService:
     async def _embed_question(self, question: str) -> list[float]:
         """Embed question using sentence-transformers in a thread pool.
 
-        Falls back to zero vector if sentence_transformers is unavailable.
+        Checks in-memory cache first; falls back to zero vector if
+        sentence_transformers is unavailable.
         """
+        cached = _get_cached_embedding(question)
+        if cached is not None:
+            return cached
+
         if SentenceTransformer is None:
             return [0.0] * _EMBEDDING_DIM
 
@@ -123,7 +150,9 @@ class RagService:
                 model = SentenceTransformer("all-MiniLM-L6-v2")
                 return model.encode(question).tolist()
 
-            return await loop.run_in_executor(_EXECUTOR, _encode)
+            embedding = await loop.run_in_executor(_EXECUTOR, _encode)
+            _set_cached_embedding(question, embedding)
+            return embedding
         except ImportError:
             return [0.0] * _EMBEDDING_DIM
 
