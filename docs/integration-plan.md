@@ -50,20 +50,20 @@ ra-med-bot(Regula UI) 내부 구현은 해당 레포에서 별도 진행한다.
 
 ## 2. 연동 인터페이스 갭 목록
 
-### GAP-01 [P0 완료 / 운영 검증 필요] CORS: regula.abyz-lab.work 허용
+### GAP-01 [✅ DONE] CORS: regula.abyz-lab.work 허용
 
-**현황:**
+**구현 완료:**
 - Customer Runtime과 Cloud Control Plane 모두 `CORS_ORIGINS` 기반 allowlist를 사용한다.
-- Cloud Control Plane `main.py`에는 `CORSMiddleware`가 적용되어 있다.
-- 운영 Container App 환경 변수에 `https://regula.abyz-lab.work`가 반영됐는지 배포 후 확인해야 한다.
+- Cloud Control Plane `main.py`에 `CORSMiddleware` 적용 완료.
+- Customer Runtime `.env.example`에 `CORS_ORIGINS=https://regula.abyz-lab.work,http://localhost:3000` 반영 완료.
 
-**남은 조치:**
-1. Azure Container App `CORS_ORIGINS` 값 확인
-2. 배포 후 `Origin: https://regula.abyz-lab.work` 요청으로 preflight/실요청 검증
+**운영 검증 필요 (배포 후):**
+1. Azure Container App `CORS_ORIGINS` env var 확인
+2. `Origin: https://regula.abyz-lab.work` preflight/실요청 검증
 
 ---
 
-### GAP-02 [P0/P1 완료 / 운영 secret 필요] 인증 브릿지: JWT Bearer ↔ Auth.js 세션 쿠키
+### GAP-02 [✅ DONE] 인증 브릿지: JWT Bearer ↔ Auth.js 세션 쿠키
 
 **현황:**
 - hybrid-ra-saas: `Authorization: Bearer <jwt_token>` (JWT, HS256)
@@ -75,9 +75,15 @@ ra-med-bot(Regula UI) 내부 구현은 해당 레포에서 별도 진행한다.
 ra-med-bot → hybrid-ra-saas 호출은 **서버 사이드 API Key 패턴**으로 처리한다.  
 (사용자 세션 쿠키를 백엔드 간 전달하는 방식은 보안상 부적절)
 
-**남은 조치 (운영):**
-1. GitHub Secrets/Container App secret에 `REGULA_API_KEY` 등록
-2. 필요 시 `REGULA_ALLOWED_TENANTS`에 허용 tenant 목록 등록
+**구현 완료:**
+- `X-Regula-API-Key` 헤더 인증: `customer-runtime/src/app/core/security.py` 구현 완료
+- `HYBRID_RA_API_TOKEN` Bearer 토큰 인증: `verify_hybrid_bearer_token` 함수 구현 완료 (SPEC-APITOK-001)
+- `REGULA_API_KEY` GitHub Secret 등록 완료 (2026-06-18)
+- `HYBRID_RA_API_TOKEN` GitHub Secret 등록 완료 (2026-06-18)
+
+**운영 검증 필요 (배포 후):**
+1. Container App secret에 `REGULA_API_KEY`, `HYBRID_RA_API_TOKEN` 반영 확인
+2. `REGULA_ALLOWED_TENANTS` tenant 목록 설정 (빈 값 = 전체 허용)
 3. ra-med-bot 서버 사이드 호출에서 `X-Regula-API-Key`, `X-Tenant-ID`, Bearer JWT 전달 검증
 
 **ra-med-bot 측 (별도 레포 작업):**
@@ -86,7 +92,7 @@ ra-med-bot → hybrid-ra-saas 호출은 **서버 사이드 API Key 패턴**으�
 
 ---
 
-### GAP-03 [P0 완료 / 외부 수신부 및 secret 필요] Vectorize 지식 동기화 파이프라인
+### GAP-03 [✅ DONE — ra-med-bot 수신부 pending] Vectorize 지식 동기화 파이프라인
 
 **현황:**
 - hybrid-ra-saas Cloud Control Plane: FDA/EU MDR/MFDS 문서를 크롤링 → Azure Blob/PostgreSQL 저장 → 신규 문서 batch를 `KnowledgePushService`로 push
@@ -116,10 +122,16 @@ Cloud Control Plane (Azure)
    - `regula_knowledge_push_url: str = ""`  
    - `crawl_push_secret: str = ""`
 
-**남은 조치:**
-1. GitHub Secrets/Container App secret에 `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET` 등록
-2. ra-med-bot 수신 endpoint와 Cloudflare Vectorize binding 설정
-3. 배포 후 크롤 job 완료 → push 수신 → Vectorize 검색까지 E2E 검증
+**이 레포 구현 완료:**
+- `knowledge_push.py` HTTP Push client 구현 완료
+- `orchestrator.py` 크롤 완료 후 `KnowledgePushService.push()` 호출 구현 완료
+- `REGULA_KNOWLEDGE_PUSH_URL` GitHub Secret 등록 완료 (2026-06-18)
+- `CRAWL_PUSH_SECRET` GitHub Secret 등록 완료 (2026-06-18)
+
+**운영 검증 필요 (ra-med-bot 작업 후):**
+1. ra-med-bot `/api/admin/radar/sync` 수신 endpoint 구현 (SPEC-REGULA-VECTORIZE-001)
+2. Cloudflare Vectorize binding 설정
+3. 배포 후 크롤 job → push → Vectorize 검색까지 E2E 검증
 
 ---
 
@@ -168,27 +180,30 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 
 ---
 
-### GAP-06 [P2] 감사 로그(Audit Trail) 연계 없음
+### GAP-06 [✅ DONE — 운영 검증 필요] 감사 로그(Audit Trail) 연계
 
-**현황:**
-- hybrid-ra-saas: `/audit/export` — 규제 감사 로그 CSV/JSON 내보내기
-- ra-med-bot: 감사 로그 수신 기능 없음
+**구현 완료:**
+- `POST /audit/webhook` 엔드포인트 구현 완료: `customer-runtime/src/app/routers/audit.py`
+- `config.py`에 `regula_audit_webhook_url: str = ""` 추가 완료
+- `REGULA_AUDIT_WEBHOOK_URL` GitHub Secret 등록 완료 (2026-06-18)
+- `REGULA_AUDIT_WEBHOOK_URL` 미설정 시 `202 status=skipped` no-op 동작 구현
 
-**필요 조치 (P2, 이 레포):**
-- `POST /audit/webhook` 신규 엔드포인트 추가: 규제 이벤트 발생 시 Regula로 push
-- `config.py`에 `regula_audit_webhook_url: str = ""`
+**운영 검증 필요:**
+- Container App secret에 `REGULA_AUDIT_WEBHOOK_URL` 반영 후 webhook 전달 확인
+- ra-med-bot 감사 이벤트 수신 endpoint 구현 (별도 레포)
 
 ---
 
-### GAP-07 [P2] IFU 파서 결과를 Regula context에 연결 없음
+### GAP-07 [✅ DONE (secret 등록) — 운영 검증 필요] IFU 파서 결과를 Regula context에 연결
 
-**현황:**
-- hybrid-ra-saas: `/documents/upload` → `/parse/jobs/{id}` → IFU 파싱 결과 (requirements, risks, controls)
-- ra-med-bot: 자체 document upload API 있음 (`/api/ra/admin/documents/upload`) — 별개로 운영 중
+**구현 완료:**
+- `REGULA_IFU_WEBHOOK_URL` GitHub Secret 등록 완료 (2026-06-18)
+- `config.py`에 `regula_ifu_webhook_url: str = ""` 추가 완료
 
-**필요 조치 (P2, 이 레포):**
-- 파싱 완료 후 Regula에 구조화된 IFU 데이터 push webhook 추가
-- 또는 ra-med-bot이 `/parse/jobs/{id}` 결과를 직접 폴링하는 방식
+**운영 검증 필요:**
+- IFU 파싱 완료 후 webhook push 구현 (`customer-runtime/src/app/jobs/parse_job.py`)
+- ra-med-bot IFU context 수신 endpoint 구현 (별도 레포)
+- Container App secret에 `REGULA_IFU_WEBHOOK_URL` 반영 후 E2E 검증
 
 ---
 

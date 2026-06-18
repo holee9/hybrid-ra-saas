@@ -40,22 +40,35 @@ gh secret set CLOUDFLARE_ZONE_ID --repo holee9/hybrid-ra-saas
 
 ### Regula 연동 (hybrid-ra-saas ↔ ra-med-bot)
 
-| Secret 키 | 용도 | 취득/생성 방법 |
-|-----------|------|---------------|
-| `REGULA_API_KEY` | ra-med-bot → Customer Runtime server-to-server 호출 인증 (`X-Regula-API-Key`) | `openssl rand -hex 32` 등으로 생성 후 양쪽 레포에 동일하게 등록 |
-| `REGULA_ALLOWED_TENANTS` | API key 호출 허용 tenant allowlist | 쉼표 구분 tenant ID. Secret이 아니면 Container App env var로 직접 설정 가능 |
-| `REGULA_KNOWLEDGE_PUSH_URL` | Cloud Control Plane 크롤 완료 후 ra-med-bot 지식 동기화 수신 URL | ra-med-bot `/api/admin/radar/sync` 배포 URL |
-| `CRAWL_PUSH_SECRET` | Cloud Control Plane → ra-med-bot knowledge push 인증 헤더 | `openssl rand -hex 32` 등으로 생성 후 양쪽 레포에 동일하게 등록 |
-| `REGULA_AUDIT_WEBHOOK_URL` | Customer Runtime `/audit/webhook` outbound 대상 | ra-med-bot 감사 이벤트 수신 URL |
-| `REGULA_IFU_WEBHOOK_URL` | IFU 파싱 완료 후 Regula project context push 대상 | ra-med-bot IFU context 수신 URL |
+> **현황 (2026-06-18):** 아래 6개 Secret 모두 등록 완료. Container App 재배포 후 활성화됩니다.
+
+| Secret 키 | 용도 | 취득/생성 방법 | 상태 |
+|-----------|------|---------------|------|
+| `REGULA_API_KEY` | ra-med-bot → Customer Runtime server-to-server 호출 인증 (`X-Regula-API-Key`) | `openssl rand -hex 32` 생성 후 양쪽 레포에 동일하게 등록 | ✅ 등록 완료 |
+| `HYBRID_RA_API_TOKEN` | Customer Runtime Bearer 토큰 인증 (SPEC-APITOK-001, 8개 라우터) | `openssl rand -hex 32` 생성 후 ra-med-bot 측 `HYBRID_RA_API_TOKEN`과 동일 값 | ✅ 등록 완료 |
+| `CRAWL_PUSH_SECRET` | Cloud Control Plane → ra-med-bot knowledge push 인증 헤더 | `openssl rand -hex 32` 생성 후 ra-med-bot 측 `CRAWL_PUSH_SECRET`과 동일 값 | ✅ 등록 완료 |
+| `REGULA_KNOWLEDGE_PUSH_URL` | Cloud Control Plane 크롤 완료 후 ra-med-bot 지식 동기화 수신 URL | ra-med-bot `/api/admin/radar/sync` 배포 URL | ✅ 등록 완료 |
+| `REGULA_AUDIT_WEBHOOK_URL` | Customer Runtime `/audit/webhook` outbound 대상 | ra-med-bot 감사 이벤트 수신 URL | ✅ 등록 완료 |
+| `REGULA_IFU_WEBHOOK_URL` | IFU 파싱 완료 후 Regula project context push 대상 | ra-med-bot IFU context 수신 URL | ✅ 등록 완료 |
 
 ```bash
+# Secret 재설정이 필요한 경우
 gh secret set REGULA_API_KEY --repo holee9/hybrid-ra-saas
-gh secret set REGULA_KNOWLEDGE_PUSH_URL --repo holee9/hybrid-ra-saas
+gh secret set HYBRID_RA_API_TOKEN --repo holee9/hybrid-ra-saas
 gh secret set CRAWL_PUSH_SECRET --repo holee9/hybrid-ra-saas
+gh secret set REGULA_KNOWLEDGE_PUSH_URL --repo holee9/hybrid-ra-saas
 gh secret set REGULA_AUDIT_WEBHOOK_URL --repo holee9/hybrid-ra-saas
 gh secret set REGULA_IFU_WEBHOOK_URL --repo holee9/hybrid-ra-saas
 ```
+
+**Secret 생성 명령:**
+
+```bash
+# 랜덤 32바이트 헥스 토큰 생성 (REGULA_API_KEY, HYBRID_RA_API_TOKEN, CRAWL_PUSH_SECRET 용)
+openssl rand -hex 32
+```
+
+> **공유 토큰 주의:** `REGULA_API_KEY`, `HYBRID_RA_API_TOKEN`, `CRAWL_PUSH_SECRET`은 ra-med-bot 레포에도 동일 값으로 등록해야 합니다.
 
 > `REGULA_ALLOWED_TENANTS`는 운영 정책 값입니다. 비밀값으로 관리하려면 GitHub Secret/Key Vault에 등록하고, 공개 가능한 tenant ID 목록이면 Container App env var로 직접 설정합니다.
 

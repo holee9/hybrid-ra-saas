@@ -468,4 +468,4 @@ git push origin v1.0.0
 
 ---
 
-*버전: v6.2 | 최종 갱신: 2026-06-16 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | Bearer 인증 ✅ | API 계약 명세 ✅ | 다음: P0 크롤러→Regula Vectorize 동기화*
+*버전: v6.3 | 최종 갱신: 2026-06-18 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | Bearer 인증 ✅ | API 계약 명세 ✅ | Regula 연동 Secrets 6개 등록 ✅ | 다음: Container App 재배포 → 연동 E2E 검증*
