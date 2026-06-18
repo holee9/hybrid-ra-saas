@@ -54,6 +54,7 @@ class CrawlerSource(ABC):
         clock: Optional[Callable[[], float]] = None,
         rate_limit: float = 1.0,
     ) -> None:
+        # @MX:NOTE: [AUTO] httpx.AsyncClient — async HTTP, no event loop blocking
         self._client = client
         self._robots_url = robots_url
         self._retry_count = retry_count
