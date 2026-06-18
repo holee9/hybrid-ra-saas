@@ -2,9 +2,14 @@
 
 B1 compliance: spaCy is imported lazily inside default_model_loader().
 When spaCy is absent or the loader raises, extract() returns {} gracefully.
+
+Singleton pattern: get_nlp() reads the model pre-loaded in app.state at lifespan.
+Falls back to default_model_loader() if app.state is unavailable (e.g. unit tests).
 """
 import logging
 from typing import Any, Callable
+
+from fastapi import Request
 
 from app.schemas.parse import ExtractionStage, FieldExtraction
 from app.services.parser_engine.confidence import calculate
@@ -34,6 +39,23 @@ def default_model_loader() -> Any:
     """
     import spacy  # noqa: PLC0415  # lazy import (B1)
     return spacy.load("en_core_web_sm")
+
+
+def get_nlp(request: Request) -> Any | None:
+    """FastAPI dependency: return the singleton spaCy model from app.state.
+
+    Falls back to default_model_loader() when app.state.spacy_model is not set
+    (e.g. during unit tests that construct a bare Request without lifespan).
+    Returns None if spaCy is unavailable — callers must handle None gracefully.
+    """
+    model = getattr(request.app.state, "spacy_model", None)
+    if model is not None:
+        return model
+    # Fallback for test contexts without lifespan
+    try:
+        return default_model_loader()
+    except (ImportError, OSError):
+        return None
 
 
 def extract(

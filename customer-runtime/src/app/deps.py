@@ -1,8 +1,10 @@
 """FastAPI dependency functions."""
+from __future__ import annotations
+
 from typing import AsyncGenerator
 
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,9 +57,29 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-def get_parser() -> ParserService:
-    """FastAPI dependency: return the real parser service backed by ParserEngine."""
-    return EngineParserService()
+def get_parser(request: Request | None = None) -> ParserService:
+    """FastAPI dependency: return the real parser service backed by ParserEngine.
+
+    When called as a FastAPI Depends, request is injected automatically.
+    Passes the singleton spaCy model (app.state.spacy_model) into ParserEngine
+    so Stage 2 NER reuses the pre-loaded model instead of loading per-request.
+    """
+    from app.services.parser_engine import ParserEngine
+
+    spacy_model = None
+    if request is not None:
+        spacy_model = getattr(request.app.state, "spacy_model", None)
+
+    if spacy_model is not None:
+        def _stage2_singleton(text: str, fields: list) -> dict:
+            from app.services.parser_engine.spacy_ner import extract
+            return extract(text, fields, model_loader=lambda: spacy_model)
+
+        engine = ParserEngine(stage2_fn=_stage2_singleton)
+    else:
+        engine = ParserEngine()
+
+    return EngineParserService(engine=engine)
 
 
 # ---------------------------------------------------------------------------

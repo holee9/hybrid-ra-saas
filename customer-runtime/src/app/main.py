@@ -38,10 +38,20 @@ async def lifespan(app: FastAPI):
     from app.queue.arq_pool import create_arq_pool
     app.state.arq_pool = await create_arq_pool(settings.redis_url)
 
+    # @MX:NOTE: [AUTO] spaCy singleton — loaded once at lifespan, not per-request.
+    # en_core_web_sm chosen for container memory safety (12MB vs en_core_web_lg 540MB).
+    # Trade-off: sm has lower NER accuracy but fits Azure Container Apps memory limits.
+    try:
+        import spacy  # noqa: PLC0415
+        app.state.spacy_model = spacy.load("en_core_web_sm")
+    except (ImportError, OSError):
+        app.state.spacy_model = None
+
     yield
 
     # Graceful pool shutdown
     await app.state.arq_pool.aclose()
+    app.state.spacy_model = None
 
 
 def create_app() -> FastAPI:
