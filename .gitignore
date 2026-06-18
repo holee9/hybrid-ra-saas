@@ -229,3 +229,5 @@ override.tf.json
 requirements.txt.lock
 nul
 .claude/
+docs/superpowers/
+.moai/project/codemaps/
