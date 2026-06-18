@@ -58,6 +58,10 @@ make pull-model
 # 약 5GB 다운로드. 완료까지 수분 소요.
 ```
 
+RAG는 Ollama `/api/generate`를 `stream=false`로 호출한다. 느린 로컬 모델의 정상 응답을 보존하기 위해
+요청 timeout은 `25s`이며, retry/backoff를 포함한 전체 Ollama budget은 `28s`다.
+budget을 초과하면 RAG는 검색된 evidence를 유지한 fallback 응답을 반환하고 `submit_safe=false`로 표시한다.
+
 ### 5. 동작 확인
 
 ```bash

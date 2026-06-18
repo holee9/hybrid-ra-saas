@@ -116,6 +116,11 @@ curl -i -X POST https://api-prod.<region>.azurecontainerapps.io/rag/query \
   -d '{"question":"test","top_k":1}'
 ```
 
+`/rag/query`는 Ollama non-streamed 응답을 기다리기 위해 요청 timeout을 `25s`로 둔다.
+retry는 최대 3회이며, backoff를 포함한 전체 Ollama budget은 `28s`로 30초 API SLA 안에 유지한다.
+Ollama timeout/5xx가 budget을 소진하면 HTTP 요청 자체는 fallback 응답을 반환하며,
+검색된 evidence는 유지되고 `submit_safe=false`가 된다.
+
 ---
 
 ## 3. DB 마이그레이션 (첫 배포 시 수동 실행)

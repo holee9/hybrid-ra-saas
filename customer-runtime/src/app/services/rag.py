@@ -30,8 +30,9 @@ _EXECUTOR = ThreadPoolExecutor(max_workers=2)
 
 OLLAMA_ENDPOINT = os.environ.get("OLLAMA_ENDPOINT", "http://ollama:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
-# 8s × 3 attempts + 3s backoff = 27s ≤ 28s Ollama budget (30s SLA − 2s embed/DB)
-OLLAMA_TIMEOUT = 8.0
+# Request timeout permits slow successful non-streamed responses; retry budget caps total SLA cost.
+OLLAMA_TIMEOUT = 25.0
+OLLAMA_RETRY_BUDGET = 28.0
 OLLAMA_MAX_RETRIES = 3  # max attempts (initial + 2 retries) with exponential backoff
 
 
@@ -162,11 +163,22 @@ class RagService:
         # @MX:REASON: fan_in >= 2 (query method, tests); retry contract must be stable
         """
         last_exc: Exception | None = None
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + OLLAMA_RETRY_BUDGET
+
         for attempt in range(OLLAMA_MAX_RETRIES):
             if attempt > 0:
-                await asyncio.sleep(2 ** (attempt - 1))  # 1s, 2s backoff
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    break
+                await asyncio.sleep(min(2 ** (attempt - 1), remaining))  # 1s, 2s backoff
+
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                break
+
             try:
-                async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT) as client:
+                async with httpx.AsyncClient(timeout=min(OLLAMA_TIMEOUT, remaining)) as client:
                     resp = await client.post(
                         f"{OLLAMA_ENDPOINT}/api/generate",
                         json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
@@ -185,5 +197,6 @@ class RagService:
                     last_exc = exc
                 else:
                     raise  # 4xx — not retryable
-        assert last_exc is not None
-        raise last_exc
+        if last_exc is not None:
+            raise last_exc
+        raise httpx.TimeoutException("Ollama retry budget exhausted")

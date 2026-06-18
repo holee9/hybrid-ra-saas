@@ -122,6 +122,14 @@
 
 SPEC 상세: [`.moai/specs/SPEC-API-001/spec.md`](.moai/specs/SPEC-API-001/spec.md)
 
+### RAG Ollama timeout / retry policy
+
+`POST /rag/query`는 로컬 Ollama `/api/generate`를 `stream=false`로 호출한다.
+요청 timeout은 `25s`로 유지해 8초를 넘지만 API SLA 안에서 성공하는 non-streamed 응답을 보존한다.
+retry는 최대 3회이며, 1s/2s exponential backoff를 포함한 전체 Ollama retry budget은 `28s`다.
+Ollama가 budget 안에 응답하지 못하면 검색된 `evidence_links`는 유지하고,
+`LLM service unavailable. Relevant evidence: ...` 응답과 함께 `submit_safe=false`로 반환한다.
+
 ---
 
 ## 구현 현황 (SPEC-APITOK-001)

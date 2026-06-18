@@ -199,10 +199,44 @@ async def test_rag_ollama_fallback_on_timeout():
                     top_k=3,
                 )
 
-    assert result["answer"] == "LLM service unavailable"
+    assert result["answer"] == "LLM service unavailable. Relevant evidence: R-001"
     assert result["confidence"] == 0.0
     # Evidence links still populated from similarity search
     assert "R-001" in result["evidence_links"]
+
+
+@pytest.mark.asyncio
+async def test_rag_ollama_preserves_slow_success_timeout_budget():
+    """RagService._call_ollama allows slow successes within the API SLA."""
+    from app.services.rag import RagService
+
+    captured_timeouts = []
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"response": "slow success"}
+
+    class FakeClient:
+        def __init__(self, *, timeout):
+            captured_timeouts.append(timeout)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, url, json):
+            return FakeResponse()
+
+    with patch("app.services.rag.httpx.AsyncClient", FakeClient):
+        result = await RagService()._call_ollama("prompt")
+
+    assert result == "slow success"
+    assert captured_timeouts[0] > 8.0
 
 
 @pytest.mark.asyncio
