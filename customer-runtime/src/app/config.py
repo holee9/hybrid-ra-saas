@@ -89,3 +89,8 @@ class Settings(BaseSettings):
     # SPEC-JOBQUEUE-001: Redis broker URL for arq job queue
     # Worker and API both read this to connect to the same Redis instance.
     redis_url: str = "redis://localhost:6379"
+
+    # Storage backend selector (SPEC: arch(storage) #40)
+    # "minio"  — local dev / on-prem (default)
+    # "azure"  — Azure Blob Storage for production
+    storage_backend: str = "minio"
