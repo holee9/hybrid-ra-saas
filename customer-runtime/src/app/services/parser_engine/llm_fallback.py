@@ -10,6 +10,11 @@ from urllib.parse import urlparse
 import httpx
 
 from app.schemas.parse import ExtractionStage, FieldExtraction
+from app.services.ollama_health import (
+    is_circuit_open,
+    record_ollama_failure,
+    record_ollama_success,
+)
 from app.services.parser_engine.confidence import calculate
 
 logger = logging.getLogger(__name__)
@@ -79,6 +84,11 @@ async def extract(
     if not fields_needed:
         return {}
 
+    # Circuit breaker: skip LLM call entirely if Ollama is presumed down
+    if is_circuit_open():
+        logger.warning("LLM fallback skipped — Ollama circuit breaker is open")
+        return {}
+
     # Security gate — raises before any HTTP call if not local
     _assert_local(base_url)
 
@@ -98,8 +108,11 @@ async def extract(
         raw_json = response.json()
         llm_text = raw_json.get("response", "{}")
         extracted: dict[str, Any] = json.loads(llm_text)
+        record_ollama_success()
     except (httpx.HTTPError, json.JSONDecodeError, KeyError) as exc:
         logger.warning("LLM fallback failed: %s", exc)
+        if isinstance(exc, httpx.HTTPError):
+            record_ollama_failure()
         return {}
 
     result: dict[str, FieldExtraction] = {}

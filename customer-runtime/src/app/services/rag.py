@@ -17,6 +17,13 @@ import httpx
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.ollama_health import (
+    OllamaUnavailableError,
+    is_circuit_open,
+    record_ollama_failure,
+    record_ollama_success,
+)
+
 # Lazy import with graceful fallback
 try:
     from sentence_transformers import SentenceTransformer  # type: ignore[import-untyped]
@@ -75,6 +82,11 @@ class RagService:
                 answer = await self._call_ollama(prompt)
                 confidence = min(1.0, sum(e.get("score", 0.5) for e in evidence) / len(evidence))
                 llm_available = True
+            except OllamaUnavailableError as exc:
+                logger.warning("Ollama circuit open — skipping LLM call: %s", exc)
+                req_ids = ", ".join(evidence_links)
+                answer = f"LLM service unavailable (circuit open). Relevant evidence: {req_ids}"
+                confidence = 0.0
             except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
                 logger.warning("Ollama unavailable after %d attempts: %s", OLLAMA_MAX_RETRIES, exc)
                 req_ids = ", ".join(evidence_links)
@@ -155,13 +167,18 @@ class RagService:
             return []
 
     async def _call_ollama(self, prompt: str) -> str:
-        """POST to Ollama generate endpoint with retry and exponential backoff.
+        """POST to Ollama generate endpoint with retry, exponential backoff, and circuit breaker.
 
+        Checks circuit breaker before each attempt. Records failures/successes to update state.
         Retries on timeout and 5xx errors. Raises on 4xx or after OLLAMA_MAX_RETRIES exhausted.
 
         # @MX:ANCHOR: [AUTO] Ollama retry entrypoint — callers expect TimeoutException or HTTPStatusError on exhaustion
         # @MX:REASON: fan_in >= 2 (query method, tests); retry contract must be stable
         """
+        # Fast-fail: circuit open means Ollama is presumed down
+        if is_circuit_open():
+            raise OllamaUnavailableError("Ollama circuit breaker is open — skipping call")
+
         last_exc: Exception | None = None
         loop = asyncio.get_running_loop()
         deadline = loop.time() + OLLAMA_RETRY_BUDGET
@@ -184,9 +201,11 @@ class RagService:
                         json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
                     )
                     resp.raise_for_status()
+                    record_ollama_success()
                     return resp.json().get("response", "")
             except httpx.TimeoutException as exc:
                 logger.warning("Ollama timeout (attempt %d/%d)", attempt + 1, OLLAMA_MAX_RETRIES)
+                record_ollama_failure()
                 last_exc = exc
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code >= 500:
@@ -194,6 +213,7 @@ class RagService:
                         "Ollama %d error (attempt %d/%d)",
                         exc.response.status_code, attempt + 1, OLLAMA_MAX_RETRIES,
                     )
+                    record_ollama_failure()
                     last_exc = exc
                 else:
                     raise  # 4xx — not retryable
