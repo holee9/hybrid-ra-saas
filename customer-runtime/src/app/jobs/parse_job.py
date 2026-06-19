@@ -67,6 +67,40 @@ async def _push_ifu_result_to_regula(
         logger.warning("IFU push failed for job=%s (non-fatal)", job_id, exc_info=True)
 
 
+async def _push_knowledge_sync_to_regula(
+    job_id: str,
+    tenant: str,
+) -> None:
+    """Notify Regula (ra-med-bot) to re-sync the knowledge base.
+
+    # @MX:ANCHOR: [AUTO] Outbound knowledge sync trigger to Regula SaaS (GAP-08).
+    # @MX:REASON: External integration boundary; fire-and-forget — failure does not affect job status.
+
+    Fire-and-forget: logs on failure, never raises.
+    """
+    from app.config import Settings
+    settings = Settings()
+    push_url = settings.regula_knowledge_push_url
+    if not push_url:
+        return
+
+    headers: dict[str, str] = {}
+    if settings.regula_api_key:
+        headers["X-Regula-API-Key"] = settings.regula_api_key
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                push_url,
+                json={"tenant_id": tenant, "trigger": "parse_completed", "job_id": job_id},
+                headers=headers,
+            )
+            resp.raise_for_status()
+            logger.info("Knowledge sync push OK: job=%s status=%s", job_id, resp.status_code)
+    except Exception:
+        logger.warning("Knowledge sync push failed for job=%s (non-fatal)", job_id, exc_info=True)
+
+
 async def run_parse_job(
     ctx: dict,
     job_id: str,
@@ -144,6 +178,9 @@ async def run_parse_job(
                     doc_type=doc.doc_type,
                     result=result,
                 )
+
+                # Notify Regula to re-sync knowledge base (GAP-08, fire-and-forget)
+                await _push_knowledge_sync_to_regula(job_id=job_id, tenant=tenant)
 
             except Exception as exc:
                 logger.exception("Parse job %s failed", job_id)

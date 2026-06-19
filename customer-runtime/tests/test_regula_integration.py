@@ -241,3 +241,54 @@ async def test_ifu_push_http_failure_is_non_fatal(monkeypatch):
     )
 
     assert len(_FakeAsyncClient.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_knowledge_sync_push_skipped_when_not_configured(monkeypatch):
+    """Knowledge sync push is fire-and-forget and skipped until URL is configured."""
+    from app.jobs.parse_job import _push_knowledge_sync_to_regula
+
+    _FakeAsyncClient.calls = []
+    monkeypatch.setenv("REGULA_KNOWLEDGE_PUSH_URL", "")
+    monkeypatch.setattr("app.jobs.parse_job.httpx.AsyncClient", _FakeAsyncClient)
+
+    await _push_knowledge_sync_to_regula(job_id="job-1", tenant="tenant-a")
+
+    assert _FakeAsyncClient.calls == []
+
+
+@pytest.mark.asyncio
+async def test_knowledge_sync_push_sends_trigger_and_api_key(monkeypatch):
+    """Configured knowledge sync URL receives trigger payload and API key header."""
+    from app.jobs.parse_job import _push_knowledge_sync_to_regula
+
+    _FakeAsyncClient.calls = []
+    _FakeAsyncClient.status_code = 200
+    monkeypatch.setenv("REGULA_KNOWLEDGE_PUSH_URL", "https://regula.example/knowledge-sync")
+    monkeypatch.setenv("REGULA_API_KEY", "expected")
+    monkeypatch.setattr("app.jobs.parse_job.httpx.AsyncClient", _FakeAsyncClient)
+
+    await _push_knowledge_sync_to_regula(job_id="job-1", tenant="tenant-a")
+
+    assert len(_FakeAsyncClient.calls) == 1
+    call = _FakeAsyncClient.calls[0]
+    assert call["url"] == "https://regula.example/knowledge-sync"
+    assert call["headers"]["X-Regula-API-Key"] == "expected"
+    assert call["json"]["tenant_id"] == "tenant-a"
+    assert call["json"]["trigger"] == "parse_completed"
+    assert call["json"]["job_id"] == "job-1"
+
+
+@pytest.mark.asyncio
+async def test_knowledge_sync_push_http_failure_is_non_fatal(monkeypatch):
+    """Knowledge sync push failures are logged but do not fail the parse job."""
+    from app.jobs.parse_job import _push_knowledge_sync_to_regula
+
+    _FakeAsyncClient.calls = []
+    _FakeAsyncClient.status_code = 500
+    monkeypatch.setenv("REGULA_KNOWLEDGE_PUSH_URL", "https://regula.example/knowledge-sync")
+    monkeypatch.setattr("app.jobs.parse_job.httpx.AsyncClient", _FakeAsyncClient)
+
+    await _push_knowledge_sync_to_regula(job_id="job-1", tenant="tenant-a")
+
+    assert len(_FakeAsyncClient.calls) == 1
