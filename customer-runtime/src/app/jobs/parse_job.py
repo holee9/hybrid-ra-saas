@@ -22,6 +22,31 @@ logger = logging.getLogger(__name__)
 CONFIDENCE_THRESHOLD = 0.8
 
 
+async def _post_to_regula(
+    url: str,
+    payload: dict,
+    job_id: str,
+    label: str,
+    *,
+    api_key: str = "",
+) -> None:
+    """Generic fire-and-forget POST to a Regula SaaS endpoint. Never raises."""
+    if not url:
+        return
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["X-Regula-API-Key"] = api_key
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            logger.info("%s push OK: job=%s status=%s", label, job_id, resp.status_code)
+    except Exception:
+        logger.warning("%s push failed for job=%s (non-fatal)", label, job_id, exc_info=True)
+
+
+# @MX:ANCHOR: [AUTO] Outbound IFU parse result push to Regula SaaS (GAP-07).
+# @MX:REASON: External integration boundary; fire-and-forget — failure does not affect job status.
 async def _push_ifu_result_to_regula(
     job_id: str,
     doc_id: str,
@@ -29,76 +54,42 @@ async def _push_ifu_result_to_regula(
     doc_type: str,
     result: ParseResult,
 ) -> None:
-    """Push IFU parse result to Regula (ra-med-bot) webhook URL.
-
-    # @MX:ANCHOR: [AUTO] Outbound IFU parse result push to Regula SaaS (GAP-07).
-    # @MX:REASON: External integration boundary; fire-and-forget — failure does not affect job status.
-
-    Fire-and-forget: logs on failure, never raises.
-    """
+    """Push IFU parse result to Regula (ra-med-bot) webhook URL. Fire-and-forget."""
     from app.config import Settings
     settings = Settings()
-    webhook_url = settings.regula_ifu_webhook_url
-    if not webhook_url:
-        return
-
-    headers: dict[str, str] = {}
-    if settings.regula_api_key:
-        headers["X-Regula-API-Key"] = settings.regula_api_key
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                webhook_url,
-                json={
-                    "tenant_id": tenant,
-                    "job_id": job_id,
-                    "doc_id": doc_id,
-                    "doc_type": doc_type,
-                    "confidence": result.confidence,
-                    "field_candidates": result.field_candidates,
-                    "required_missing": result.required_missing,
-                },
-                headers=headers,
-            )
-            resp.raise_for_status()
-            logger.info("IFU push OK: job=%s status=%s", job_id, resp.status_code)
-    except Exception:
-        logger.warning("IFU push failed for job=%s (non-fatal)", job_id, exc_info=True)
+    await _post_to_regula(
+        url=settings.regula_ifu_webhook_url,
+        payload={
+            "tenant_id": tenant,
+            "job_id": job_id,
+            "doc_id": doc_id,
+            "doc_type": doc_type,
+            "confidence": result.confidence,
+            "field_candidates": result.field_candidates,
+            "required_missing": result.required_missing,
+        },
+        job_id=job_id,
+        label="IFU",
+        api_key=settings.regula_api_key,
+    )
 
 
+# @MX:ANCHOR: [AUTO] Outbound knowledge sync trigger to Regula SaaS (GAP-08).
+# @MX:REASON: External integration boundary; fire-and-forget — failure does not affect job status.
 async def _push_knowledge_sync_to_regula(
     job_id: str,
     tenant: str,
 ) -> None:
-    """Notify Regula (ra-med-bot) to re-sync the knowledge base.
-
-    # @MX:ANCHOR: [AUTO] Outbound knowledge sync trigger to Regula SaaS (GAP-08).
-    # @MX:REASON: External integration boundary; fire-and-forget — failure does not affect job status.
-
-    Fire-and-forget: logs on failure, never raises.
-    """
+    """Notify Regula (ra-med-bot) to re-sync the knowledge base. Fire-and-forget."""
     from app.config import Settings
     settings = Settings()
-    push_url = settings.regula_knowledge_push_url
-    if not push_url:
-        return
-
-    headers: dict[str, str] = {}
-    if settings.regula_api_key:
-        headers["X-Regula-API-Key"] = settings.regula_api_key
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                push_url,
-                json={"tenant_id": tenant, "trigger": "parse_completed", "job_id": job_id},
-                headers=headers,
-            )
-            resp.raise_for_status()
-            logger.info("Knowledge sync push OK: job=%s status=%s", job_id, resp.status_code)
-    except Exception:
-        logger.warning("Knowledge sync push failed for job=%s (non-fatal)", job_id, exc_info=True)
+    await _post_to_regula(
+        url=settings.regula_knowledge_push_url,
+        payload={"tenant_id": tenant, "trigger": "parse_completed", "job_id": job_id},
+        job_id=job_id,
+        label="knowledge-sync",
+        api_key=settings.regula_api_key,
+    )
 
 
 async def run_parse_job(
