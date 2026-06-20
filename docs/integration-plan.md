@@ -140,7 +140,7 @@ Cloud Control Plane (Azure)
 
 ---
 
-### GAP-04 [P1] 크롤러 중복 운영
+### GAP-04 [✅ DONE — SPEC-CRAWLER-002] 크롤러 중복 운영
 
 **현황:**
 - hybrid-ra-saas `cloud-control-plane`: FastAPI 크롤러 (FDA, EU MDR, MFDS)
@@ -164,9 +164,16 @@ Cloud Control Plane (Azure)
 - `docs/integration-plan.md`에 결정 사항 기록 (이 문서 ✅ 완료)
 - ~~Cloud Control Plane 크롤러가 단일 소스 오브 트루스로 지정될 경우: 크롤러 범위를 EU OJ 포함으로 확장 검토 필요~~ → 중복으로 불필요 판단
 
+**SPEC-CRAWLER-002 구현 완료 (2026-06-20):**
+- ✅ `orchestrator.py`에 소유권 경계 `@MX:NOTE` 주석 추가 (REQ-CRAWLER-002-001/002)
+- ✅ SHA-256 idempotency 보장 검증 완료 — 동일 content_hash 2번 저장 불가 (REQ-CRAWLER-002-003)
+- ✅ push 페이로드에 `url + hash` idempotency key pair 포함 확인 (REQ-CRAWLER-002-004)
+- ✅ `docs/integration-contract.md`에 "## Crawler Ownership (GAP-04)" 섹션 추가 (REQ-CRAWLER-002-005)
+- ✅ `test_dedup_skips_duplicate` 단위 테스트 추가 (REQ-CRAWLER-002-006)
+
 ---
 
-### GAP-05 [P1] Customer Runtime RAG ↔ ra-med-bot RAG 라우팅 미정의
+### GAP-05 [✅ DONE — SPEC-RAG-001] Customer Runtime RAG ↔ ra-med-bot RAG 라우팅 미정의
 
 **현황:**
 - hybrid-ra-saas: `/rag/query` → 고객사 로컬 문서 RAG (온프레미스)
@@ -178,10 +185,17 @@ ra-med-bot `hybridRetrieve(scope='internal')` → pgvector(Neon) = ra-med-bot �
 고객사 로컬 문서 RAG = Customer Runtime 직접 접근 (별도 URL, VPN/Zero Trust)  
 ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 **P2 이후** 검토.
 
-**이 레포 필요 조치 (P1):**
-- Customer Runtime `config.py`에 `regula_allowed_tenants: str = ""` 추가  
-  (ra-med-bot → Customer Runtime 호출을 허용할 tenant 목록, 쉼표 구분)
-- `/rag/query` 엔드포인트에 API Key 인증 경로 추가 (GAP-02 API Key 패턴 재사용)
+**SPEC-RAG-001 구현 완료 (2026-06-20):**
+- ✅ `POST /rag/query`에 `routing_mode` 파라미터 추가 (`local-only` | `regula-only` | `hybrid`, 기본값 `hybrid`)
+- ✅ 응답에 `routing_used`, `sources` 필드 추가
+- ✅ `hybrid` 모드: local confidence < 0.5 시 Regula RAG API 폴백 (REQ-RAG-004)
+- ✅ Regula 타임아웃(20s) → `routing_used="degraded"` 처리 (REQ-RAG-006)
+- ✅ 전체 실패 시 HTTP 503 반환 (REQ-RAG-007)
+- ✅ `docs/integration-contract.md`에 "## RAG Routing Contract (GAP-05)" 추가 (REQ-RAG-008)
+- ✅ `test_rag_routing.py` 9개 테스트 추가
+
+**잔여 (별도 이슈):**
+- ra-med-bot → Customer Runtime 프록시 API — P2 이후 검토
 
 ---
 
