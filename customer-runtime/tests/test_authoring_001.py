@@ -22,6 +22,7 @@ os.environ.setdefault("REGULA_API_KEY", "test-api-key")
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -29,6 +30,45 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 TEST_API_KEY = "test-api-key"
 AUTH_HEADERS = {"X-Regula-API-Key": TEST_API_KEY}
+
+# Stub sections for test mocks — replaces removed hardcoded stub in authoring.py
+_STUB_SECTIONS = [
+    {
+        "section_id": "SEC-001", "section_key": "scope", "title": "Scope",
+        "required": True, "instructions": "Describe scope",
+        "placeholder": "Enter scope...", "sort_order": 1,
+    },
+    {
+        "section_id": "SEC-002", "section_key": "indications", "title": "Indications",
+        "required": True, "instructions": "Describe indications",
+        "placeholder": "Enter indications...", "sort_order": 2,
+    },
+    {
+        "section_id": "SEC-003", "section_key": "warnings", "title": "Warnings (Optional)",
+        "required": False, "instructions": "Optional warnings",
+        "placeholder": "Enter warnings...", "sort_order": 3,
+    },
+]
+
+
+@pytest.fixture(autouse=True)
+def mock_template_api(request):
+    """Patch fetch_template_sections in authoring router for all tests.
+
+    Returns stub for known packs, empty list for PACK-UNKNOWN.
+    Tests marked with 'no_template_mock' skip this fixture.
+    """
+    if "no_template_mock" in request.keywords:
+        yield
+        return
+
+    async def _stub(pack_id, endpoint_path=None, *, base_url=""):  # noqa: ARG001
+        if pack_id == "PACK-UNKNOWN":
+            return []
+        return _STUB_SECTIONS
+
+    with patch("app.routers.authoring.fetch_template_sections", side_effect=_stub):
+        yield
 
 
 @pytest_asyncio.fixture(scope="function")

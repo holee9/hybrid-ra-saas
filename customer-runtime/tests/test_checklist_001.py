@@ -22,8 +22,26 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from unittest.mock import patch  # noqa: F401 — used in mock_template_api fixture
 
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+
+# Stub sections for test mocks — replaces removed hardcoded stub in generator.py
+_STUB_SECTIONS = [
+    {"section_id": "sec-001", "blocking": True, "evidence_required": True, "title": "Clinical Evaluation"},
+    {"section_id": "sec-002", "blocking": True, "evidence_required": False, "title": "Risk Management"},
+    {"section_id": "sec-003", "blocking": False, "evidence_required": False, "title": "Intended Use (optional)"},
+]
+
+
+@pytest.fixture(autouse=True)
+def mock_template_api():
+    """Patch fetch_template_sections in generator for all checklist tests."""
+    async def _stub(pack_id, endpoint_path=None, *, base_url=""):  # noqa: ARG001
+        return _STUB_SECTIONS
+
+    with patch("app.services.checklist.generator.fetch_template_sections", side_effect=_stub):
+        yield
 
 
 @pytest_asyncio.fixture(scope="function")

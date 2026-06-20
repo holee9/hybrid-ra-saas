@@ -3,11 +3,9 @@
 # @MX:NOTE: [AUTO] AI draft verified=False until human_edited — REQ-AUTHOR-010
 """
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Any
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,80 +27,32 @@ from app.services import ai_draft as ai_draft_svc
 from app.services import authoring_session as session_svc
 from app.services import docx_exporter
 from app.services.section_state import validate_transition
+from app.services.template_client import TemplateAPIError, fetch_template_sections  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/authoring", tags=["authoring"])
 
-# ---------------------------------------------------------------------------
-# Template section stub / cloud resolver
-# ---------------------------------------------------------------------------
-
-STUB_SECTIONS: list[dict] = [
-    {
-        "section_id": "SEC-001",
-        "section_key": "scope",
-        "title": "Scope",
-        "required": True,
-        "instructions": "Describe scope",
-        "placeholder": "Enter scope...",
-        "sort_order": 1,
-    },
-    {
-        "section_id": "SEC-002",
-        "section_key": "indications",
-        "title": "Indications",
-        "required": True,
-        "instructions": "Describe indications",
-        "placeholder": "Enter indications...",
-        "sort_order": 2,
-    },
-    {
-        "section_id": "SEC-003",
-        "section_key": "warnings",
-        "title": "Warnings (Optional)",
-        "required": False,
-        "instructions": "Optional warnings",
-        "placeholder": "Enter warnings...",
-        "sort_order": 3,
-    },
-]
-
 
 async def _fetch_template_sections(pack_id: str) -> list[dict]:
-    """Fetch template sections for the given pack.
+    """Fetch template sections for the given pack via the live Template API.
 
-    Uses TEMPLATE_API_URL env if set; otherwise returns stub data.
-    Returns empty list for unknown pack_id (triggers 404 in caller).
+    Returns empty list when pack_id is not found (triggers 404 in caller).
+    Raises HTTPException 502 when the Template API is unavailable or misconfigured.
     """
-    template_api_url = os.environ.get("TEMPLATE_API_URL", "")
-
-    if not template_api_url:
-        # Stub mode for local/test
-        if pack_id == "PACK-UNKNOWN":
-            return []
-        return STUB_SECTIONS
-
-    # Live mode: fetch from cloud control plane
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"{template_api_url}/packs/{pack_id}/sections"
-            )
-            if resp.status_code == 404:
-                return []
-            resp.raise_for_status()
-            return resp.json()
-    except httpx.HTTPError as exc:
+        return await fetch_template_sections(
+            pack_id,
+            endpoint_path="/packs/{pack_id}/sections",
+        )
+    except TemplateAPIError as exc:
         logger.error("Template API error for pack %s: %s", pack_id, exc)
-        raise HTTPException(status_code=502, detail="Template API unavailable") from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
-# Section metadata lookup (for endpoints needing section metadata)
+# Section metadata lookup
 # ---------------------------------------------------------------------------
-
-_STUB_BY_ID: dict[str, dict] = {s["section_id"]: s for s in STUB_SECTIONS}
 
 
 def _get_section_meta(section_id: str, sections: list[dict]) -> dict:

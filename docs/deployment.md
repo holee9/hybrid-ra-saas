@@ -81,8 +81,20 @@ az containerapp update \
     REGULA_ALLOWED_TENANTS=tenant-prod \
     REGULA_AUDIT_WEBHOOK_URL=secretref:regula-audit-webhook-url \
     REGULA_IFU_WEBHOOK_URL=secretref:regula-ifu-webhook-url \
-    REGULA_KNOWLEDGE_PUSH_URL=secretref:regula-knowledge-push-url
+    REGULA_KNOWLEDGE_PUSH_URL=secretref:regula-knowledge-push-url \
+    TEMPLATE_API_URL=https://<cloud-control-plane-host>/api
 ```
+
+**TEMPLATE_API_URL 설명:**
+
+| 항목 | 내용 |
+|------|------|
+| 형식 | `https://<cloud-control-plane-host>/api` |
+| 예시 | `https://cloud-control-plane-api.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io/api` |
+| 엔드포인트 (authoring) | `GET /packs/{pack_id}/sections` |
+| 엔드포인트 (checklist) | `GET /template-packs/{pack_id}/sections` |
+| 미설정 시 | `TemplateAPIError` 발생 → authoring router 502, checklist generator 오류 |
+| 선택 조정 | `TEMPLATE_API_TIMEOUT` (기본 10초), `TEMPLATE_API_MAX_RETRIES` (기본 3회) |
 
 **cloud-control-plane-api 필요 환경 변수:**
 
