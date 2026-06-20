@@ -80,7 +80,8 @@ az containerapp update \
     REGULA_API_KEY=secretref:regula-api-key \
     REGULA_ALLOWED_TENANTS=tenant-prod \
     REGULA_AUDIT_WEBHOOK_URL=secretref:regula-audit-webhook-url \
-    REGULA_IFU_WEBHOOK_URL=secretref:regula-ifu-webhook-url
+    REGULA_IFU_WEBHOOK_URL=secretref:regula-ifu-webhook-url \
+    REGULA_KNOWLEDGE_PUSH_URL=secretref:regula-knowledge-push-url
 ```
 
 **cloud-control-plane-api 필요 환경 변수:**
@@ -99,6 +100,17 @@ az containerapp update \
 ```
 
 > Key Vault 시크릿 이름: `DB-CONNECTION-STRING`, `JWT-SECRET`, `AZURE-STORAGE-CONN-STRING`, `APP-INSIGHTS-CONN-STRING`, `REGULA-API-KEY`, `REGULA-KNOWLEDGE-PUSH-URL`, `CRAWL-PUSH-SECRET`, `REGULA-AUDIT-WEBHOOK-URL`, `REGULA-IFU-WEBHOOK-URL`
+
+`REGULA_KNOWLEDGE_PUSH_URL`은 두 서비스에서 의미가 다르다.
+
+| 서비스 | 사용 시점 | payload |
+|--------|-----------|---------|
+| `cloud-control-plane-api` | 크롤 완료 후 신규 규제 문서 batch push | 문서 본문/메타데이터 포함 |
+| `api-prod` Customer Runtime | IFU 파싱 결과 커밋 후 Regula 지식베이스 재동기화 trigger | `tenant_id`, `job_id`, `trigger=parse_completed` |
+
+Customer Runtime의 knowledge-sync trigger는 payload에 파싱 본문을 싣지 않고 식별자만 전달한다.
+따라서 Regula가 즉시 재조회하더라도 최신 상태를 보도록 `ParseJob.result_json`, `ParseJob.status`, `Document.status`
+트랜잭션 커밋 이후에만 전송되어야 한다.
 
 **Regula 연동 배포 후 검증:**
 
