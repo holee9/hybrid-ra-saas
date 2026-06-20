@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-20 — 1차 완료 마일스톤
+
+### 완료 (Regula 연동)
+
+- ra-med-bot ↔ hybrid-ra-saas 1차 연동 완료
+  - ra-med-bot #188: inbound webhook 엔드포인트 (audit / ifu / knowledge-sync) 구현 완료
+  - ra-med-bot #189: GitHub Secrets 3개 등록 완료 (HYBRID_RA_API_TOKEN, REGULA_API_KEY, CRAWL_PUSH_SECRET)
+  - ra-med-bot #168: Evidence API UI 연동 완료
+  - ra-med-bot #169: Traceability API UI 연동 완료
+  - ra-med-bot #171: Authoring API UI 연동 완료
+  - ra-med-bot #191: Vercel 환경변수 설정 완료 (HYBRID_RA_API_BASE_URL, HYBRID_RA_TENANT_ID)
+- `api-prod` 환경변수 `REGULA_KNOWLEDGE_PUSH_URL` 추가 배포 완료 (Refs #51)
+- `customer-runtime/.env.example` 누락 항목 추가 — GAP-08 (Refs #50)
+
+### 누적 완료 SPEC (v1.0.0 기준)
+
+| SPEC | 내용 |
+|------|------|
+| SPEC-API-001 | Customer Local Runtime FastAPI + Docker Compose |
+| SPEC-PARSER-001 | IFU 15필드 NLP 파서 엔진 (3단계 파이프라인) |
+| SPEC-UI-001 | IFU 파싱 결과 교정 UI (React + TypeScript) |
+| SPEC-UI-002 | 검토 큐 화면 (React Router, 5-tab 상태 필터) |
+| SPEC-INFRA-001 | Azure Terraform IaC (Container Apps / PostgreSQL / Key Vault) |
+| SPEC-CRAWLER-001 | 규제 문서 크롤러 (FDA / MFDS / EU MDR) |
+| SPEC-APITOK-001 | 서비스간 Bearer 토큰 인증 |
+| SPEC-TENANT-ISOLATION-001 | ORM 수준 자동 테넌트 필터링 |
+| SPEC-JOBQUEUE-001 | BackgroundTasks → arq 영속 Job Queue 전환 |
+
 ## [0.9.1] - 2026-06-17
 
 ### Fixed

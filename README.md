@@ -392,12 +392,23 @@ git push origin v1.0.0
 
 ## 통합 로드맵 (Regula ↔ hybrid-ra-saas)
 
-| 우선순위 | 작업 | 설명 |
-|----------|------|------|
-| **P0** | 크롤러 → Vectorize 자동 동기화 | 매일 수집된 FDA/MFDS/EU MDR 문서를 Regula Cloudflare Vectorize 인덱스로 자동 push. Regula 지식베이스를 항상 최신 상태 유지 |
-| **P1** | IFU 파서 → Regula 프로젝트 컨텍스트 | 고객사가 IFU DOCX 업로드 → 15필드 NLP 추출 → Regula 프로젝트에 기기 컨텍스트 저장. "내 X-ray 기기가 EU MDR Class IIa 요건에 맞나요?" 쿼리 가능 |
-| **P2** | Audit trail 연동 | Regula 상담/결정 이벤트 → Audit log → FDA/MDR 제출용 AI 어시스턴트 추적 패키지 export |
-| **P3** | Regula Enterprise 리브랜딩 | Customer Runtime을 Regula Enterprise Edition으로 포지셔닝, Docker 이미지/README/API 헤더 정렬 |
+| 우선순위 | 작업 | 설명 | 상태 |
+|----------|------|------|------|
+| **P0** | 크롤러 → Vectorize 자동 동기화 | 매일 수집된 FDA/MFDS/EU MDR 문서를 Regula Cloudflare Vectorize 인덱스로 자동 push. Regula 지식베이스를 항상 최신 상태 유지 | ✅ 구현완료 |
+| **P1** | IFU 파서 → Regula 프로젝트 컨텍스트 | 고객사가 IFU DOCX 업로드 → 15필드 NLP 추출 → Regula 프로젝트에 기기 컨텍스트 저장. "내 X-ray 기기가 EU MDR Class IIa 요건에 맞나요?" 쿼리 가능 | ✅ 구현완료 |
+| **P2** | Audit trail / IFU / Knowledge-Sync 웹훅 연동 | Regula 상담/결정 이벤트 → Audit log → FDA/MDR 제출용 AI 어시스턴트 추적 패키지 export. ra-med-bot 수신 엔드포인트 구현 완료 (#188) | ✅ 구현완료 |
+| **P3** | Regula Enterprise 리브랜딩 | Customer Runtime을 Regula Enterprise Edition으로 포지셔닝, Docker 이미지/README/API 헤더 정렬 | ⏳ 예정 |
+
+### ra-med-bot 연동 완료 현황 (2026-06-20)
+
+| 이슈 | 작업 | 완료일 |
+|------|------|--------|
+| [#188](https://github.com/holee9/ra-med-bot/issues/188) | inbound webhook 엔드포인트 (audit / ifu / knowledge-sync) | 2026-06-19 |
+| [#189](https://github.com/holee9/ra-med-bot/issues/189) | GitHub Secrets 3개 등록 (HYBRID_RA_API_TOKEN 등) | 2026-06-19 |
+| [#168](https://github.com/holee9/ra-med-bot/issues/168) | Evidence API UI 연동 | 2026-06-20 |
+| [#169](https://github.com/holee9/ra-med-bot/issues/169) | Traceability API UI 연동 | 2026-06-20 |
+| [#171](https://github.com/holee9/ra-med-bot/issues/171) | Authoring API UI 연동 | 2026-06-20 |
+| [#191](https://github.com/holee9/ra-med-bot/issues/191) | Vercel 환경변수 설정 (HYBRID_RA_API_BASE_URL, HYBRID_RA_TENANT_ID) | 2026-06-20 |
 
 ---
 
@@ -441,11 +452,11 @@ git push origin v1.0.0
 
 | 단계 | 목표 | 핵심 산출물 |
 |------|------|-----------|
-| **완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 + Bearer 인증 | 7개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER/APITOK) |
-| **P0 — 구현 완료 / 운영 검증 필요** | 크롤러 → Regula Vectorize 자동 동기화 | `KnowledgePushService`, `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET` |
-| **P1 — 구현 완료 / 운영 검증 필요** | IFU 파서 → Regula 프로젝트 컨텍스트 연동 | `/rag/query` API key 인증, tenant allowlist |
-| **P2 — 구현 완료 / 운영 검증 필요** | Audit trail / IFU webhook 연동 | `/audit/webhook`, `REGULA_AUDIT_WEBHOOK_URL`, `REGULA_IFU_WEBHOOK_URL` |
-| **P3 — 예정** | Regula Enterprise 리브랜딩 | Docker 이미지 태그, README, API 헤더 |
+| **✅ 1차 완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 + Bearer 인증 + Regula 연동 | 9개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER/APITOK/TENANT-ISOLATION/JOBQUEUE) |
+| **✅ P0** | 크롤러 → Regula Vectorize 자동 동기화 | `KnowledgePushService`, `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET` — 구현 및 api-prod 배포 완료 |
+| **✅ P1** | IFU 파서 → Regula 프로젝트 컨텍스트 연동 | `/rag/query` API key 인증, ra-med-bot #169 UI 연동 완료 |
+| **✅ P2** | Audit trail / IFU / Knowledge-Sync 웹훅 연동 | ra-med-bot #188 수신 엔드포인트 구현 완료, 환경변수 6개 설정 완료 |
+| **⏳ P3** | Regula Enterprise 리브랜딩 | Docker 이미지 태그, README, API 헤더 |
 
 품질 보강 추적: [#24](https://github.com/holee9/hybrid-ra-saas/issues/24), [#25](https://github.com/holee9/hybrid-ra-saas/issues/25), [#26](https://github.com/holee9/hybrid-ra-saas/issues/26), [#27](https://github.com/holee9/hybrid-ra-saas/issues/27). 템플릿-우선 제품 개편: [#29](https://github.com/holee9/hybrid-ra-saas/issues/29). 연동 구현 이력: [#23](https://github.com/holee9/hybrid-ra-saas/issues/23).
 
@@ -468,4 +479,4 @@ git push origin v1.0.0
 
 ---
 
-*버전: v6.3 | 최종 갱신: 2026-06-18 | 구현 완료: Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | Bearer 인증 ✅ | API 계약 명세 ✅ | Regula 연동 Secrets 6개 등록 ✅ | 다음: Container App 재배포 → 연동 E2E 검증*
+*버전: v7.0 | 최종 갱신: 2026-06-20 | **1차 완료** ✅ | Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | Bearer 인증 ✅ | Regula 연동 완료 (ra-med-bot #168/169/171/188/191 all CLOSED) ✅ | 다음: P3 Regula Enterprise 리브랜딩 → Wave 5 대응*
