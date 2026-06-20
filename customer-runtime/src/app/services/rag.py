@@ -1,11 +1,13 @@
-"""RAG service — REQ-API-008, REQ-API-009.
+"""RAG service — REQ-API-008, REQ-API-009, REQ-RAG-001 through REQ-RAG-007.
 
 Embeds questions via sentence-transformers, searches pgvector, generates answers via Ollama.
+Supports routing_mode: local-only | regula-only | hybrid (default).
 
 # @MX:ANCHOR: [AUTO] RagService.query — public API boundary for RAG retrieval
 # @MX:REASON: fan_in >= 3 (router, test_rag, future async job)
 # @MX:NOTE: [AUTO] Ollama HTTP call retries up to OLLAMA_MAX_RETRIES times with exponential backoff
 # @MX:NOTE: [AUTO] pgvector <=> cosine distance operator requires pgvector extension in PostgreSQL
+# @MX:NOTE: [AUTO] Regula RAG endpoint — verify path with ra-med-bot team if changed
 """
 import asyncio
 import logging
@@ -64,6 +66,13 @@ OLLAMA_TIMEOUT = 25.0
 OLLAMA_RETRY_BUDGET = 28.0
 OLLAMA_MAX_RETRIES = 3  # max attempts (initial + 2 retries) with exponential backoff
 
+# Regula RAG API — REQ-RAG-003, REQ-RAG-006
+REGULA_BASE_URL = os.environ.get("REGULA_BASE_URL", "https://regula.abyz-lab.work")
+REGULA_API_KEY = os.environ.get("REGULA_API_KEY", "")
+# @MX:NOTE: [AUTO] Regula RAG endpoint path — verify with ra-med-bot team if integration changes
+REGULA_RAG_PATH = "/api/rag/query"
+REGULA_TIMEOUT = 20.0  # REQ-RAG-006: 20s timeout
+
 
 class RagService:
     """Retrieval-Augmented Generation over the requirements corpus."""
@@ -76,8 +85,146 @@ class RagService:
         product_id: str | None,
         evidence_required: bool,
         top_k: int,
+        routing_mode: str = "hybrid",
     ) -> dict[str, Any]:
-        """Embed, search, generate, and return structured RAG response."""
+        """Embed, search, generate, and return structured RAG response.
+
+        REQ-RAG-001: routing_mode controls which backend serves the request.
+        REQ-RAG-004: hybrid tries local first; falls back to Regula if confidence < 0.5.
+        """
+        if routing_mode == "regula-only":
+            return await self._route_regula_only(question, top_k)
+
+        if routing_mode == "local-only":
+            return await self._route_local_only(
+                db=db,
+                tenant_id=tenant_id,
+                question=question,
+                product_id=product_id,
+                evidence_required=evidence_required,
+                top_k=top_k,
+            )
+
+        # hybrid (default)
+        return await self._route_hybrid(
+            db=db,
+            tenant_id=tenant_id,
+            question=question,
+            product_id=product_id,
+            evidence_required=evidence_required,
+            top_k=top_k,
+        )
+
+    async def _route_local_only(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        question: str,
+        product_id: str | None,
+        evidence_required: bool,
+        top_k: int,
+    ) -> dict[str, Any]:
+        """REQ-RAG-002: local pgvector + Ollama only. routing_used='local'."""
+        result = await self._local_query(
+            db=db,
+            tenant_id=tenant_id,
+            question=question,
+            product_id=product_id,
+            evidence_required=evidence_required,
+            top_k=top_k,
+        )
+        result["routing_used"] = "local"
+        result["sources"] = result.get("evidence_links", [])
+        return result
+
+    async def _route_regula_only(self, question: str, top_k: int) -> dict[str, Any]:
+        """REQ-RAG-003: Regula RAG API only. routing_used='regula' or 'degraded'."""
+        regula = await self._call_regula_rag(question, top_k)
+        if regula is None:
+            # REQ-RAG-006: timeout/error -> degraded
+            return {
+                "answer": "Regula RAG service unavailable.",
+                "evidence_links": [],
+                "confidence": 0.0,
+                "submit_safe": False,
+                "routing_used": "degraded",
+                "sources": [],
+            }
+        return {
+            "answer": regula["answer"],
+            "evidence_links": regula.get("sources", []),
+            "confidence": regula["confidence"],
+            "submit_safe": regula["confidence"] >= 0.5,
+            "routing_used": "regula",
+            "sources": regula.get("sources", []),
+        }
+
+    async def _route_hybrid(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        question: str,
+        product_id: str | None,
+        evidence_required: bool,
+        top_k: int,
+    ) -> dict[str, Any]:
+        """REQ-RAG-004: Try local first; fall back to Regula if confidence < 0.5.
+
+        # @MX:WARN: [AUTO] Hybrid routing has 8 branches — confidence threshold controls fallback
+        # @MX:REASON: REQ-RAG-004 requires conditional fallback; complexity is inherent in routing logic
+        """
+        local_ok = True
+        try:
+            local = await self._local_query(
+                db=db,
+                tenant_id=tenant_id,
+                question=question,
+                product_id=product_id,
+                evidence_required=evidence_required,
+                top_k=top_k,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Local RAG failed in hybrid mode: %s", exc)
+            local_ok = False
+            local = {"confidence": 0.0, "answer": "", "evidence_links": [], "submit_safe": False}
+
+        if local_ok and local["confidence"] >= 0.5:
+            local["routing_used"] = "hybrid-local"
+            local["sources"] = local.get("evidence_links", [])
+            return local
+
+        # Attempt Regula fallback
+        regula = await self._call_regula_rag(question, top_k)
+        if regula is not None:
+            return {
+                "answer": regula["answer"],
+                "evidence_links": regula.get("sources", []),
+                "confidence": regula["confidence"],
+                "submit_safe": regula["confidence"] >= 0.5,
+                "routing_used": "hybrid-regula",
+                "sources": regula.get("sources", []),
+            }
+
+        # Both failed — REQ-RAG-007
+        if not local_ok:
+            return {"all_failed": True, "answer": "", "evidence_links": [], "confidence": 0.0,
+                    "submit_safe": False, "routing_used": "degraded", "sources": []}
+
+        # Local had low confidence and Regula failed: return degraded local result
+        local["routing_used"] = "hybrid-local"
+        local["sources"] = local.get("evidence_links", [])
+        return local
+
+    async def _local_query(
+        self,
+        db: AsyncSession,
+        tenant_id: str,
+        question: str,
+        product_id: str | None,
+        evidence_required: bool,
+        top_k: int,
+    ) -> dict[str, Any]:
+        """Core local RAG: embed → pgvector search → Ollama generation."""
         # Step 1: embed question
         vector = await self._embed_question(question)
 
@@ -130,6 +277,41 @@ class RagService:
             "confidence": confidence,
             "submit_safe": submit_safe,
         }
+
+    async def _call_regula_rag(
+        self,
+        question: str,
+        top_k: int,
+    ) -> dict[str, Any] | None:
+        """POST to Regula RAG API. Returns None on timeout or error (non-fatal).
+
+        REQ-RAG-003, REQ-RAG-006: 20s timeout; non-blocking on failure.
+        # @MX:NOTE: [AUTO] Regula RAG endpoint — verify path with ra-med-bot team
+        """
+        url = f"{REGULA_BASE_URL}{REGULA_RAG_PATH}"
+        headers: dict[str, str] = {}
+        if REGULA_API_KEY:
+            headers["Authorization"] = f"Bearer {REGULA_API_KEY}"
+        try:
+            async with httpx.AsyncClient(timeout=REGULA_TIMEOUT) as client:
+                resp = await client.post(
+                    url,
+                    json={"question": question, "top_k": top_k},
+                    headers=headers,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return {
+                    "answer": data.get("answer", ""),
+                    "sources": data.get("sources", data.get("doc_ids", [])),
+                    "confidence": float(data.get("confidence", 0.5)),
+                }
+        except httpx.TimeoutException:
+            logger.warning("Regula RAG timeout after %.0fs for question: %.50s", REGULA_TIMEOUT, question)
+            return None
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Regula RAG call failed: %s", exc)
+            return None
 
     async def _embed_question(self, question: str) -> list[float]:
         """Embed question using sentence-transformers in a thread pool.

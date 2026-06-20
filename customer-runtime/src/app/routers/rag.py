@@ -1,5 +1,5 @@
-"""POST /rag/query router — REQ-API-008, REQ-API-009."""
-from fastapi import APIRouter, Depends
+"""POST /rag/query router — REQ-API-008, REQ-API-009, REQ-RAG-001."""
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import verify_hybrid_bearer_token
@@ -29,5 +29,9 @@ async def rag_query(
         product_id=payload.product_id,
         evidence_required=payload.evidence_required,
         top_k=payload.top_k,
+        routing_mode=payload.routing_mode,
     )
+    # REQ-RAG-007: all backends failed -> 503
+    if result.get("all_failed"):
+        raise HTTPException(status_code=503, detail="RAG service temporarily unavailable")
     return RagQueryResponse(**result)

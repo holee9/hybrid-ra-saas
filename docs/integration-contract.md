@@ -287,6 +287,47 @@ The (`url`, `hash`) pair forms the idempotency key for Regula Vectorize consumer
 
 ---
 
+## RAG Routing Contract (GAP-05)
+
+Source: SPEC-RAG-001
+
+### Routing Modes
+
+| Mode | Backend | Fallback |
+|------|---------|----------|
+| `local-only` | pgvector + Ollama | None |
+| `regula-only` | Regula RAG API | None |
+| `hybrid` (default) | pgvector + Ollama → Regula RAG | Regula if local confidence < 0.5 |
+
+### Request Extension
+
+`POST /rag/query` accepts optional `routing_mode` field (default: `"hybrid"`).
+
+```json
+{
+  "question": "string",
+  "routing_mode": "hybrid"
+}
+```
+
+### Response Extension
+
+Response includes:
+- `routing_used`: which backend served the response (`local` | `regula` | `hybrid-local` | `hybrid-regula` | `degraded`)
+- `sources`: list of source identifiers (req_ids for local, Regula doc IDs for regula)
+
+### Regula RAG Endpoint
+
+`POST {REGULA_BASE_URL}/api/rag/query` — authenticated with `REGULA_API_KEY` Bearer token.  
+Timeout: 20s. Non-blocking on failure (returns degraded response).
+
+### Error Handling
+
+- Regula timeout/error: `routing_used="degraded"`, best-effort answer from local
+- Both backends failed: HTTP 503 "RAG service temporarily unavailable"
+
+---
+
 ## Versioning
 
 This contract is versioned alongside `SPEC-APITOK-001`.  
