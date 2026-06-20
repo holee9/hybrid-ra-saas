@@ -278,6 +278,16 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 
 ### P2 — 기능 확장
 
+**Backend Stub 제거 (✅ DONE — 2026-06-20)**
+
+| SPEC | 작업 | 상태 |
+|------|------|------|
+| SPEC-TEMPLATE-002 (#55) | Template API stub → live `TEMPLATE_API_URL` 연동 (`template_client.py` 공유 클라이언트) | ✅ DONE |
+| SPEC-EVIDENCE-002 (#56) | sha256 stub → 실제 MinIO bytes fetch; `delete_object` no-op → 실제 삭제 | ✅ DONE |
+| SPEC-TRACEABILITY-002 (#57) | Ollama stub → 실제 `LLM_ENDPOINT_URL` `/api/generate` 호출 (`MismatchResult` 스키마) | ✅ DONE |
+
+**연동 확장 (미완료)**
+
 | 작업 | 파일 | 유형 |
 |-----|------|------|
 | `/audit/webhook` 엔드포인트 추가 | `customer-runtime/src/app/routers/audit.py` | 코드 추가 |
