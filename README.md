@@ -115,8 +115,8 @@
 | **데이터 모델** | SQLAlchemy 9개 (Product, Document, Requirement, Risk, Control, Evidence, Finding, AuditEvent, ParseJob) + pgvector |
 | **인증** | JWT HS256 + X-Tenant-ID (사용자 인증) / Bearer token (서비스간 인증, SPEC-APITOK-001) |
 | **Docker** | 5서비스 (api, postgres, minio, ollama, redis) multi-stage 빌드 |
-| **테스트** | 299 passed / 0 failed (Docker 통합 테스트는 CI 전용 자동 스킵) |
-| **커버리지** | 82% (목표 80% 초과) |
+| **테스트** | 367 passed / 36 skipped (Docker 통합 테스트는 CI 전용 자동 스킵) |
+| **커버리지** | 75% |
 | **lint** | ruff 0 errors |
 | **FR-210** | Air-Gap 아웃바운드 검증 구현 완료 |
 
@@ -142,7 +142,7 @@ Ollama가 budget 안에 응답하지 못하면 검색된 `evidence_links`는 유
 | **적용 라우터** | 8개 (rag, sync, audit, guardrail, documents, authoring, checklist, evidence) |
 | **에러 코드** | 503 (미설정), 401 (잘못된 토큰), 400 (X-Tenant-ID 누락) |
 | **환경변수** | `HYBRID_RA_API_TOKEN` (최소 32자) — ra-med-bot 측 `HYBRID_RA_API_BASE_URL`, `HYBRID_RA_TENANT_ID`와 쌍 |
-| **테스트** | `test_apitok_001.py` 인증 전용, 299 unit tests pass |
+| **테스트** | `test_apitok_001.py` 인증 전용, 367 unit tests pass |
 | **계약 문서** | [`docs/integration-contract.md`](docs/integration-contract.md) — ra-med-bot 연동 API 계약 명세 |
 
 SPEC 상세: [`.moai/specs/SPEC-APITOK-001/spec.md`](.moai/specs/SPEC-APITOK-001/spec.md)
@@ -179,9 +179,9 @@ SPEC 상세: [`.moai/specs/SPEC-UI-001/spec.md`](.moai/specs/SPEC-UI-001/spec.md
 | **큐 화면** | React Router 7, `QueuePage`, `JobQueueTable`, StatusTabs(5개), SortControl, Pagination |
 | **훅** | `useListJobs`: 클라이언트 정렬 + 5초 자동갱신(running 작업 존재 시) |
 | **프론트엔드 테스트** | Vitest + RTL, 113/113 passed |
-| **백엔드 테스트** | pytest, 168 passed / 32 skipped(CI 전용) |
+| **백엔드 테스트** | pytest, 367 passed / 36 skipped(CI 전용) |
 | **TypeScript** | 0 errors |
-| **커버리지** | 85% (목표 달성) |
+| **커버리지** | 75% |
 | **라우팅** | `/jobs` → QueuePage, `/jobs/:jobId` → CorrectionPanel (SPEC-UI-001 회귀 없음) |
 
 SPEC 상세: [`.moai/specs/SPEC-UI-002/spec.md`](.moai/specs/SPEC-UI-002/spec.md)
@@ -220,7 +220,7 @@ SPEC 상세: [`.moai/specs/SPEC-INFRA-001/spec.md`](.moai/specs/SPEC-INFRA-001/s
 | **API** | `POST /crawl/trigger` (비동기), `GET /crawl/status/{job_id}`, `GET /health` |
 | **인프라** | Terraform `crawler-job` Container App Job (cron 02:00 UTC), placeholder 이미지 교체 |
 | **CI/CD** | deploy-prod.yml 크롤러 build + push + 배포 스텝 |
-| **테스트** | 단위 75 passed (통합 2개는 CI 전용), 커버리지 94%, ruff 0 errors |
+| **테스트** | 102 passed (통합 2개는 CI 전용), 커버리지 76%, ruff 0 errors |
 
 SPEC 상세: [`.moai/specs/SPEC-CRAWLER-001/spec.md`](.moai/specs/SPEC-CRAWLER-001/spec.md)
 
@@ -296,7 +296,7 @@ hybrid-ra-saas/
 │   │   ├── models/               # SQLAlchemy 9개 모델 (8 엔티티 + ParseJob)
 │   │   ├── services/             # 비즈니스 로직 (parser_engine NLP 엔진, storage, guardrail, rag, export, airgap)
 │   │   └── core/                 # JWT, rate limit, state machine
-│   ├── tests/                    # pytest (162 passed, 86% coverage)
+│   ├── tests/                    # pytest (367 passed, 75% coverage)
 │   ├── alembic/                  # DB 마이그레이션 (pgvector)
 │   ├── docker/                   # Dockerfile (multi-stage)
 │   └── docker-compose.yml        # 5서비스 (api, postgres, minio, ollama, redis)
@@ -307,7 +307,7 @@ hybrid-ra-saas/
 │   │   ├── models/               # regulatory_documents 테이블
 │   │   ├── services/             # crawler(fda/mfds/eu_mdr), orchestrator, dedup, storage
 │   │   └── core/                 # rate limiter, 구조화 JSON 로깅
-│   ├── tests/                    # pytest (75 passed, 94% coverage)
+│   ├── tests/                    # pytest (102 passed, 76% coverage)
 │   ├── alembic/                  # DB 마이그레이션
 │   └── docker/                   # Dockerfile
 │
