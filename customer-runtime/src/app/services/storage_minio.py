@@ -4,8 +4,6 @@ Existing callers of StorageService / create_storage_service() are unaffected.
 """
 from __future__ import annotations
 
-import io
-
 from app.services.storage import StorageService, create_storage_service
 
 

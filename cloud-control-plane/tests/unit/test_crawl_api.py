@@ -51,7 +51,7 @@ async def app_client():
 @pytest.mark.asyncio
 async def test_trigger_returns_job_id(app_client):
     """POST /crawl/trigger returns 202 with a job_id."""
-    from unittest.mock import patch
+    from unittest.mock import AsyncMock, patch
 
     async def mock_run():
         from app.services.orchestrator import job_registry
@@ -61,35 +61,23 @@ async def test_trigger_returns_job_id(app_client):
         job_registry[jid] = {"status": "pending", "document_count": 0}
         return jid
 
-    async def mock_execute(job_id: str) -> None:
-        from app.services.orchestrator import job_registry
-
-        job_registry[job_id] = {"status": "completed", "document_count": 0}
+    fake_pool = AsyncMock()
 
     with patch("app.routers.crawl.run_crawl_job", new=mock_run):
-        with patch("app.routers.crawl._execute_crawl_job", new=mock_execute):
+        with patch("app.queue.arq_pool.get_arq_pool", return_value=fake_pool):
             response = await app_client.post("/crawl/trigger")
 
     assert response.status_code == 202
     body = response.json()
     assert "job_id" in body
     assert body["job_id"] is not None
+    fake_pool.enqueue_job.assert_awaited_once_with("execute_crawl_job", body["job_id"])
 
 
 @pytest.mark.asyncio
 async def test_trigger_is_non_blocking_returns_before_job_completes(app_client):
-    """POST /crawl/trigger registers job as 'pending' and returns 202 immediately (REQ-011).
-
-    The endpoint uses BackgroundTasks — the HTTP response is returned before
-    _execute_crawl_job runs. We verify this by:
-    1. Patching run_crawl_job to register the job and return the job_id.
-    2. Patching _execute_crawl_job with a no-op so the background task completes
-       instantly without touching the registry (simulating a fast, non-blocking return).
-    3. The job_id registered as 'pending' must be present in the registry at response time.
-    """
-    from unittest.mock import patch
-
-    execute_call_count = 0
+    """POST /crawl/trigger registers pending job and enqueues arq work."""
+    from unittest.mock import AsyncMock, patch
 
     async def fast_register() -> str:
         import uuid
@@ -99,16 +87,12 @@ async def test_trigger_is_non_blocking_returns_before_job_completes(app_client):
         job_registry[jid] = {"status": "pending", "document_count": 0}
         return jid
 
-    async def noop_execute(job_id: str) -> None:
-        # Background task: do not update registry — let the test observe 'pending'
-        nonlocal execute_call_count
-        execute_call_count += 1
+    fake_pool = AsyncMock()
 
     with patch("app.routers.crawl.run_crawl_job", new=fast_register):
-        with patch("app.routers.crawl._execute_crawl_job", new=noop_execute):
+        with patch("app.queue.arq_pool.get_arq_pool", return_value=fake_pool):
             response = await app_client.post("/crawl/trigger")
 
-    # HTTP response arrives with 202 — BackgroundTasks is scheduled, not awaited inline
     assert response.status_code == 202
     body = response.json()
     assert "job_id" in body
@@ -118,11 +102,8 @@ async def test_trigger_is_non_blocking_returns_before_job_completes(app_client):
     from app.services.orchestrator import job_registry
 
     assert job_id in job_registry
-    # Status is 'pending' because noop_execute does not change it
     assert job_registry[job_id]["status"] == "pending"
-    # The background task was scheduled and executed exactly once via add_task —
-    # guards against the endpoint silently dropping the BackgroundTasks wiring
-    assert execute_call_count == 1
+    fake_pool.enqueue_job.assert_awaited_once_with("execute_crawl_job", job_id)
 
 
 @pytest.mark.asyncio

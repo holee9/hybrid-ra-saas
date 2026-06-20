@@ -34,9 +34,11 @@ MIGRATION_PENDING_MODELS: set[str] = {
     "ChecklistSnapshot",
     # Evidence domain (SPEC-EVIDENCE-001) — tenant migration pending.
     "EvidenceBinder",
+    "EvidenceCollect",
     "EvidenceFile",
     "EvidenceGap",
     "EvidenceLink",
+    "RefreshToken",
     # Traceability domain (SPEC-TRACEABILITY-001) — tenant migration pending.
     "TraceabilityEdge",
     "TraceabilityNode",

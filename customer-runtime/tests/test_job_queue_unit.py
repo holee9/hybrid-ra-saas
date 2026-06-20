@@ -14,10 +14,7 @@ AC coverage:
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +169,7 @@ class TestIFUPushPreserved:
             patch("app.jobs.parse_job.validate_transition"),
             patch("app.jobs.parse_job.StubParserService") as MockParser,
             patch("app.jobs.parse_job._push_ifu_result_to_regula") as mock_push,
+            patch("app.jobs.parse_job._push_knowledge_sync_to_regula", new_callable=AsyncMock),
             patch("app.jobs.parse_job.explicit_tenant_context") as mock_ctx,
         ):
             mock_ctx.return_value.__aenter__ = AsyncMock(return_value=None)
@@ -188,6 +186,73 @@ class TestIFUPushPreserved:
             await run_parse_job(ctx, "job-1", "doc-1", "tenant-acme")
 
         mock_push.assert_called_once()
+
+
+class TestKnowledgeSyncOrdering:
+    """Knowledge sync must observe committed parse results."""
+
+    async def test_knowledge_sync_is_triggered_after_session_exits(self):
+        """On parse success, knowledge sync is awaited after the DB session commits."""
+        from app.jobs.parse_job import run_parse_job
+        from app.models.parse_job import ParseJobStatus
+        from app.services.parser import ParseResult
+
+        events: list[str] = []
+
+        fake_job = MagicMock()
+        fake_job.status = ParseJobStatus.PENDING
+        fake_job.result_json = None
+        fake_job.error = None
+
+        fake_doc = MagicMock()
+        fake_doc.doc_type = "srs"
+        fake_doc.status = "uploaded"
+
+        fake_db = AsyncMock()
+        fake_db.get = AsyncMock(side_effect=[fake_job, fake_doc])
+        fake_db.flush = AsyncMock()
+
+        class RecordingSession:
+            async def __aenter__(self):
+                events.append("session_enter")
+                return fake_db
+
+            async def __aexit__(self, exc_type, exc, tb):
+                events.append("session_exit")
+                return False
+
+        async def record_knowledge_sync(*, job_id: str, tenant: str) -> None:
+            assert job_id == "job-1"
+            assert tenant == "tenant-acme"
+            events.append("knowledge_sync")
+
+        with (
+            patch("app.jobs.parse_job.async_session", return_value=RecordingSession()),
+            patch("app.jobs.parse_job.validate_transition"),
+            patch("app.jobs.parse_job.StubParserService") as MockParser,
+            patch("app.jobs.parse_job._push_ifu_result_to_regula", new_callable=AsyncMock),
+            patch(
+                "app.jobs.parse_job._push_knowledge_sync_to_regula",
+                side_effect=record_knowledge_sync,
+            ),
+            patch("app.jobs.parse_job.explicit_tenant_context") as mock_ctx,
+        ):
+            mock_ctx.return_value.__aenter__ = AsyncMock(return_value=None)
+            mock_ctx.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            mock_parser_instance = AsyncMock()
+            mock_parser_instance.parse = AsyncMock(
+                return_value=ParseResult(
+                    confidence=0.95,
+                    field_candidates={},
+                    required_missing=[],
+                )
+            )
+            MockParser.return_value = mock_parser_instance
+
+            await run_parse_job({}, "job-1", "doc-1", "tenant-acme")
+
+        assert events.index("session_exit") < events.index("knowledge_sync")
 
 
 # ===========================================================================

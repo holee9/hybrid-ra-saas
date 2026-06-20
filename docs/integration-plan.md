@@ -199,16 +199,37 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 
 ---
 
-### GAP-07 [✅ DONE (secret 등록) — 운영 검증 필요] IFU 파서 결과를 Regula context에 연결
+### GAP-07 [✅ DONE — 운영 검증 필요] IFU 파서 결과를 Regula context에 연결
 
 **구현 완료:**
 - `REGULA_IFU_WEBHOOK_URL` GitHub Secret 등록 완료 (2026-06-18)
 - `config.py`에 `regula_ifu_webhook_url: str = ""` 추가 완료
+- IFU 파싱 성공 후 `customer-runtime/src/app/jobs/parse_job.py`에서 구조화된 파싱 결과를 Regula로 push
+- webhook 실패는 parse job 상태에 영향을 주지 않는 non-fatal warning으로 처리
 
 **운영 검증 필요:**
-- IFU 파싱 완료 후 webhook push 구현 (`customer-runtime/src/app/jobs/parse_job.py`)
 - ra-med-bot IFU context 수신 endpoint 구현 (별도 레포)
 - Container App secret에 `REGULA_IFU_WEBHOOK_URL` 반영 후 E2E 검증
+
+---
+
+### GAP-08 [✅ DONE — stale sync 방지 보강] 파싱 완료 후 Knowledge-Sync trigger
+
+**구현 완료:**
+- `REGULA_KNOWLEDGE_PUSH_URL` GitHub Secret 등록 완료 (2026-06-18)
+- `customer-runtime/src/app/config.py`에 `regula_knowledge_push_url: str = ""` 추가 완료
+- `customer-runtime/.env.example`에 Customer Runtime용 `REGULA_KNOWLEDGE_PUSH_URL` 항목 추가 완료
+- IFU 파싱 성공 후 `tenant_id`, `job_id`, `trigger=parse_completed` payload로 Regula knowledge-sync를 trigger
+- 2026-06-20 보강: trigger는 `ParseJob.result_json`, `ParseJob.status`, `Document.status` 트랜잭션 커밋 이후에만 전송
+
+**설계 근거:**
+- IFU result push는 파싱 본문을 payload에 포함하지만, knowledge-sync trigger는 식별자만 포함한다.
+- 수신자인 Regula가 trigger 직후 Customer Runtime 또는 DB를 재조회할 수 있으므로, 커밋 전 trigger는 stale parse state를 동기화할 위험이 있다.
+- 현재 구현은 `async_session()` 종료 후 trigger를 호출해 즉시 재조회가 커밋된 결과를 보도록 보장한다.
+
+**운영 검증 필요:**
+- Container App `api-prod`에 `REGULA_KNOWLEDGE_PUSH_URL` secretref 반영
+- 파싱 완료 job 기준으로 Regula 수신 로그와 Customer Runtime `ParseJob.status='done'` / `Document.status='ready_for_check'` 일치 확인
 
 ---
 

@@ -6,8 +6,6 @@ ctx must be the first argument for all arq task functions.
 
 from __future__ import annotations
 
-import logging
-
 from app.core.logging import get_logger
 from app.services.orchestrator import job_registry
 

@@ -173,6 +173,51 @@ Response: Binary file download (CSV or JSON)
 
 ---
 
+## Outbound Webhooks To Regula
+
+These calls originate from hybrid-ra-saas and are optional. Empty URL settings disable the corresponding push path.
+
+### IFU Parse Result Push
+
+**Sender:** Customer Runtime  
+**Setting:** `REGULA_IFU_WEBHOOK_URL`  
+**Purpose:** Send structured parse output to Regula after a successful IFU parse.
+
+Payload:
+```json
+{
+  "tenant_id": "tenant-a",
+  "job_id": "job-uuid",
+  "doc_id": "doc-uuid",
+  "doc_type": "ifu",
+  "confidence": 0.91,
+  "field_candidates": { "device_name": "Pump" },
+  "required_missing": ["warnings"]
+}
+```
+
+### Knowledge Sync Trigger
+
+**Sender:** Customer Runtime  
+**Setting:** `REGULA_KNOWLEDGE_PUSH_URL`  
+**Purpose:** Tell Regula to re-sync knowledge after the parse result is durably stored.
+
+Payload:
+```json
+{
+  "tenant_id": "tenant-a",
+  "trigger": "parse_completed",
+  "job_id": "job-uuid"
+}
+```
+
+Ordering guarantee:
+- Customer Runtime commits `ParseJob.result_json`, `ParseJob.status`, and `Document.status` before sending this trigger.
+- The trigger contains only identifiers. Regula may immediately read back from Customer Runtime or its database without observing stale parse state.
+- Delivery failure is non-fatal to the parse job and is logged as a warning.
+
+---
+
 ## Error Mapping
 
 | hybrid-ra-saas response | ra-med-bot handling |

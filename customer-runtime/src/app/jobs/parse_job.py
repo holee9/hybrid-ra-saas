@@ -114,6 +114,7 @@ async def run_parse_job(
     """
     # REQ-JQ-005: background tasks must set explicit tenant context
     async with explicit_tenant_context(tenant):
+        knowledge_sync_requested = False
         async with async_session() as db:
             job = await db.get(ParseJob, job_id)
             doc = await db.get(Document, doc_id)
@@ -170,10 +171,13 @@ async def run_parse_job(
                     result=result,
                 )
 
-                # Notify Regula to re-sync knowledge base (GAP-08, fire-and-forget)
-                await _push_knowledge_sync_to_regula(job_id=job_id, tenant=tenant)
+                knowledge_sync_requested = True
 
             except Exception as exc:
                 logger.exception("Parse job %s failed", job_id)
                 job.status = ParseJobStatus.FAILED
                 job.error = str(exc)
+
+        # Notify Regula after the parse result transaction commits (GAP-08, fire-and-forget).
+        if knowledge_sync_requested:
+            await _push_knowledge_sync_to_regula(job_id=job_id, tenant=tenant)

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Customer Runtime IFU parse completion now sends the Regula knowledge-sync trigger only after
+  `ParseJob.result_json`, `ParseJob.status`, and `Document.status` are committed. This prevents
+  Regula from immediately re-syncing stale parse state when `REGULA_KNOWLEDGE_PUSH_URL` is configured.
+
+### Documentation
+
+- Updated README, deployment guide, integration contract, and integration plan with the post-commit
+  knowledge-sync ordering guarantee and Customer Runtime `REGULA_KNOWLEDGE_PUSH_URL` deployment notes.
+
 ## [1.0.0] - 2026-06-20 — 1차 완료 마일스톤
 
 ### 완료 (Regula 연동)

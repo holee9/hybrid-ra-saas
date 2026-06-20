@@ -13,10 +13,6 @@ AC coverage:
 
 from __future__ import annotations
 
-import os
-import sys
-from unittest.mock import AsyncMock, patch
-
 import pytest
 
 # Import the skip marker from conftest

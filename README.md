@@ -396,7 +396,7 @@ git push origin v1.0.0
 |----------|------|------|------|
 | **P0** | 크롤러 → Vectorize 자동 동기화 | 매일 수집된 FDA/MFDS/EU MDR 문서를 Regula Cloudflare Vectorize 인덱스로 자동 push. Regula 지식베이스를 항상 최신 상태 유지 | ✅ 구현완료 |
 | **P1** | IFU 파서 → Regula 프로젝트 컨텍스트 | 고객사가 IFU DOCX 업로드 → 15필드 NLP 추출 → Regula 프로젝트에 기기 컨텍스트 저장. "내 X-ray 기기가 EU MDR Class IIa 요건에 맞나요?" 쿼리 가능 | ✅ 구현완료 |
-| **P2** | Audit trail / IFU / Knowledge-Sync 웹훅 연동 | Regula 상담/결정 이벤트 → Audit log → FDA/MDR 제출용 AI 어시스턴트 추적 패키지 export. ra-med-bot 수신 엔드포인트 구현 완료 (#188) | ✅ 구현완료 |
+| **P2** | Audit trail / IFU / Knowledge-Sync 웹훅 연동 | Regula 상담/결정 이벤트 → Audit log → FDA/MDR 제출용 AI 어시스턴트 추적 패키지 export. IFU 파싱 완료 후 결과 push와 knowledge-sync trigger를 분리해 전송하며, knowledge-sync는 DB 커밋 이후에만 호출 | ✅ 구현완료 |
 | **P3** | Regula Enterprise 리브랜딩 | Customer Runtime을 Regula Enterprise Edition으로 포지셔닝, Docker 이미지/README/API 헤더 정렬 | ⏳ 예정 |
 
 ### ra-med-bot 연동 완료 현황 (2026-06-20)
@@ -409,6 +409,19 @@ git push origin v1.0.0
 | [#169](https://github.com/holee9/ra-med-bot/issues/169) | Traceability API UI 연동 | 2026-06-20 |
 | [#171](https://github.com/holee9/ra-med-bot/issues/171) | Authoring API UI 연동 | 2026-06-20 |
 | [#191](https://github.com/holee9/ra-med-bot/issues/191) | Vercel 환경변수 설정 (HYBRID_RA_API_BASE_URL, HYBRID_RA_TENANT_ID) | 2026-06-20 |
+
+### Customer Runtime → Regula 후속 동기화 보장
+
+IFU 파싱 완료 시 Customer Runtime은 두 종류의 outbound 이벤트를 사용한다.
+
+| 이벤트 | 대상 환경변수 | payload 성격 | 순서 보장 |
+|--------|---------------|--------------|-----------|
+| IFU result push | `REGULA_IFU_WEBHOOK_URL` | 파싱 결과 본문 포함 (`confidence`, `field_candidates`, `required_missing`) | 파싱 성공 직후 fire-and-forget |
+| Knowledge-sync trigger | `REGULA_KNOWLEDGE_PUSH_URL` | `tenant_id`, `job_id`, `trigger=parse_completed` 식별자만 포함 | `ParseJob.result_json`, `ParseJob.status`, `Document.status` DB 커밋 이후 호출 |
+
+`REGULA_KNOWLEDGE_PUSH_URL`은 수신자가 `tenant_id/job_id`로 Customer Runtime 또는 DB를 다시 조회하는 구조이므로,
+커밋 전 호출되면 이전 parse 상태를 재동기화할 수 있다. 현재 구현은 `async_session()` 종료 후 trigger를 전송해
+Regula 쪽 즉시 재조회가 항상 커밋된 parse 결과를 보도록 한다.
 
 ---
 
