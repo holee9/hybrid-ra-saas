@@ -118,6 +118,49 @@ async def test_orchestrator_stores_new_document(db_session):
 
 
 @pytest.mark.asyncio
+async def test_dedup_skips_duplicate(db_session):
+    """REQ-CRAWLER-002-006: duplicate document (same SHA-256) is skipped — NOT stored twice.
+
+    Verifies idempotency: a document with content_hash already in DB must not trigger
+    blob upload, DB insert, or appearance in the push payload.
+    """
+    from app.services.orchestrator import CrawlOrchestrator
+    from app.models.regulatory_document import RegulatoryDocument
+    import sqlalchemy as sa
+
+    content = b"idempotency test content"
+    h = hashlib.sha256(content).hexdigest()
+
+    # Pre-insert so the dedup check will fire
+    db_session.add(
+        RegulatoryDocument(
+            source="fda",
+            blob_path="regulatory-docs/fda/2026-06-01/dup.pdf",
+            content_hash=h,
+            fetched_at=datetime.now(timezone.utc),
+            source_url="https://fda.gov/dup.pdf",
+        )
+    )
+    await db_session.commit()
+
+    source = _make_fake_source("fda", [("https://fda.gov/dup.pdf", content)])
+    mock_storage = AsyncMock()
+    mock_storage.upload_document = AsyncMock()
+
+    orch = CrawlOrchestrator(sources=[source], storage=mock_storage, session=db_session)
+    await orch.run()
+
+    # Blob upload MUST NOT be called for duplicate
+    mock_storage.upload_document.assert_not_called()
+
+    # DB row count must remain 1 — not stored twice
+    result = await db_session.execute(
+        sa.select(RegulatoryDocument).where(RegulatoryDocument.content_hash == h)
+    )
+    assert len(result.scalars().all()) == 1, "Duplicate document must not be stored twice"
+
+
+@pytest.mark.asyncio
 async def test_orchestrator_skips_duplicate(db_session):
     """Duplicate document (same SHA-256) skips blob upload and DB insert."""
     from app.services.orchestrator import CrawlOrchestrator

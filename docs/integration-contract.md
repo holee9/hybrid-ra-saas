@@ -244,6 +244,49 @@ Refs: ra-med-bot issue #156
 
 ---
 
+## Crawler Ownership (GAP-04)
+
+Source: SPEC-CRAWLER-002
+
+### Authoritative Crawler
+
+**hybrid-ra-saas Cloud Control Plane** is the sole authoritative crawler for regulatory
+documents (FDA, EU MDR, MFDS, and all other sources configured in the cloud-control-plane).
+
+**ra-med-bot MUST NOT** independently crawl regulatory sources already covered by
+hybrid-ra-saas. ra-med-bot is a consumer of crawled content only.
+
+### Idempotency Guarantee
+
+The crawl pipeline guarantees that the same document is never stored twice.
+
+Idempotency key: `source_url` + `content_hash` (SHA-256 of raw document bytes)
+
+- `source_url`: the canonical URL from which the document was fetched
+- `content_hash`: `sha256(raw_bytes).hexdigest()`
+
+If a document with an identical `content_hash` already exists in the database, the
+crawl pipeline skips blob upload and DB insert (dedup check via `DedupService`).
+
+Each document included in the push payload to Regula Vectorize carries both fields,
+allowing downstream consumers to implement their own idempotency checks.
+
+### Push Payload Per Document
+
+```json
+{
+  "id": "<blob_path>",
+  "url": "<source_url>",
+  "hash": "<sha256_content_hash>",
+  "source": "<source_name>",
+  "content": "<utf-8 decoded text>"
+}
+```
+
+The (`url`, `hash`) pair forms the idempotency key for Regula Vectorize consumers.
+
+---
+
 ## Versioning
 
 This contract is versioned alongside `SPEC-APITOK-001`.  

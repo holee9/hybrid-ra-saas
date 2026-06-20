@@ -42,6 +42,11 @@ class CrawlOrchestrator:
 
     # @MX:ANCHOR: [AUTO] Entry point for crawl job execution (REQ-001, AC-001).
     # @MX:REASON: Called by API trigger endpoint and cron job; fan_in >= 3.
+
+    # Crawler Ownership Boundary (REQ-CRAWLER-002-001, REQ-CRAWLER-002-002)
+    # @MX:NOTE: [AUTO] hybrid-ra-saas Cloud Control Plane is the authoritative crawler.
+    # @MX:NOTE: [AUTO] ra-med-bot MUST NOT independently crawl regulatory sources already covered here.
+    # @MX:SPEC: SPEC-CRAWLER-002
     """
 
     def __init__(
@@ -98,6 +103,7 @@ class CrawlOrchestrator:
                     content = await source.fetch_document(url)
                     content_hash = dedup.compute_hash(content)
 
+                    # Idempotency check: SHA-256 content hash guarantees same content is never stored twice (REQ-CRAWLER-002-003).
                     if await dedup.is_duplicate(content_hash):
                         logger.info(
                             "document_skipped",
@@ -184,7 +190,8 @@ class CrawlOrchestrator:
             },
         )
 
-        # GAP-03: Push newly stored documents to Regula Vectorize (non-blocking)
+        # GAP-03: Push newly stored documents to Regula Vectorize (non-blocking).
+        # Each document includes idempotency key pair: url (source_url) + hash (content_hash) (REQ-CRAWLER-002-004).
         await push_service.push(job_id=job_id, documents=stored_docs)
 
         return job_id
