@@ -31,6 +31,7 @@ from app.services.evidence.binder import (
     get_binder,
     seal_binder,
 )
+from app.core.storage_factory import get_storage_backend
 from app.services.evidence.exporter import export_zip
 from app.services.evidence.file_store import FileValidationError, store_evidence_file
 from app.services.evidence.gap_engine import evaluate_gaps
@@ -277,10 +278,12 @@ async def export_evidence_binder(
     """Generate a ZIP export of the binder and return metadata."""
     binder = await _get_binder_or_404(binder_id, db)
 
+    storage = get_storage_backend()
     zip_bytes = await export_zip(
         binder=binder,
         links=binder.links,
         files=binder.files,
+        storage=storage,
     )
     filename = f"evidence_binder_{binder_id}.zip"
 
