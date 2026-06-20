@@ -126,6 +126,17 @@ async def _get_token(ac, *, tenant_id: str, email: str, password: str) -> str:
     return resp.json()["access_token"]
 
 
+async def _get_refresh_token(ac, *, tenant_id: str, email: str, password: str) -> str:
+    """Login and return refresh_token."""
+    resp = await ac.post(
+        "/auth/login",
+        json={"email": email, "password": password},
+        headers={"X-Tenant-ID": tenant_id},
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()["refresh_token"]
+
+
 # ===========================================================================
 # 1. POST /auth/login
 # ===========================================================================
@@ -189,7 +200,12 @@ async def test_login_inactive_user(perm_client):
 async def test_refresh_success(perm_client):
     ac, sf = perm_client
     await _create_user(sf, email="refresh@example.com", password="pass123")
-    token = await _get_token(ac, tenant_id="tenant-test", email="refresh@example.com", password="pass123")
+    token = await _get_refresh_token(
+        ac,
+        tenant_id="tenant-test",
+        email="refresh@example.com",
+        password="pass123",
+    )
     resp = await ac.post(
         "/auth/refresh",
         json={"refresh_token": token},
@@ -207,7 +223,12 @@ async def test_refresh_inactive_user_rejected(perm_client):
     from sqlalchemy import select
 
     user_info = await _create_user(sf, email="deactivate@example.com", password="pass123")
-    token = await _get_token(ac, tenant_id="tenant-test", email="deactivate@example.com", password="pass123")
+    token = await _get_refresh_token(
+        ac,
+        tenant_id="tenant-test",
+        email="deactivate@example.com",
+        password="pass123",
+    )
 
     # Deactivate the user
     async with sf() as session:

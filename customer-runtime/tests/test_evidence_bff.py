@@ -41,7 +41,7 @@ class TestCollectEndpoint:
 
     async def test_collect_returns_201_with_items(self):
         """Happy path: collect stores results and returns 201."""
-        from app.routers.evidence_bff import router, collect_evidence
+        from app.routers.evidence_bff import collect_evidence
         from app.routers.evidence_bff import CollectRequest
 
         mock_db = AsyncMock()

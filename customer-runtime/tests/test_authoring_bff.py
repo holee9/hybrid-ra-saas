@@ -158,7 +158,7 @@ class TestPatchDraft:
             mock_db.commit = AsyncMock()
             mock_db.refresh = AsyncMock(side_effect=lambda e: None)
 
-            result = await update_draft_section(
+            await update_draft_section(
                 draft_id="test-draft-id",
                 body=PatchRequest(section_id="intro", content="Updated content", status="in_progress"),
                 tenant_id="tenant-1",
