@@ -115,8 +115,8 @@
 | **데이터 모델** | SQLAlchemy 9개 (Product, Document, Requirement, Risk, Control, Evidence, Finding, AuditEvent, ParseJob) + pgvector |
 | **인증** | JWT HS256 + X-Tenant-ID (사용자 인증) / Bearer token (서비스간 인증, SPEC-APITOK-001) |
 | **Docker** | 5서비스 (api, postgres, minio, ollama, redis) multi-stage 빌드 |
-| **테스트** | 367 passed / 36 skipped (Docker 통합 테스트는 CI 전용 자동 스킵) |
-| **커버리지** | 75% |
+| **테스트** | 409 passed / 36 skipped (Docker 통합 테스트는 CI 전용 자동 스킵) |
+| **커버리지** | 77% |
 | **lint** | ruff 0 errors |
 | **FR-210** | Air-Gap 아웃바운드 검증 구현 완료 |
 
@@ -142,7 +142,7 @@ Ollama가 budget 안에 응답하지 못하면 검색된 `evidence_links`는 유
 | **적용 라우터** | 8개 (rag, sync, audit, guardrail, documents, authoring, checklist, evidence) |
 | **에러 코드** | 503 (미설정), 401 (잘못된 토큰), 400 (X-Tenant-ID 누락) |
 | **환경변수** | `HYBRID_RA_API_TOKEN` (최소 32자) — ra-med-bot 측 `HYBRID_RA_API_BASE_URL`, `HYBRID_RA_TENANT_ID`와 쌍 |
-| **테스트** | `test_apitok_001.py` 인증 전용, 367 unit tests pass |
+| **테스트** | `test_apitok_001.py` 인증 전용, 409 unit tests pass |
 | **계약 문서** | [`docs/integration-contract.md`](docs/integration-contract.md) — ra-med-bot 연동 API 계약 명세 |
 
 SPEC 상세: [`.moai/specs/SPEC-APITOK-001/spec.md`](.moai/specs/SPEC-APITOK-001/spec.md)
@@ -179,9 +179,9 @@ SPEC 상세: [`.moai/specs/SPEC-UI-001/spec.md`](.moai/specs/SPEC-UI-001/spec.md
 | **큐 화면** | React Router 7, `QueuePage`, `JobQueueTable`, StatusTabs(5개), SortControl, Pagination |
 | **훅** | `useListJobs`: 클라이언트 정렬 + 5초 자동갱신(running 작업 존재 시) |
 | **프론트엔드 테스트** | Vitest + RTL, 113/113 passed |
-| **백엔드 테스트** | pytest, 367 passed / 36 skipped(CI 전용) |
+| **백엔드 테스트** | pytest, 409 passed / 36 skipped(CI 전용) |
 | **TypeScript** | 0 errors |
-| **커버리지** | 75% |
+| **커버리지** | 77% |
 | **라우팅** | `/jobs` → QueuePage, `/jobs/:jobId` → CorrectionPanel (SPEC-UI-001 회귀 없음) |
 
 SPEC 상세: [`.moai/specs/SPEC-UI-002/spec.md`](.moai/specs/SPEC-UI-002/spec.md)
@@ -286,6 +286,88 @@ SPEC 상세: [`.moai/specs/SPEC-JOBQUEUE-001/spec.md`](.moai/specs/SPEC-JOBQUEUE
 
 ---
 
+## 구현 현황 (SPEC-CRAWLER-002)
+
+> 2026-06-20 기준 — 크롤러 소유권 경계 정리 및 멱등성 보장 완료
+
+| 항목 | 내용 |
+|------|------|
+| **소유권 결정** | 규제 문서 크롤링은 `cloud-control-plane` 전담 — `customer-runtime`은 크롤링 로직 없음 |
+| **중복 실행 제거** | SHA-256 콘텐츠 해시 기반 dedup — 이미 수집된 문서 자동 skip |
+| **멱등성** | 동일 job_id 재실행 시 `already_crawled` 상태로 조기 반환 |
+| **문서화** | `docs/integration-contract.md` 소유권 경계 명시 |
+
+SPEC 상세: [`.moai/specs/SPEC-CRAWLER-002/spec.md`](.moai/specs/SPEC-CRAWLER-002/spec.md)
+
+---
+
+## 구현 현황 (SPEC-RAG-001)
+
+> 2026-06-20 기준 — Customer Runtime RAG 라우팅 모드 구현 완료
+
+| 항목 | 내용 |
+|------|------|
+| **라우팅 모드** | `local-only` (로컬 pgvector만) · `regula-only` (Regula만) · `hybrid` (병렬, 베스트 앤서) |
+| **파라미터** | `POST /rag/query` 요청에 `routing_mode` 추가 (기본값: `local-only`) |
+| **Degraded fallback** | Regula timeout/error 시 `routing_used="degraded"`, 로컬 결과로 응답 |
+| **환경변수** | `REGULA_RAG_URL`, `REGULA_RAG_TIMEOUT` |
+| **테스트** | `test_rag.py`, `test_rag_routing.py` — routing 시나리오별 단위 테스트 |
+
+SPEC 상세: [`.moai/specs/SPEC-RAG-001/spec.md`](.moai/specs/SPEC-RAG-001/spec.md)
+
+---
+
+## 구현 현황 (SPEC-TEMPLATE-002)
+
+> 2026-06-20 기준 — Template API live 연동 stub 완전 제거 완료
+
+| 항목 | 내용 |
+|------|------|
+| **신규 모듈** | `services/template_client.py` — 공유 Template API 클라이언트 (`fetch_template_sections`, 재시도 3회) |
+| **제거 대상** | `authoring.py` STUB_SECTIONS, `checklist/generator.py` 로컬 stub 전부 제거 |
+| **에러 처리** | `TemplateAPIError → HTTP 502` (업스트림 장애 시 명시적 실패) |
+| **환경변수** | `TEMPLATE_API_URL`, `TEMPLATE_API_TIMEOUT` (기본 10s), `TEMPLATE_API_MAX_RETRIES` (기본 3) |
+| **테스트** | `test_template_client.py` 11개 신규, 기존 `test_authoring_001.py`/`test_checklist_001.py` mock 픽스처 추가 |
+
+SPEC 상세: [`.moai/specs/SPEC-TEMPLATE-002/spec.md`](.moai/specs/SPEC-TEMPLATE-002/spec.md)
+
+---
+
+## 구현 현황 (SPEC-EVIDENCE-002)
+
+> 2026-06-20 기준 — Evidence export 실제 bytes 연동 및 MinIO delete 구현 완료
+
+| 항목 | 내용 |
+|------|------|
+| **bytes 연동** | SHA-256 placeholder 제거 → `storage.download(storage_ref)` 실제 MinIO bytes fetch |
+| **테넌트 격리** | `storage_ref` 경로의 `binder_id` 검증 — 교차 테넌트 다운로드 차단 |
+| **delete 구현** | `MinioAdapter.delete()` no-op → `boto3.delete_object()` 실제 삭제 + audit log |
+| **export manifest** | `export_summary: {included_count, failed_count, included[], failed[]}` 포함 |
+| **에러 격리** | 파일 단위 try/except — 개별 실패가 전체 export 중단하지 않음 |
+| **테스트** | `test_evidence_002.py` 14개 신규 |
+
+SPEC 상세: [`.moai/specs/SPEC-EVIDENCE-002/spec.md`](.moai/specs/SPEC-EVIDENCE-002/spec.md)
+
+---
+
+## 구현 현황 (SPEC-TRACEABILITY-002)
+
+> 2026-06-20 기준 — Semantic mismatch detector 운영 LLM 연동 완료
+
+| 항목 | 내용 |
+|------|------|
+| **MismatchResult** | Pydantic 스키마 — `mismatch_type` (semantic/structural/none/unknown) · `confidence` · `rationale` · `degraded` |
+| **LLM 연동** | `LLM_ENDPOINT_URL/api/generate` POST 실제 호출 (Ollama 호환) |
+| **재시도** | 최대 2회, timeout/connect error → `degraded=True` MismatchResult 반환 |
+| **CI 격리** | `TESTING=1` env → stub 분기 (단위 테스트에서 LLM 호출 없음) |
+| **환경변수** | `LLM_ENDPOINT_URL`, `LLM_MODEL_NAME`, `LLM_DETECTOR_TIMEOUT`, `LLM_DETECTOR_MAX_RETRIES` |
+| **테스트** | `test_traceability_002.py` 8개 신규 (schema, mock LLM, degraded, timeout, non-JSON 시나리오) |
+| **계약 문서** | `docs/integration-contract.md` Traceability Result Schema 섹션 추가 |
+
+SPEC 상세: [`.moai/specs/SPEC-TRACEABILITY-002/spec.md`](.moai/specs/SPEC-TRACEABILITY-002/spec.md)
+
+---
+
 ## 레포지토리 구조
 
 ```
@@ -294,9 +376,9 @@ hybrid-ra-saas/
 │   ├── src/app/                  # FastAPI 애플리케이션
 │   │   ├── routers/              # 7개 엔드포인트 (health, upload, parse, guardrail, rag, audit, sync)
 │   │   ├── models/               # SQLAlchemy 9개 모델 (8 엔티티 + ParseJob)
-│   │   ├── services/             # 비즈니스 로직 (parser_engine NLP 엔진, storage, guardrail, rag, export, airgap)
+│   │   ├── services/             # 비즈니스 로직 (parser_engine NLP 엔진, storage, guardrail, rag, template_client, export, airgap)
 │   │   └── core/                 # JWT, rate limit, state machine
-│   ├── tests/                    # pytest (367 passed, 75% coverage)
+│   ├── tests/                    # pytest (409 passed, 77% coverage)
 │   ├── alembic/                  # DB 마이그레이션 (pgvector)
 │   ├── docker/                   # Dockerfile (multi-stage)
 │   └── docker-compose.yml        # 5서비스 (api, postgres, minio, ollama, redis)
@@ -465,7 +547,7 @@ Regula 쪽 즉시 재조회가 항상 커밋된 parse 결과를 보도록 한다
 
 | 단계 | 목표 | 핵심 산출물 |
 |------|------|-----------|
-| **✅ 1차 완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 + Bearer 인증 + Regula 연동 | 9개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER/APITOK/TENANT-ISOLATION/JOBQUEUE) |
+| **✅ 1차 완료** | Customer Runtime API + 파서 + UI + 인프라 + 크롤러 + Bearer 인증 + Regula 연동 | 14개 SPEC 완료 (API/PARSER/UI-001/UI-002/INFRA/CRAWLER-001/CRAWLER-002/APITOK/TENANT-ISOLATION/JOBQUEUE/RAG-001/TEMPLATE-002/EVIDENCE-002/TRACEABILITY-002) |
 | **✅ P0** | 크롤러 → Regula Vectorize 자동 동기화 | `KnowledgePushService`, `REGULA_KNOWLEDGE_PUSH_URL`, `CRAWL_PUSH_SECRET` — 구현 및 api-prod 배포 완료 |
 | **✅ P1** | IFU 파서 → Regula 프로젝트 컨텍스트 연동 | `/rag/query` API key 인증, ra-med-bot #169 UI 연동 완료 |
 | **✅ P2** | Audit trail / IFU / Knowledge-Sync 웹훅 연동 | ra-med-bot #188 수신 엔드포인트 구현 완료, 환경변수 6개 설정 완료 |
@@ -492,4 +574,4 @@ Regula 쪽 즉시 재조회가 항상 커밋된 parse 결과를 보도록 한다
 
 ---
 
-*버전: v7.0 | 최종 갱신: 2026-06-20 | **1차 완료** ✅ | Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | Bearer 인증 ✅ | Regula 연동 완료 (ra-med-bot #168/169/171/188/191 all CLOSED) ✅ | 다음: P3 Regula Enterprise 리브랜딩 → Wave 5 대응*
+*버전: v8.0 | 최종 갱신: 2026-06-20 | **1차 완료** ✅ | Customer Runtime ✅ | Terraform IaC ✅ | 규제 크롤러 ✅ | Bearer 인증 ✅ | Regula 연동 완료 (ra-med-bot #168/169/171/188/191 all CLOSED) ✅ | Backend Stub 제거 완료 (SPEC-TEMPLATE-002/EVIDENCE-002/TRACEABILITY-002) ✅ | RAG 라우팅 구현 ✅ | 다음: P3 Regula Enterprise 리브랜딩 → Wave 5 대응*
