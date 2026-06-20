@@ -328,6 +328,47 @@ Timeout: 20s. Non-blocking on failure (returns degraded response).
 
 ---
 
+## Traceability Result Schema (SPEC-TRACEABILITY-002)
+
+### Semantic Mismatch Detection
+
+`POST /api/v1/traceability/scan` invokes semantic mismatch detection for each traceability edge.
+Per-edge mismatch analysis results are persisted as `ConsistencyFinding` records.
+
+### MismatchResult Schema
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mismatch_type` | `"semantic"` \| `"structural"` \| `"none"` \| `"unknown"` | Type of detected mismatch |
+| `confidence` | `float` (0.0–1.0) | LLM confidence score for the assessment |
+| `rationale` | `str` | Human-readable explanation of the finding |
+| `degraded` | `bool` | `true` when LLM was unavailable; result is best-effort only |
+
+### LLM Backend Configuration
+
+| Environment Variable | Default | Description |
+|----------------------|---------|-------------|
+| `LLM_ENDPOINT_URL` | `http://ollama:11434` | Ollama/LLM base URL (falls back to `OLLAMA_ENDPOINT`) |
+| `LLM_MODEL_NAME` | `llama3.1:8b` | Model to use (falls back to `OLLAMA_MODEL`) |
+| `LLM_DETECTOR_TIMEOUT` | `20.0` | Per-attempt timeout in seconds |
+| `LLM_DETECTOR_MAX_RETRIES` | `2` | Total attempts before returning degraded result |
+| `TESTING` | _(unset)_ | Set to `1` to enable CI stub mode (no LLM call) |
+
+### Degraded Mode
+
+When the LLM endpoint is unavailable or all retries are exhausted:
+- `degraded: true` is set on the result
+- `mismatch_type` is `"unknown"` and `confidence` is `0.0`
+- A `ConsistencyFinding` with `finding_type: "degraded_check"` is created
+- The scan endpoint completes normally without raising an error
+
+### CI / Test Stub
+
+Set `TESTING=1` to bypass LLM calls. `detect_semantic_mismatches` returns an empty list
+deterministically, ensuring reproducible test execution (REQ-TRACEABILITY-002-004).
+
+---
+
 ## Versioning
 
 This contract is versioned alongside `SPEC-APITOK-001`.  
