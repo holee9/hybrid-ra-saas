@@ -101,6 +101,16 @@ az containerapp update \
 
 > Key Vault 시크릿 이름: `DB-CONNECTION-STRING`, `JWT-SECRET`, `AZURE-STORAGE-CONN-STRING`, `APP-INSIGHTS-CONN-STRING`, `REGULA-API-KEY`, `REGULA-KNOWLEDGE-PUSH-URL`, `CRAWL-PUSH-SECRET`, `REGULA-AUDIT-WEBHOOK-URL`, `REGULA-IFU-WEBHOOK-URL`
 
+> **⚠️ 2026-06-20 확인:** `api-prod`에 `REGULA_KNOWLEDGE_PUSH_URL`이 누락되어 있음.
+> 아래 명령으로 추가 필요:
+>
+> ```bash
+> az containerapp update \
+>   --name api-prod \
+>   --resource-group rg-hybrid-ra-saas-prod \
+>   --set-env-vars "REGULA_KNOWLEDGE_PUSH_URL=https://regula.abyz-lab.work/api/admin/radar/sync"
+> ```
+
 `REGULA_KNOWLEDGE_PUSH_URL`은 두 서비스에서 의미가 다르다.
 
 | 서비스 | 사용 시점 | payload |
@@ -201,20 +211,23 @@ az containerapp show \
 
 ```bash
 # 1. customer-runtime 헬스체크
-curl https://{api-prod-url}/health
+curl https://api-prod.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io/health
+# → 200 OK ✅ (2026-06-20 검증)
 
-# 2. cloud-control-plane 헬스체크
-curl https://{crawler-url}/health
+# 2. cloud-control-plane 헬스체크 (cold start ~30s 소요)
+curl --max-time 30 https://cloud-control-plane-api.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io/health
+# → 200 OK ✅ (2026-06-20 검증)
 
 # 3. 크롤러 수동 트리거 (소량 수집 테스트)
-curl -X POST https://{crawler-url}/crawl/trigger
+curl -X POST https://cloud-control-plane-api.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io/crawl/trigger
 # → job_id 반환
 
 # 4. 잡 상태 확인
-curl https://{crawler-url}/crawl/status/{job_id}
+curl https://cloud-control-plane-api.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io/crawl/status/{job_id}
 
-# 5. 교정 UI 접근 (브라우저)
-# https://{api-prod-url}/docs — FastAPI Swagger UI
+# 5. API 문서 (브라우저)
+# https://api-prod.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io/docs
+# https://cloud-control-plane-api.victoriousforest-c9f2300f.koreacentral.azurecontainerapps.io/docs
 ```
 
 ### 예상 정상 응답
@@ -253,4 +266,16 @@ curl https://{crawler-url}/crawl/status/{job_id}
 
 ---
 
-*최종 갱신: 2026-06-11 | 대상 버전: v1.0.0*
+## 8. 운영 검증 결과 (2026-06-20)
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| api-prod health | ✅ 200 OK | `GET /health` |
+| cloud-control-plane-api health | ✅ 200 OK | cold start ~30s |
+| crawler-job | ✅ Succeeded | cron `0 2 * * *` UTC |
+| api-prod env vars | ⚠️ 일부 누락 | `REGULA_KNOWLEDGE_PUSH_URL` 미설정 |
+| cloud-control-plane-api env vars | ✅ 완전 | 모든 필수 env var 설정됨 |
+
+---
+
+*최종 갱신: 2026-06-20 | 대상 버전: v1.0.0*

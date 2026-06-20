@@ -62,9 +62,9 @@ ra-med-bot(Regula UI) 내부 구현은 해당 레포에서 별도 진행한다.
 - Cloud Control Plane `main.py`에 `CORSMiddleware` 적용 완료.
 - Customer Runtime `.env.example`에 `CORS_ORIGINS=https://regula.abyz-lab.work,http://localhost:3000` 반영 완료.
 
-**운영 검증 필요 (배포 후):**
-1. Azure Container App `CORS_ORIGINS` env var 확인
-2. `Origin: https://regula.abyz-lab.work` preflight/실요청 검증
+**운영 검증 결과 (2026-06-20):**
+1. ✅ Azure Container App `CORS_ORIGINS` env var 설정 확인됨 (api-prod)
+2. ⏳ preflight/실요청 검증 — regula.abyz-lab.work가 api-prod를 실제 호출할 때 확인 가능
 
 ---
 
@@ -86,10 +86,10 @@ ra-med-bot → hybrid-ra-saas 호출은 **서버 사이드 API Key 패턴**으�
 - `REGULA_API_KEY` GitHub Secret 등록 완료 (2026-06-18)
 - `HYBRID_RA_API_TOKEN` GitHub Secret 등록 완료 (2026-06-18)
 
-**운영 검증 필요 (배포 후):**
-1. Container App secret에 `REGULA_API_KEY`, `HYBRID_RA_API_TOKEN` 반영 확인
-2. `REGULA_ALLOWED_TENANTS` tenant 목록 설정 (빈 값 = 전체 허용)
-3. ra-med-bot 서버 사이드 호출에서 `X-Regula-API-Key`, `X-Tenant-ID`, Bearer JWT 전달 검증
+**운영 검증 결과 (2026-06-20):**
+1. ✅ `REGULA_API_KEY` api-prod Container App에 설정됨
+2. ℹ️ `REGULA_ALLOWED_TENANTS` 미설정 — 빈 값 = 전체 허용 (현재 의도적 허용)
+3. ⏳ ra-med-bot 서버 사이드 호출 검증 — ra-med-bot 구현 완료 후 E2E 확인 필요
 
 **ra-med-bot 측 (별도 레포 작업):**
 - `.env.example`에 `HYBRID_RA_API_KEY=`, `HYBRID_RA_API_URL=` 추가
@@ -193,9 +193,9 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 - `REGULA_AUDIT_WEBHOOK_URL` GitHub Secret 등록 완료 (2026-06-18)
 - `REGULA_AUDIT_WEBHOOK_URL` 미설정 시 `202 status=skipped` no-op 동작 구현
 
-**운영 검증 필요:**
-- Container App secret에 `REGULA_AUDIT_WEBHOOK_URL` 반영 후 webhook 전달 확인
-- ra-med-bot 감사 이벤트 수신 endpoint 구현 (별도 레포)
+**운영 검증 결과 (2026-06-20):**
+- ✅ `REGULA_AUDIT_WEBHOOK_URL` api-prod Container App에 설정됨
+- ⏳ webhook 전달 확인 — ra-med-bot 감사 이벤트 수신 endpoint 구현 후 E2E 검증 필요 (별도 레포)
 
 ---
 
@@ -207,9 +207,9 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 - IFU 파싱 성공 후 `customer-runtime/src/app/jobs/parse_job.py`에서 구조화된 파싱 결과를 Regula로 push
 - webhook 실패는 parse job 상태에 영향을 주지 않는 non-fatal warning으로 처리
 
-**운영 검증 필요:**
-- ra-med-bot IFU context 수신 endpoint 구현 (별도 레포)
-- Container App secret에 `REGULA_IFU_WEBHOOK_URL` 반영 후 E2E 검증
+**운영 검증 결과 (2026-06-20):**
+- ✅ `REGULA_IFU_WEBHOOK_URL` api-prod Container App에 설정됨
+- ⏳ E2E 검증 — ra-med-bot IFU context 수신 endpoint 구현 후 확인 필요 (별도 레포)
 
 ---
 
@@ -227,9 +227,15 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 - 수신자인 Regula가 trigger 직후 Customer Runtime 또는 DB를 재조회할 수 있으므로, 커밋 전 trigger는 stale parse state를 동기화할 위험이 있다.
 - 현재 구현은 `async_session()` 종료 후 trigger를 호출해 즉시 재조회가 커밋된 결과를 보도록 보장한다.
 
-**운영 검증 필요:**
-- Container App `api-prod`에 `REGULA_KNOWLEDGE_PUSH_URL` secretref 반영
-- 파싱 완료 job 기준으로 Regula 수신 로그와 Customer Runtime `ParseJob.status='done'` / `Document.status='ready_for_check'` 일치 확인
+**운영 검증 결과 (2026-06-20):**
+- ⚠️ `REGULA_KNOWLEDGE_PUSH_URL` api-prod Container App에 **미설정** — 아래 명령으로 수동 추가 필요:
+  ```bash
+  az containerapp update \
+    --name api-prod \
+    --resource-group rg-hybrid-ra-saas-prod \
+    --set-env-vars "REGULA_KNOWLEDGE_PUSH_URL=https://regula.abyz-lab.work/api/admin/radar/sync"
+  ```
+- ⏳ E2E 검증 — ra-med-bot `/api/admin/radar/sync` 수신 endpoint 구현 후 확인 필요
 
 ---
 
