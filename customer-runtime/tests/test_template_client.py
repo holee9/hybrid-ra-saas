@@ -26,6 +26,38 @@ FAKE_SECTIONS = [
     {"section_id": "s-002", "blocking": False, "evidence_required": False, "title": "IFU"},
 ]
 
+FAKE_PACK_DETAIL = {
+    "pack_id": "pack-001",
+    "documents": [
+        {
+            "document_id": "doc-001",
+            "sections": [
+                {
+                    "section_id": "s-001",
+                    "section_key": "cer",
+                    "title": "CER",
+                    "required": True,
+                    "source_reference_ids": ["ref-001"],
+                    "sort_order": 2,
+                }
+            ],
+        },
+        {
+            "document_id": "doc-002",
+            "sections": [
+                {
+                    "section_id": "s-002",
+                    "section_key": "ifu",
+                    "title": "IFU",
+                    "required": False,
+                    "source_reference_ids": [],
+                    "sort_order": 1,
+                }
+            ],
+        },
+    ],
+}
+
 
 def _make_httpx_response(status_code: int, json_data=None, text: str = ""):
     """Build a minimal httpx.Response-like mock."""
@@ -54,8 +86,8 @@ def _make_httpx_response(status_code: int, json_data=None, text: str = ""):
 
 @pytest.mark.asyncio
 async def test_fetch_template_sections_success():
-    """Live fetch returns API JSON when TEMPLATE_API_URL is set."""
-    resp_mock = _make_httpx_response(200, json_data=FAKE_SECTIONS)
+    """Live fetch returns flattened pack-detail sections when TEMPLATE_API_URL is set."""
+    resp_mock = _make_httpx_response(200, json_data=FAKE_PACK_DETAIL)
 
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -68,9 +100,55 @@ async def test_fetch_template_sections_success():
 
             result = await fetch_template_sections("pack-001")
 
+    assert result == [
+        {
+            "section_id": "s-001",
+            "section_key": "cer",
+            "title": "CER",
+            "required": True,
+            "source_reference_ids": ["ref-001"],
+            "sort_order": 2,
+            "blocking": True,
+            "evidence_required": True,
+        },
+        {
+            "section_id": "s-002",
+            "section_key": "ifu",
+            "title": "IFU",
+            "required": False,
+            "source_reference_ids": [],
+            "sort_order": 1,
+            "blocking": False,
+            "evidence_required": False,
+        },
+    ]
+    mock_client.get.assert_called_once_with(
+        "https://template.example.com/template-packs/pack-001"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fetch_template_sections_allows_legacy_section_list_response():
+    """A direct list response remains supported for tests or alternate providers."""
+    resp_mock = _make_httpx_response(200, json_data=FAKE_SECTIONS)
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(return_value=resp_mock)
+
+    with patch("app.services.template_client.httpx.AsyncClient", return_value=mock_client):
+        with patch.dict(os.environ, {"TEMPLATE_API_URL": "https://template.example.com"}):
+            from app.services.template_client import fetch_template_sections
+
+            result = await fetch_template_sections(
+                "pack-001",
+                endpoint_path="/alternate/{pack_id}/sections",
+            )
+
     assert result == FAKE_SECTIONS
     mock_client.get.assert_called_once_with(
-        "https://template.example.com/packs/pack-001/sections"
+        "https://template.example.com/alternate/pack-001/sections"
     )
 
 
@@ -174,6 +252,36 @@ async def test_fetch_template_sections_retry_success_on_last():
     assert call_count == 3
 
 
+@pytest.mark.asyncio
+async def test_fetch_template_sections_retries_request_error():
+    """Transient transport errors are retried before raising TemplateAPIError."""
+    resp_mock = _make_httpx_response(200, json_data=FAKE_SECTIONS)
+
+    call_count = 0
+
+    async def flaky_get(url):
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            raise httpx.ConnectError("connection refused")
+        return resp_mock
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = flaky_get
+
+    with patch("app.services.template_client.httpx.AsyncClient", return_value=mock_client):
+        with patch.dict(os.environ, {"TEMPLATE_API_URL": "https://template.example.com"}):
+            import app.services.template_client as tc_module
+
+            with patch.object(tc_module, "TEMPLATE_API_MAX_RETRIES", 3):
+                result = await tc_module.fetch_template_sections("pack-001")
+
+    assert result == FAKE_SECTIONS
+    assert call_count == 3
+
+
 # ---------------------------------------------------------------------------
 # REQ-TEMPLATE-002-004: deterministic error response
 # ---------------------------------------------------------------------------
@@ -217,7 +325,7 @@ async def test_authoring_router_calls_fetch_template_sections():
     assert result == FAKE_SECTIONS
     mock_fetch.assert_called_once_with(
         "pack-001",
-        endpoint_path="/packs/{pack_id}/sections",
+        endpoint_path="/template-packs/{pack_id}",
     )
 
 
@@ -262,7 +370,7 @@ async def test_checklist_generator_calls_fetch_template_sections():
     assert result == FAKE_SECTIONS
     mock_fetch.assert_called_once_with(
         "pack-001",
-        endpoint_path="/template-packs/{pack_id}/sections",
+        endpoint_path="/template-packs/{pack_id}",
     )
 
 

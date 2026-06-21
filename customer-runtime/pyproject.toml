@@ -41,6 +41,7 @@ addopts = "--cov=app --cov-report=term-missing"
 testpaths = ["tests"]
 markers = [
   "integration: marks tests requiring external services (e.g., PostgreSQL container)",
+  "no_template_mock: disables autouse Template API test mocks",
 ]
 
 [tool.coverage.run]

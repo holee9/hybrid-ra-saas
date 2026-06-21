@@ -32,6 +32,7 @@ from app.schemas.checklist import (
 )
 from app.services.checklist.generator import generate_checklist
 from app.services.checklist.state_machine import ChecklistStateError, validate_item_transition
+from app.services.template_client import TemplateAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -88,11 +89,15 @@ async def generate(
     db: AsyncSession = Depends(get_db),
 ) -> ChecklistSnapshotOut:
     """Generate a new checklist snapshot for a pack."""
-    snapshot = await generate_checklist(
-        pack_id=body.pack_id,
-        session_id=body.session_id,
-        db=db,
-    )
+    try:
+        snapshot = await generate_checklist(
+            pack_id=body.pack_id,
+            session_id=body.session_id,
+            db=db,
+        )
+    except TemplateAPIError as exc:
+        logger.error("Template API error for checklist pack %s: %s", body.pack_id, exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return ChecklistSnapshotOut.model_validate(snapshot)
 
 

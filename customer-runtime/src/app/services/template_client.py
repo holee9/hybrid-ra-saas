@@ -19,9 +19,47 @@ class TemplateAPIError(Exception):
     """Raised when the template API call fails after all retries."""
 
 
+def _normalize_section(section: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(section)
+    normalized.setdefault("blocking", bool(normalized.get("required", False)))
+    normalized.setdefault(
+        "evidence_required",
+        bool(normalized.get("source_reference_ids")),
+    )
+    return normalized
+
+
+def _extract_sections(payload: Any, pack_id: str) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return payload
+
+    if not isinstance(payload, dict):
+        raise TemplateAPIError(
+            f"Template API returned unexpected payload for pack '{pack_id}'."
+        )
+
+    if isinstance(payload.get("items"), list):
+        return payload["items"]
+
+    documents = payload.get("documents")
+    if not isinstance(documents, list):
+        raise TemplateAPIError(
+            f"Template API pack detail for pack '{pack_id}' has no documents list."
+        )
+
+    sections: list[dict[str, Any]] = []
+    for document in documents:
+        if not isinstance(document, dict):
+            continue
+        for section in document.get("sections", []):
+            if isinstance(section, dict):
+                sections.append(_normalize_section(section))
+    return sections
+
+
 async def fetch_template_sections(
     pack_id: str,
-    endpoint_path: str = "/packs/{pack_id}/sections",
+    endpoint_path: str = "/template-packs/{pack_id}",
     *,
     base_url: str = "",
 ) -> list[dict[str, Any]]:
@@ -29,8 +67,7 @@ async def fetch_template_sections(
 
     Args:
         pack_id: Template pack identifier.
-        endpoint_path: URL path template. Defaults to authoring pack endpoint.
-            Use "/template-packs/{pack_id}/sections" for checklist endpoint.
+        endpoint_path: URL path template. Defaults to cloud-control-plane pack detail.
         base_url: Override base URL (for testing). Falls back to TEMPLATE_API_URL env.
 
     Returns:
@@ -59,7 +96,9 @@ async def fetch_template_sections(
                     # Pack not found — deterministic empty result, no retry.
                     return []
                 resp.raise_for_status()
-                return resp.json()
+                return _extract_sections(resp.json(), pack_id)
+        except TemplateAPIError:
+            raise
         except httpx.TimeoutException as exc:
             logger.warning(
                 "template_api_timeout attempt=%d/%d url=%s: %s",
@@ -75,6 +114,15 @@ async def fetch_template_sections(
                 attempt,
                 TEMPLATE_API_MAX_RETRIES,
                 exc.response.status_code,
+                full_url,
+                exc,
+            )
+            last_exc = exc
+        except httpx.RequestError as exc:
+            logger.warning(
+                "template_api_request_error attempt=%d/%d url=%s: %s",
+                attempt,
+                TEMPLATE_API_MAX_RETRIES,
                 full_url,
                 exc,
             )

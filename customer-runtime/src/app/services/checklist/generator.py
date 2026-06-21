@@ -27,7 +27,7 @@ async def _fetch_sections(pack_id: str) -> list[dict]:
     """
     return await fetch_template_sections(
         pack_id,
-        endpoint_path="/template-packs/{pack_id}/sections",
+        endpoint_path="/template-packs/{pack_id}",
     )
 
 

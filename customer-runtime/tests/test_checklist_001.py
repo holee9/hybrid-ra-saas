@@ -35,8 +35,12 @@ _STUB_SECTIONS = [
 
 
 @pytest.fixture(autouse=True)
-def mock_template_api():
+def mock_template_api(request):
     """Patch fetch_template_sections in generator for all checklist tests."""
+    if "no_template_mock" in request.keywords:
+        yield
+        return
+
     async def _stub(pack_id, endpoint_path=None, *, base_url=""):  # noqa: ARG001
         return _STUB_SECTIONS
 
@@ -104,6 +108,24 @@ async def test_generate_checklist_creates_snapshot(client):
     assert "snapshot_id" in data
     assert data["status"] == "draft"
     assert data["total_items"] >= 1
+
+
+@pytest.mark.no_template_mock
+async def test_generate_checklist_template_api_error_returns_502(client):
+    """Template API failures are mapped to a deterministic gateway error."""
+    from app.services.template_client import TemplateAPIError
+
+    with patch(
+        "app.services.checklist.generator.fetch_template_sections",
+        side_effect=TemplateAPIError("TEMPLATE_API_URL is not configured"),
+    ):
+        resp = await client.post(
+            "/api/v1/checklists/generate",
+            json={"pack_id": "pack-001"},
+        )
+
+    assert resp.status_code == 502
+    assert "TEMPLATE_API_URL is not configured" in resp.json()["detail"]
 
 
 async def test_generate_checklist_blocking_inheritance(client):

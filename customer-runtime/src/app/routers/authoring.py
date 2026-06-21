@@ -43,7 +43,7 @@ async def _fetch_template_sections(pack_id: str) -> list[dict]:
     try:
         return await fetch_template_sections(
             pack_id,
-            endpoint_path="/packs/{pack_id}/sections",
+            endpoint_path="/template-packs/{pack_id}",
         )
     except TemplateAPIError as exc:
         logger.error("Template API error for pack %s: %s", pack_id, exc)
