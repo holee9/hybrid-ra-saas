@@ -84,8 +84,17 @@ export function FieldRow({
           />
         ) : (
           <span
-            className={`text-sm text-gray-800 cursor-pointer whitespace-pre-wrap ${disabled ? "cursor-default" : "hover:bg-blue-50 rounded px-1"}`}
+            role={disabled ? undefined : "button"}
+            tabIndex={disabled ? undefined : 0}
+            aria-label={disabled ? undefined : `${FIELD_LABELS[fieldName]} 편집`}
+            className={`text-sm text-gray-800 whitespace-pre-wrap ${disabled ? "cursor-default" : "cursor-pointer hover:bg-blue-50 rounded px-1 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:rounded"}`}
             onClick={handleClick}
+            onKeyDown={disabled ? undefined : (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleClick();
+              }
+            }}
           >
             {currentDisplay}
           </span>

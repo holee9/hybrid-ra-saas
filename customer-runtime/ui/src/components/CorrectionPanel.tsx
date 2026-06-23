@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useBlocker } from "react-router-dom";
 import { ParsedFields, IFU_FIELD_NAMES, IfuFieldName } from "../types/parse";
 import { useCorrections } from "../hooks/useCorrections";
 import { useToast } from "../lib/toast";
@@ -19,9 +21,33 @@ export function CorrectionPanel({ jobId, initialFields }: CorrectionPanelProps) 
   );
   const { showToast } = useToast();
 
+  const isDirty = dirtyFields.size > 0;
   const isRejected = fields.rejected;
   const isDisabled = isRejected || saving;
-  const canSave = dirtyFields.size > 0 && !isDisabled;
+  const canSave = isDirty && !isDisabled;
+
+  // Warn on browser tab close / refresh when there are unsaved changes
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Warn on in-app navigation away from unsaved changes
+  const blocker = useBlocker(isDirty && !saving);
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      const confirmed = window.confirm("저장하지 않은 변경 사항이 있습니다. 나가시겠습니까?");
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
 
   async function handleSave() {
     try {
@@ -91,7 +117,7 @@ export function CorrectionPanel({ jobId, initialFields }: CorrectionPanelProps) 
 
       {/* Save button */}
       <div className="flex justify-end gap-3 pt-2 border-t">
-        {dirtyFields.size > 0 && !saving && (
+        {isDirty && !saving && (
           <button
             type="button"
             onClick={() => {
