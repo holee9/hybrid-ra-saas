@@ -65,7 +65,9 @@ function ToastContainer({
       {toasts.map((t) => (
         <div
           key={t.id}
-          role="alert"
+          role={t.type === "error" ? "alert" : "status"}
+          aria-live={t.type === "error" ? "assertive" : "polite"}
+          aria-atomic="true"
           className={`flex items-center gap-3 px-4 py-3 rounded shadow-lg text-sm font-medium min-w-[240px] ${
             t.type === "success"
               ? "bg-green-600 text-white"

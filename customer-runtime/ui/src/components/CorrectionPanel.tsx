@@ -103,16 +103,21 @@ export function CorrectionPanel({ jobId, initialFields }: CorrectionPanelProps) 
 
       {/* 15 field rows */}
       <div className="flex flex-col gap-1">
-        {IFU_FIELD_NAMES.map((fieldName) => (
-          <FieldRow
-            key={fieldName}
-            fieldName={fieldName as IfuFieldName}
-            extraction={fields[fieldName as IfuFieldName]}
-            isDirty={dirtyFields.has(fieldName as IfuFieldName)}
-            disabled={isDisabled}
-            onUpdate={(val) => updateField(fieldName as IfuFieldName, val)}
-          />
-        ))}
+        {IFU_FIELD_NAMES.map((fieldName) => {
+          const name = fieldName as IfuFieldName;
+          const isFieldDirty = dirtyFields.has(name);
+          return (
+            <FieldRow
+              key={name}
+              fieldName={name}
+              extraction={fields[name]}
+              isDirty={isFieldDirty}
+              disabled={isDisabled}
+              onUpdate={(val) => updateField(name, val)}
+              onUndo={isFieldDirty && !isDisabled ? () => undo(name) : undefined}
+            />
+          );
+        })}
       </div>
 
       {/* Save button */}

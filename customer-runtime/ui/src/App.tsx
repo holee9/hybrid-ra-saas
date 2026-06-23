@@ -56,11 +56,20 @@ function JobDetailRoute() {
 export default function App() {
   return (
     <ToastProvider>
-      <Routes>
-        <Route path="/" element={<Navigate to="/jobs" replace />} />
-        <Route path="/jobs" element={<QueuePage />} />
-        <Route path="/jobs/:jobId" element={<JobDetailRoute />} />
-      </Routes>
+      {/* WCAG 2.4.1 — skip navigation link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded focus:bg-white focus:text-blue-600 focus:underline focus:shadow-md"
+      >
+        본문 바로가기
+      </a>
+      <main id="main-content" tabIndex={-1} className="outline-none">
+        <Routes>
+          <Route path="/" element={<Navigate to="/jobs" replace />} />
+          <Route path="/jobs" element={<QueuePage />} />
+          <Route path="/jobs/:jobId" element={<JobDetailRoute />} />
+        </Routes>
+      </main>
     </ToastProvider>
   );
 }

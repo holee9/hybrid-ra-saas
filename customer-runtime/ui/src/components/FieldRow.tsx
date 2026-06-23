@@ -29,6 +29,7 @@ interface FieldRowProps {
   isDirty: boolean;
   disabled: boolean;
   onUpdate: (value: string) => void;
+  onUndo?: () => void;
 }
 
 function displayValue(value: string | string[] | null): string {
@@ -43,6 +44,7 @@ export function FieldRow({
   isDirty,
   disabled,
   onUpdate,
+  onUndo,
 }: FieldRowProps) {
   const [editing, setEditing] = useState(false);
   const currentDisplay = displayValue(extraction.value);
@@ -71,6 +73,16 @@ export function FieldRow({
         <span className="text-sm font-medium text-gray-700">
           {FIELD_LABELS[fieldName]}
         </span>
+        {isDirty && !disabled && onUndo && (
+          <button
+            type="button"
+            onClick={onUndo}
+            className="block mt-1 text-xs text-gray-400 hover:text-gray-700 underline"
+            aria-label={`${FIELD_LABELS[fieldName]} 변경 되돌리기`}
+          >
+            되돌리기
+          </button>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
