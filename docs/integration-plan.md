@@ -39,7 +39,7 @@ ra-med-bot(Regula UI) 내부 구현은 해당 레포에서 별도 진행한다.
 
 | 구성요소 | 구현 상태 | 위치 |
 |---------|----------|------|
-| Next.js 15 + Auth.js v5 UI | ✅ 운영 중 (Vercel) | `app/` |
+| Next.js 15 + Auth.js v5 UI | ✅ 운영 중 (T3610 + Cloudflare Tunnel: regula.abyz-lab.work) | `app/` |
 | Auth: 세션 쿠키 (`authjs.session-token`) | ✅ 구현 완료 | `middleware.ts`, `middleware-edge.ts` |
 | pgvector RAG (`internal` scope) | ✅ 구현 완료 | `lib/ai/retrievers/` |
 | `/api/ra/consult` (SSE RAG 상담) | ✅ 구현 완료 | `app/api/ra/consult/` |
@@ -133,7 +133,7 @@ Cloud Control Plane (Azure)
 - `REGULA_KNOWLEDGE_PUSH_URL` GitHub Secret 등록 완료 (2026-06-18)
 - `CRAWL_PUSH_SECRET` GitHub Secret 등록 완료 (2026-06-18)
 
-**운영 검증 필요 (ra-med-bot 작업 후):**
+**🔴 BLOCKED — ra-med-bot 작업 선결 필요:**
 1. ra-med-bot `/api/admin/radar/sync` 수신 endpoint 구현 (SPEC-REGULA-VECTORIZE-001)
 2. Cloudflare Vectorize binding 설정
 3. 배포 후 크롤 job → push → Vectorize 검색까지 E2E 검증
@@ -209,7 +209,7 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 
 **운영 검증 결과 (2026-06-20):**
 - ✅ `REGULA_AUDIT_WEBHOOK_URL` api-prod Container App에 설정됨
-- ⏳ webhook 전달 확인 — ra-med-bot 감사 이벤트 수신 endpoint 구현 후 E2E 검증 필요 (별도 레포)
+- 🔴 BLOCKED: webhook 전달 E2E 검증 — ra-med-bot 감사 이벤트 수신 endpoint 미구현 (별도 레포 작업 선결)
 
 ---
 
@@ -223,7 +223,7 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
 
 **운영 검증 결과 (2026-06-20):**
 - ✅ `REGULA_IFU_WEBHOOK_URL` api-prod Container App에 설정됨
-- ⏳ E2E 검증 — ra-med-bot IFU context 수신 endpoint 구현 후 확인 필요 (별도 레포)
+- 🔴 BLOCKED: E2E 검증 — ra-med-bot IFU context 수신 endpoint 미구현 (별도 레포 작업 선결)
 
 ---
 
@@ -249,7 +249,7 @@ ra-med-bot에서 Customer Runtime `/rag/query`를 프록시하는 API 추가는 
     --resource-group rg-hybrid-ra-saas-prod \
     --set-env-vars "REGULA_KNOWLEDGE_PUSH_URL=https://regula.abyz-lab.work/api/admin/radar/sync"
   ```
-- ⏳ E2E 검증 — ra-med-bot `/api/admin/radar/sync` 수신 endpoint 구현 후 확인 필요
+- 🔴 BLOCKED: E2E 검증 — ra-med-bot `/api/admin/radar/sync` 수신 endpoint 미구현 (별도 레포 작업 선결)
 
 ---
 
