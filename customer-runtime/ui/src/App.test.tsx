@@ -95,6 +95,26 @@ describe("App", () => {
     });
   });
 
+  // Skip link — WCAG 2.4.1 bypass blocks
+  it("renders skip link targeting #main-content (WCAG 2.4.1)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ items: [], total: 0, skip: 0, limit: 50 }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    renderAt("/jobs");
+
+    const skipLink = document.querySelector('a[href="#main-content"]');
+    expect(skipLink).toBeTruthy();
+    expect(skipLink?.textContent).toContain("본문 바로가기");
+
+    const main = document.getElementById("main-content");
+    expect(main).toBeTruthy();
+    expect(main?.getAttribute("tabIndex")).toBe("-1");
+  });
+
   // Root / redirects to /jobs
   it("redirects / to /jobs", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
